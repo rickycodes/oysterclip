@@ -1,8 +1,8 @@
 use clap::Parser;
+use image::{ImageBuffer, Rgba};
+use std::path::PathBuf;
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
-use std::path::PathBuf;
-use image::{ImageBuffer, Rgba};
 
 /// Watch the clipboard and print changes (text or images).
 #[derive(Parser, Debug)]
@@ -12,7 +12,7 @@ struct Args {
     interval_ms: u64,
 
     /// Directory to save new clipboard images
-    #[arg(short = 'o', long = "output", default_value = "clipboard_images")] 
+    #[arg(short = 'o', long = "output", default_value = "clipboard_images")]
     output_dir: String,
 }
 
@@ -53,7 +53,12 @@ fn main() {
         if let Ok(img) = clipboard.get_image() {
             let hash = simple_image_hash(&img.bytes);
             if last_image_hash != Some(hash) {
-                if let Err(e) = on_image_change(&img.bytes, img.width as u32, img.height as u32, &args.output_dir) {
+                if let Err(e) = on_image_change(
+                    &img.bytes,
+                    img.width as u32,
+                    img.height as u32,
+                    &args.output_dir,
+                ) {
                     eprintln!("Failed to save image: {}", e);
                 }
                 last_image_hash = Some(hash);
@@ -75,14 +80,22 @@ fn on_image_change(raw: &[u8], w: u32, h: u32, dir: &str) -> Result<(), String> 
     println!("[{}] Clipboard IMAGE changed: {}x{} (saved)", ts, w, h);
 
     // Convert raw RGBA bytes to ImageBuffer
-    let buffer: ImageBuffer<Rgba<u8>, _> = ImageBuffer::from_raw(w, h, raw.to_vec())
-        .ok_or("Failed to create image buffer")?;
+    let buffer: ImageBuffer<Rgba<u8>, _> =
+        ImageBuffer::from_raw(w, h, raw.to_vec()).ok_or("Failed to create image buffer")?;
 
-    let filename = format!("clipboard_{}.png", SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis());
+    let filename = format!(
+        "clipboard_{}.png",
+        SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_millis()
+    );
     let mut path = PathBuf::from(dir);
     path.push(filename);
 
-    buffer.save(&path).map_err(|e| format!("Failed to save PNG: {}", e))?;
+    buffer
+        .save(&path)
+        .map_err(|e| format!("Failed to save PNG: {}", e))?;
 
     Ok(())
 }
