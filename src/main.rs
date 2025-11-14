@@ -1,38 +1,48 @@
 // clipboard_watcher.rs
-// Single-file Rust clipboard watcher without TTS functionality.
-// Instructions: save as src/main.rs in a new cargo project, or run with `cargo run` after creating Cargo.toml as indicated below.
+// Rust clipboard watcher for both text *and* images (via arboard).
+// Saves new images to disk and prints notifications.
+// No TTS.
 
 /*
-Cargo.toml (add this to your project):
+Cargo.toml:
 
 [package]
 name = "clipboard-watcher"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 arboard = "2"
 humantime = "2"
+image = "0.25"   # used for PNG encoding
 */
 
+use clap::Parser;
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
-use clap::Parser;
+use std::path::PathBuf;
+use image::{ImageBuffer, Rgba};
 
-/// Watch the clipboard and print new clipboard text.
+/// Watch the clipboard and print changes (text or images).
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
 struct Args {
     /// Polling interval in milliseconds
     #[arg(short = 'i', long = "interval", default_value_t = 500)]
     interval_ms: u64,
+
+    /// Directory to save new clipboard images
+    #[arg(short = 'o', long = "output", default_value = "clipboard_images")] 
+    output_dir: String,
 }
 
 fn main() {
     let args = Args::parse();
 
-    println!("Starting clipboard watcher — interval: {}ms", args.interval_ms);
+    println!(
+        "Starting clipboard watcher — interval: {}ms — image output: {}",
+        args.interval_ms, args.output_dir
+    );
 
     let mut clipboard = match arboard::Clipboard::new() {
         Ok(cb) => cb,
@@ -42,28 +52,31 @@ fn main() {
         }
     };
 
-    let mut last: Option<String> = None;
+    let mut last_text: Option<String> = None;
+    let mut last_image_hash: Option<u64> = None;
+
+    std::fs::create_dir_all(&args.output_dir).ok();
+
     let interval = Duration::from_millis(args.interval_ms);
 
     loop {
-        match clipboard.get_text() {
-            Ok(text) => {
-                // Normalize newlines and trim.
-                let normalized = text.replace('\r', "").trim().to_string();
-                if let Some(prev) = &last {
-                    if &normalized != prev {
-                        on_change(&normalized);
-                        last = Some(normalized);
-                    }
-                } else {
-                    // First read; treat as initial state but still announce it
-                    on_change(&normalized);
-                    last = Some(normalized);
-                }
+        // TEXT CHECK
+        if let Ok(text) = clipboard.get_text() {
+            let normalized = text.replace('\r', "").trim().to_string();
+            if last_text.as_ref() != Some(&normalized) {
+                on_text_change(&normalized);
+                last_text = Some(normalized);
             }
-            Err(e) => {
-                eprintln!("Error reading clipboard: {:#?}", e);
-                // On some platforms the clipboard can be temporarily inaccessible; continue.
+        }
+
+        // IMAGE CHECK
+        if let Ok(img) = clipboard.get_image() {
+            let hash = simple_image_hash(&img.bytes);
+            if last_image_hash != Some(hash) {
+                if let Err(e) = on_image_change(&img.bytes, img.width as u32, img.height as u32, &args.output_dir) {
+                    eprintln!("Failed to save image: {}", e);
+                }
+                last_image_hash = Some(hash);
             }
         }
 
@@ -71,9 +84,35 @@ fn main() {
     }
 }
 
-fn on_change(text: &str) {
-    let now = SystemTime::now();
-    let ts = humantime::format_rfc3339_seconds(now);
+fn on_text_change(text: &str) {
+    let ts = humantime::format_rfc3339_seconds(SystemTime::now());
+    println!("[{}] Clipboard TEXT changed:\n{}\n---", ts, text);
+}
 
-    println!("[{}] Clipboard changed:\n{}\n---", ts, text);
+fn on_image_change(raw: &[u8], w: u32, h: u32, dir: &str) -> Result<(), String> {
+    let ts = humantime::format_rfc3339_seconds(SystemTime::now());
+
+    println!("[{}] Clipboard IMAGE changed: {}x{} (saved)", ts, w, h);
+
+    // Convert raw RGBA bytes to ImageBuffer
+    let buffer: ImageBuffer<Rgba<u8>, _> = ImageBuffer::from_raw(w, h, raw.to_vec())
+        .ok_or("Failed to create image buffer")?;
+
+    let filename = format!("clipboard_{}.png", SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis());
+    let mut path = PathBuf::from(dir);
+    path.push(filename);
+
+    buffer.save(&path).map_err(|e| format!("Failed to save PNG: {}", e))?;
+
+    Ok(())
+}
+
+/// Very cheap non-cryptographic byte hash
+fn simple_image_hash(bytes: &[u8]) -> u64 {
+    let mut h = 0xcbf29ce484222325u64;
+    for &b in bytes {
+        h = h ^ (b as u64);
+        h = h.wrapping_mul(0x100000001b3);
+    }
+    h
 }
