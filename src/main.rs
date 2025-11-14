@@ -1,23 +1,3 @@
-// clipboard_watcher.rs
-// Rust clipboard watcher for both text *and* images (via arboard).
-// Saves new images to disk and prints notifications.
-// No TTS.
-
-/*
-Cargo.toml:
-
-[package]
-name = "clipboard-watcher"
-version = "0.2.0"
-edition = "2021"
-
-[dependencies]
-clap = { version = "4", features = ["derive"] }
-arboard = "2"
-humantime = "2"
-image = "0.25"   # used for PNG encoding
-*/
-
 use clap::Parser;
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
