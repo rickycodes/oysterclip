@@ -1,151 +1,108 @@
-use clap::Parser;
-use image::{ImageBuffer, Rgba};
-use std::path::PathBuf;
+use arboard::Clipboard;
+use image::{ImageBuffer, Rgba, ImageFormat};
+use serde::{Serialize, Deserialize};
+use std::fs;
+use std::path::Path;
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
 
-/// Watch the clipboard and print changes (text or images).
-#[derive(Parser, Debug)]
-struct Args {
-    /// Polling interval in milliseconds
-    #[arg(short = 'i', long = "interval", default_value_t = 500)]
-    interval_ms: u64,
+const HISTORY_FILE: &str = ".paste_history.json";
+const IMAGE_DIR: &str = "clipboard_images";
+const INTERVAL_MS: u64 = 500;
 
-    /// Directory to save new clipboard images
-    #[arg(short = 'o', long = "output", default_value = "clipboard_images")]
-    output_dir: String,
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(tag = "type")]
+enum PasteEntry {
+    Text { timestamp: u64, content: String },
+    Image { timestamp: u64, path: String, hash: u64 },
+}
+
+fn simple_image_hash(bytes: &[u8]) -> u64 {
+    let mut h = 0xcbf29ce484222325u64;
+    for &b in bytes {
+        h ^= b as u64;
+        h = h.wrapping_mul(0x100000001b3);
+    }
+    h
+}
+
+fn save_image(bytes: &[u8], width: usize, height: usize, hash: u64) -> Result<String, Box<dyn std::error::Error>> {
+    fs::create_dir_all(IMAGE_DIR)?;
+
+    let filename = format!("{}/img_{}.png", IMAGE_DIR, hash);
+    let path = Path::new(&filename);
+
+    let buffer: ImageBuffer<Rgba<u8>, _> = ImageBuffer::from_raw(
+        width as u32,
+        height as u32,
+        bytes.to_vec(),
+    ).ok_or("Failed to create image buffer")?;
+
+    buffer.save_with_format(path, ImageFormat::Png)?;
+
+    Ok(filename.to_string())
+}
+
+fn append_history(entry: &PasteEntry) {
+    let mut history = if Path::new(HISTORY_FILE).exists() {
+        let data = fs::read_to_string(HISTORY_FILE).unwrap_or_default();
+        serde_json::from_str::<Vec<PasteEntry>>(&data).unwrap_or_else(|_| vec![])
+    } else {
+        vec![]
+    };
+
+    history.push(entry.clone());
+
+    if let Ok(json) = serde_json::to_string_pretty(&history) {
+        let _ = fs::write(HISTORY_FILE, json);
+    }
+}
+
+fn current_timestamp() -> u64 {
+    SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
 }
 
 fn main() {
-    let args = Args::parse();
+    println!("Starting clipboard watcher — interval: {}ms", INTERVAL_MS);
 
-    println!(
-        "Starting clipboard watcher — interval: {}ms — image output: {}",
-        args.interval_ms, args.output_dir
-    );
-
-    let mut clipboard = match arboard::Clipboard::new() {
-        Ok(cb) => cb,
-        Err(e) => {
-            eprintln!("Failed to open clipboard: {:#?}", e);
-            return;
-        }
-    };
-
+    let mut clipboard = Clipboard::new().expect("Clipboard not available");
     let mut last_text: Option<String> = None;
     let mut last_image_hash: Option<u64> = None;
 
-    std::fs::create_dir_all(&args.output_dir).ok();
-
-    let interval = Duration::from_millis(args.interval_ms);
-
     loop {
-        // TEXT CHECK
+        // TEXT
         if let Ok(text) = clipboard.get_text() {
-            let normalized = text.replace('\r', "").trim().to_string();
-            if last_text.as_ref() != Some(&normalized) {
-                on_text_change(&normalized);
-                last_text = Some(normalized);
+            if Some(&text) != last_text.as_ref() {
+                println!("(text) {}", text);
+                append_history(&PasteEntry::Text {
+                    timestamp: current_timestamp(),
+                    content: text.clone(),
+                });
+                last_text = Some(text);
             }
         }
 
-        // IMAGE CHECK
+        // IMAGE
         if let Ok(img) = clipboard.get_image() {
-            let hash = simple_image_hash(&img.bytes);
-            if last_image_hash != Some(hash) {
-                if let Err(e) = on_image_change(
-                    &img.bytes,
-                    img.width as u32,
-                    img.height as u32,
-                    &args.output_dir,
-                ) {
-                    eprintln!("Failed to save image: {}", e);
+            let bytes: Vec<u8> = img.bytes.to_vec();
+            let hash = simple_image_hash(&bytes);
+
+            if Some(hash) != last_image_hash {
+                if let Ok(path) = save_image(&bytes, img.width, img.height, hash) {
+                    println!("(image) saved: {}", path);
+                    append_history(&PasteEntry::Image {
+                        timestamp: current_timestamp(),
+                        path,
+                        hash,
+                    });
                 }
                 last_image_hash = Some(hash);
             }
         }
 
-        sleep(interval);
+        sleep(Duration::from_millis(INTERVAL_MS));
     }
-}
-
-fn on_text_change(text: &str) {
-    let ts = humantime::format_rfc3339_seconds(SystemTime::now());
-    println!(
-        "[{}] Clipboard TEXT changed:
-{}
----",
-        ts, text
-    );
-
-    // Append to .paste_history
-    if let Err(e) = append_history(format!(
-        "TEXT [{}]: {}
-",
-        ts, text
-    )) {
-        eprintln!("Failed to write history: {}", e);
-    }
-}
-
-fn on_image_change(raw: &[u8], w: u32, h: u32, dir: &str) -> Result<(), String> {
-    let ts = humantime::format_rfc3339_seconds(SystemTime::now());
-
-    println!("[{}] Clipboard IMAGE changed: {}x{} (saved)", ts, w, h);
-
-    // Convert raw RGBA bytes to ImageBuffer
-    let buffer: ImageBuffer<Rgba<u8>, _> =
-        ImageBuffer::from_raw(w, h, raw.to_vec()).ok_or("Failed to create image buffer")?;
-
-    let filename = format!(
-        "clipboard_{}.png",
-        SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_millis()
-    );
-    let mut path = PathBuf::from(dir);
-    path.push(&filename);
-
-    buffer
-        .save(&path)
-        .map_err(|e| format!("Failed to save PNG: {}", e))?;
-
-    // Append to .paste_history
-    if let Err(e) = append_history(format!(
-        "IMAGE [{}]: {}
-",
-        ts,
-        path.display()
-    )) {
-        eprintln!("Failed to write history: {}", e);
-    }
-
-    Ok(())
-}
-
-fn append_history(entry: String) -> Result<(), String> {
-    use std::fs::OpenOptions;
-    use std::io::Write;
-
-    let mut file = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(".paste_history")
-        .map_err(|e| format!("Failed to open .paste_history: {}", e))?;
-
-    file.write_all(entry.as_bytes())
-        .map_err(|e| format!("Failed to write to .paste_history: {}", e))?;
-
-    Ok(())
-}
-
-/// Very cheap non-cryptographic byte hash
-fn simple_image_hash(bytes: &[u8]) -> u64 {
-    let mut h = 0xcbf29ce484222325u64;
-    for &b in bytes {
-        h = h ^ (b as u64);
-        h = h.wrapping_mul(0x100000001b3);
-    }
-    h
 }
