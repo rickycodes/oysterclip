@@ -71,7 +71,21 @@ fn main() {
 
 fn on_text_change(text: &str) {
     let ts = humantime::format_rfc3339_seconds(SystemTime::now());
-    println!("[{}] Clipboard TEXT changed:\n{}\n---", ts, text);
+    println!(
+        "[{}] Clipboard TEXT changed:
+{}
+---",
+        ts, text
+    );
+
+    // Append to .paste_history
+    if let Err(e) = append_history(format!(
+        "TEXT [{}]: {}
+",
+        ts, text
+    )) {
+        eprintln!("Failed to write history: {}", e);
+    }
 }
 
 fn on_image_change(raw: &[u8], w: u32, h: u32, dir: &str) -> Result<(), String> {
@@ -91,11 +105,37 @@ fn on_image_change(raw: &[u8], w: u32, h: u32, dir: &str) -> Result<(), String> 
             .as_millis()
     );
     let mut path = PathBuf::from(dir);
-    path.push(filename);
+    path.push(&filename);
 
     buffer
         .save(&path)
         .map_err(|e| format!("Failed to save PNG: {}", e))?;
+
+    // Append to .paste_history
+    if let Err(e) = append_history(format!(
+        "IMAGE [{}]: {}
+",
+        ts,
+        path.display()
+    )) {
+        eprintln!("Failed to write history: {}", e);
+    }
+
+    Ok(())
+}
+
+fn append_history(entry: String) -> Result<(), String> {
+    use std::fs::OpenOptions;
+    use std::io::Write;
+
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(".paste_history")
+        .map_err(|e| format!("Failed to open .paste_history: {}", e))?;
+
+    file.write_all(entry.as_bytes())
+        .map_err(|e| format!("Failed to write to .paste_history: {}", e))?;
 
     Ok(())
 }
