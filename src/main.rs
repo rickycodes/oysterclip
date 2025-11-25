@@ -1,78 +1,11 @@
 use arboard::Clipboard;
-use image::{ImageBuffer, ImageFormat, Rgba};
-use serde::{Deserialize, Serialize};
-use std::fs;
-use std::path::Path;
 use std::thread::sleep;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration};
 
 mod constants;
-use crate::constants::{HISTORY_FILE, IMAGE_DIR, INTERVAL_MS};
-
-#[derive(Serialize, Deserialize, Clone)]
-#[serde(tag = "type")]
-enum PasteEntry {
-    Text {
-        timestamp: u64,
-        content: String,
-    },
-    Image {
-        timestamp: u64,
-        path: String,
-        hash: u64,
-    },
-}
-
-fn simple_image_hash(bytes: &[u8]) -> u64 {
-    let mut h = 0xcbf29ce484222325u64;
-    for &b in bytes {
-        h ^= b as u64;
-        h = h.wrapping_mul(0x100000001b3);
-    }
-    h
-}
-
-fn save_image(
-    bytes: &[u8],
-    width: usize,
-    height: usize,
-    hash: u64,
-) -> Result<String, Box<dyn std::error::Error>> {
-    fs::create_dir_all(IMAGE_DIR)?;
-
-    let filename = format!("{}/img_{}.png", IMAGE_DIR, hash);
-    let path = Path::new(&filename);
-
-    let buffer: ImageBuffer<Rgba<u8>, _> =
-        ImageBuffer::from_raw(width as u32, height as u32, bytes.to_vec())
-            .ok_or("Failed to create image buffer")?;
-
-    buffer.save_with_format(path, ImageFormat::Png)?;
-
-    Ok(filename.to_string())
-}
-
-fn append_history(entry: &PasteEntry) {
-    let mut history = if Path::new(HISTORY_FILE).exists() {
-        let data = fs::read_to_string(HISTORY_FILE).unwrap_or_default();
-        serde_json::from_str::<Vec<PasteEntry>>(&data).unwrap_or_else(|_| vec![])
-    } else {
-        vec![]
-    };
-
-    history.push(entry.clone());
-
-    if let Ok(json) = serde_json::to_string_pretty(&history) {
-        let _ = fs::write(HISTORY_FILE, json);
-    }
-}
-
-fn current_timestamp() -> u64 {
-    SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs()
-}
+mod utils;
+use crate::constants::{INTERVAL_MS};
+use crate::utils::{save_image, append_history, current_timestamp,simple_image_hash,PasteEntry};
 
 fn main() {
     println!("Starting clipboard watcher — interval: {}ms", INTERVAL_MS);
