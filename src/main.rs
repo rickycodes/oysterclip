@@ -1,11 +1,11 @@
 use arboard::Clipboard;
 use std::thread::sleep;
-use std::time::{Duration};
+use std::time::Duration;
 
 mod constants;
 mod utils;
-use crate::constants::{INTERVAL_MS};
-use crate::utils::{save_image, append_history, current_timestamp,simple_image_hash,PasteEntry};
+use crate::constants::INTERVAL_MS;
+use crate::utils::{append_history, current_timestamp, save_image, simple_image_hash, PasteEntry};
 
 fn main() {
     println!("Starting clipboard watcher — interval: {}ms", INTERVAL_MS);

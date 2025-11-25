@@ -1,8 +1,8 @@
+use image::{ImageBuffer, ImageFormat, Rgba};
 use serde::{Deserialize, Serialize};
-use std::time::{SystemTime};
 use std::fs;
 use std::path::Path;
-use image::{ImageBuffer, ImageFormat, Rgba};
+use std::time::SystemTime;
 
 use crate::constants::{HISTORY_FILE, IMAGE_DIR};
 
