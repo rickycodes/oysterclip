@@ -4,13 +4,13 @@ use std::time::Duration;
 
 mod constants;
 mod utils;
-use crate::constants::INTERVAL_MS;
+use crate::constants::{CLIPBOARD_NOT_AVAILABLE, INTERVAL_MS};
 use crate::utils::{append_history, current_timestamp, save_image, simple_image_hash, PasteEntry};
 
 fn main() {
     println!("Starting clipboard watcher — interval: {}ms", INTERVAL_MS);
 
-    let mut clipboard = Clipboard::new().expect("Clipboard not available");
+    let mut clipboard = Clipboard::new().expect(CLIPBOARD_NOT_AVAILABLE);
     let mut last_text: Option<String> = None;
     let mut last_image_hash: Option<u64> = None;
 
