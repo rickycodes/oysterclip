@@ -1,24 +1,9 @@
 use image::{ImageBuffer, ImageFormat, Rgba};
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 use std::time::SystemTime;
 
-use crate::constants::{HISTORY_FILE, IMAGE_DIR};
-
-#[derive(Serialize, Deserialize, Clone)]
-#[serde(tag = "type")]
-pub(crate) enum PasteEntry {
-    Text {
-        timestamp: u64,
-        content: String,
-    },
-    Image {
-        timestamp: u64,
-        path: String,
-        hash: u64,
-    },
-}
+use crate::constants::{HISTORY_FILE, IMAGE_DIR, PasteEntry};
 
 pub(crate) fn simple_image_hash(bytes: &[u8]) -> u64 {
     let mut h = 0xcbf29ce484222325u64;

@@ -4,8 +4,8 @@ use std::time::Duration;
 
 mod constants;
 mod utils;
-use crate::constants::{CLIPBOARD_NOT_AVAILABLE, INTERVAL_MS};
-use crate::utils::{append_history, current_timestamp, save_image, simple_image_hash, PasteEntry};
+use crate::constants::{CLIPBOARD_NOT_AVAILABLE, INTERVAL_MS, PasteEntry};
+use crate::utils::{append_history, current_timestamp, save_image, simple_image_hash};
 
 fn main() {
     println!("Starting clipboard watcher — interval: {}ms", INTERVAL_MS);
@@ -15,7 +15,6 @@ fn main() {
     let mut last_image_hash: Option<u64> = None;
 
     loop {
-        // TEXT
         if let Ok(text) = clipboard.get_text() {
             if Some(&text) != last_text.as_ref() {
                 println!("(text) {}", text);
@@ -27,7 +26,6 @@ fn main() {
             }
         }
 
-        // IMAGE
         if let Ok(img) = clipboard.get_image() {
             let bytes: Vec<u8> = img.bytes.to_vec();
             let hash = simple_image_hash(&bytes);
