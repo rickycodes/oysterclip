@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 use std::time::SystemTime;
 
-use crate::constants::{HISTORY_FILE, IMAGE_DIR, PasteEntry};
+use crate::constants::{FAILED_IMAGE_BUFFER, HISTORY_FILE, IMAGE_DIR, PasteEntry};
 
 pub(crate) fn simple_image_hash(bytes: &[u8]) -> u64 {
     let mut h = 0xcbf29ce484222325u64;
@@ -27,7 +27,7 @@ pub(crate) fn save_image(
 
     let buffer: ImageBuffer<Rgba<u8>, _> =
         ImageBuffer::from_raw(width as u32, height as u32, bytes.to_vec())
-            .ok_or("Failed to create image buffer")?;
+            .ok_or(FAILED_IMAGE_BUFFER)?;
 
     buffer.save_with_format(path, ImageFormat::Png)?;
 
