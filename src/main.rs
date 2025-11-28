@@ -4,7 +4,7 @@ use std::time::Duration;
 
 mod constants;
 mod utils;
-use crate::constants::{CLIPBOARD_NOT_AVAILABLE, INTERVAL_MS, PasteEntry};
+use crate::constants::{PasteEntry, CLIPBOARD_NOT_AVAILABLE, INTERVAL_MS};
 use crate::utils::{append_history, current_timestamp, save_image, simple_image_hash};
 
 fn main() {
