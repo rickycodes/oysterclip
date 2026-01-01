@@ -2,9 +2,10 @@ use arboard::Clipboard;
 use std::thread::sleep;
 use std::time::Duration;
 
-mod constants;
+mod common;
 mod utils;
-use crate::constants::{PasteEntry, CLIPBOARD_NOT_AVAILABLE, INTERVAL_MS};
+
+use crate::common::{PasteEntry, CLIPBOARD_NOT_AVAILABLE, INTERVAL_MS};
 use crate::utils::{append_history, current_timestamp, save_image, simple_image_hash};
 
 fn main() {
