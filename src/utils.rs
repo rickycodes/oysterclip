@@ -35,12 +35,27 @@ pub(crate) fn save_image(
 }
 
 pub(crate) fn append_history(entry: &PasteEntry) {
-    let mut history = if Path::new(HISTORY_FILE).exists() {
-        let data = fs::read_to_string(HISTORY_FILE).unwrap_or_default();
-        serde_json::from_str::<Vec<PasteEntry>>(&data).unwrap_or_else(|_| vec![])
+    let mut history: Vec<PasteEntry> = if Path::new(HISTORY_FILE).exists() {
+        fs::read_to_string(HISTORY_FILE)
+            .ok()
+            .and_then(|data| serde_json::from_str(&data).ok())
+            .unwrap_or_default()
     } else {
-        vec![]
+        Vec::new()
     };
+
+    if let PasteEntry::Text { content: new_content, .. } = entry {
+        let is_duplicate = history.iter().any(|existing| {
+            matches!(
+                existing,
+                PasteEntry::Text { content, .. } if content == new_content
+            )
+        });
+
+        if is_duplicate {
+            return;
+        }
+    }
 
     history.push(entry.clone());
 
