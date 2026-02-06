@@ -5,8 +5,9 @@ use std::time::Duration;
 mod common;
 mod utils;
 
-use crate::common::{PasteEntry, CLIPBOARD_NOT_AVAILABLE, INTERVAL_MS};
+use crate::common::{PasteEntry, CLIPBOARD_NOT_AVAILABLE, HISTORY_FILE, IMAGE_DIR, INTERVAL_MS};
 use crate::utils::{append_history, current_timestamp, save_image, simple_image_hash};
+use std::path::Path;
 
 fn main() {
     println!("Starting clipboard watcher — interval: {}ms", INTERVAL_MS);
@@ -22,7 +23,7 @@ fn main() {
                 append_history(&PasteEntry::Text {
                     timestamp: current_timestamp(),
                     content: text.clone(),
-                });
+                }, Path::new(HISTORY_FILE));
                 last_text = Some(text);
             }
         }
@@ -32,13 +33,13 @@ fn main() {
             let hash = simple_image_hash(&bytes);
 
             if Some(hash) != last_image_hash {
-                if let Ok(path) = save_image(&bytes, img.width, img.height, hash) {
+                if let Ok(path) = save_image(&bytes, img.width, img.height, hash, Path::new(IMAGE_DIR)) {
                     println!("(image) saved: {}", path);
                     append_history(&PasteEntry::Image {
                         timestamp: current_timestamp(),
                         path,
                         hash,
-                    });
+                    }, Path::new(HISTORY_FILE));
                 }
                 last_image_hash = Some(hash);
             }
