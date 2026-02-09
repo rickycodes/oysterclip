@@ -15,7 +15,12 @@
       {
         "title": "clipboard-viewer",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "decorations": true,
+        "resizable": true,
+        "maximizable": true,
+        "minimizable": true,
+        "closable": true
       }
     ],
     "security": {
