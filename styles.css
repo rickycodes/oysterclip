@@ -138,6 +138,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  position: sticky;
+  top: 20px;
 }
 
 .detail-empty {
@@ -219,5 +221,10 @@ body {
   .sidebar,
   .content {
     min-height: auto;
+  }
+
+  .detail {
+    position: static;
+    top: auto;
   }
 }
