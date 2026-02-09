@@ -207,8 +207,6 @@ pub fn app() -> Html {
         },
         None => html! {
             <div class="detail detail-empty">
-                <h2>{ "Clipboard Viewer" }</h2>
-                <p>{ "Waiting for clipboard entries..." }</p>
             </div>
         },
     };
