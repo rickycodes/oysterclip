@@ -55,36 +55,22 @@ fn format_timestamp(timestamp: u64) -> String {
     let ms = (timestamp as f64) * 1000.0;
     let date = Date::new(&JsValue::from_f64(ms));
     let options = js_sys::Object::new();
-    let _ = js_sys::Reflect::set(
-        &options,
-        &JsValue::from_str("weekday"),
-        &JsValue::from_str("long"),
-    );
-    let _ = js_sys::Reflect::set(
-        &options,
-        &JsValue::from_str("year"),
-        &JsValue::from_str("numeric"),
-    );
-    let _ = js_sys::Reflect::set(
-        &options,
-        &JsValue::from_str("month"),
-        &JsValue::from_str("short"),
-    );
-    let _ = js_sys::Reflect::set(
-        &options,
-        &JsValue::from_str("day"),
-        &JsValue::from_str("2-digit"),
-    );
-    let _ = js_sys::Reflect::set(
-        &options,
-        &JsValue::from_str("hour"),
-        &JsValue::from_str("2-digit"),
-    );
-    let _ = js_sys::Reflect::set(
-        &options,
-        &JsValue::from_str("minute"),
-        &JsValue::from_str("2-digit"),
-    );
+    let parts = [
+        ("weekday", "long"),
+        ("year", "numeric"),
+        ("month", "short"),
+        ("day", "2-digit"),
+        ("hour", "2-digit"),
+        ("minute", "2-digit"),
+    ];
+
+    for (key, value) in parts {
+        let _ = js_sys::Reflect::set(
+            &options,
+            &JsValue::from_str(key),
+            &JsValue::from_str(value),
+        );
+    }
 
     date.to_locale_string("en-US", &options.into()).into()
 }
