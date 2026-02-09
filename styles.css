@@ -1,0 +1,227 @@
+:root {
+  color-scheme: light;
+  --bg: #f3f0ea;
+  --bg-accent: #dfe7ef;
+  --panel: rgba(255, 255, 255, 0.86);
+  --panel-strong: rgba(255, 255, 255, 0.98);
+  --ink: #1c1c1a;
+  --ink-soft: #4a4f55;
+  --teal: #0e7c86;
+  --sun: #f0a83b;
+  --shadow: 0 24px 60px rgba(18, 28, 34, 0.18);
+  --border: rgba(28, 28, 26, 0.08);
+  font-family: "Space Grotesk", "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  font-weight: 400;
+  color: var(--ink);
+  background: radial-gradient(1200px 600px at 15% 10%, #fef7e6 0%, transparent 60%),
+    radial-gradient(800px 500px at 90% 20%, #d7efe9 0%, transparent 55%),
+    linear-gradient(135deg, var(--bg) 0%, var(--bg-accent) 100%);
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+  padding: 28px;
+}
+
+.sidebar {
+  background: var(--panel);
+  backdrop-filter: blur(18px);
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 56px);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sidebar-header h1 {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: -0.02em;
+}
+
+.sidebar-count {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.sidebar-error {
+  background: rgba(255, 204, 188, 0.5);
+  color: #6a1b0f;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.entry-list {
+  display: grid;
+  gap: 12px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.entry-card {
+  border: 1px solid transparent;
+  background: var(--panel-strong);
+  border-radius: 16px;
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 12px 24px rgba(15, 20, 28, 0.08);
+}
+
+.entry-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(14, 124, 134, 0.3);
+}
+
+.entry-card.active {
+  border-color: rgba(14, 124, 134, 0.6);
+  box-shadow: 0 16px 34px rgba(14, 124, 134, 0.18);
+}
+
+.entry-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--teal);
+  font-weight: 600;
+}
+
+.entry-preview {
+  font-size: 15px;
+  margin: 6px 0 8px;
+  color: var(--ink);
+}
+
+.entry-ts {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.content {
+  background: rgba(255, 255, 255, 0.62);
+  border-radius: 28px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 28px;
+  min-height: calc(100vh - 56px);
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.detail-empty {
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 12px;
+}
+
+.detail-empty h2 {
+  margin: 0;
+  font-size: 32px;
+}
+
+.detail-meta {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.detail-type {
+  background: rgba(14, 124, 134, 0.12);
+  color: var(--teal);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.detail-text {
+  margin: 0;
+  padding: 18px;
+  background: var(--panel-strong);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  font-family: "IBM Plex Mono", "JetBrains Mono", monospace;
+  font-size: 14px;
+  color: var(--ink);
+  white-space: pre-wrap;
+}
+
+.detail-image-wrap {
+  background: var(--panel-strong);
+  border-radius: 22px;
+  border: 1px solid var(--border);
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 280px;
+}
+
+.detail-image {
+  max-width: 100%;
+  max-height: 60vh;
+  border-radius: 14px;
+  box-shadow: 0 16px 34px rgba(19, 25, 34, 0.2);
+}
+
+.detail-image-missing {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.detail-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 960px) {
+  .app {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .sidebar,
+  .content {
+    min-height: auto;
+  }
+}

@@ -1,0 +1,7 @@
+.taurignore
+.vscode
+
+/public/
+/dist/
+/target/
+/Cargo.lock
