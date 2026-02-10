@@ -66,8 +66,10 @@ pub fn app() -> Html {
 
     let on_select = {
         let selected = selected.clone();
+        let revealed = revealed.clone();
         Callback::from(move |idx: usize| {
             selected.set(Some(idx));
+            revealed.set(HashSet::new());
         })
     };
 
