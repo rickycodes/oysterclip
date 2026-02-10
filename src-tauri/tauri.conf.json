@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "clipboard-viewer",
+        "title": "Clipboard Viewer",
         "width": 800,
         "height": 600,
         "decorations": true,
