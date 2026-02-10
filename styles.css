@@ -32,7 +32,7 @@ body {
 .app {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 420px 1fr;
+  grid-template-columns: 440px 1fr;
   padding: 0;
 }
 
