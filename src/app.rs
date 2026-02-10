@@ -1,6 +1,8 @@
 use gloo_timers::callback::Interval;
 use js_sys::Date;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
@@ -46,9 +48,86 @@ fn preview_text(content: &str, limit: usize) -> String {
 
 fn entry_label(entry: &PasteEntry) -> &'static str {
     match entry {
-        PasteEntry::Text { .. } => "Text",
+        PasteEntry::Text { content, .. } => {
+            if is_password_like(content) {
+                "Password"
+            } else {
+                "Text"
+            }
+        }
         PasteEntry::Image { .. } => "Image",
     }
+}
+
+fn is_password_like(content: &str) -> bool {
+    let trimmed = content.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+    if trimmed.chars().any(|ch| ch.is_whitespace()) {
+        return false;
+    }
+
+    let mut has_upper = false;
+    let mut has_lower = false;
+    let mut has_digit = false;
+    let mut has_punct = false;
+    let mut unique = HashSet::new();
+    let mut len = 0usize;
+
+    for ch in trimmed.chars() {
+        len += 1;
+        unique.insert(ch);
+        if ch.is_ascii_uppercase() {
+            has_upper = true;
+        } else if ch.is_ascii_lowercase() {
+            has_lower = true;
+        } else if ch.is_ascii_digit() {
+            has_digit = true;
+        } else if ch.is_ascii_punctuation() {
+            has_punct = true;
+        } else {
+            // Non-ASCII likely means it's not a generated password.
+            return false;
+        }
+    }
+
+    if len < 8 {
+        return false;
+    }
+
+    let classes = [has_upper, has_lower, has_digit, has_punct]
+        .iter()
+        .filter(|&&v| v)
+        .count();
+    let unique_ratio = unique.len() as f32 / len as f32;
+
+    classes >= 3 && unique_ratio >= 0.6
+}
+
+fn mask_text(content: &str) -> String {
+    content.chars().map(|_| '•').collect()
+}
+
+fn entry_key(entry: &PasteEntry) -> u64 {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    match entry {
+        PasteEntry::Text { timestamp, content } => {
+            timestamp.hash(&mut hasher);
+            content.hash(&mut hasher);
+        }
+        PasteEntry::Image {
+            timestamp,
+            path,
+            hash,
+            ..
+        } => {
+            timestamp.hash(&mut hasher);
+            path.hash(&mut hasher);
+            hash.hash(&mut hasher);
+        }
+    }
+    hasher.finish()
 }
 
 fn format_timestamp(timestamp: u64) -> String {
@@ -110,6 +189,7 @@ pub fn app() -> Html {
     let entries = use_state(|| Vec::<PasteEntry>::new());
     let selected = use_state(|| Option::<usize>::None);
     let error = use_state(|| Option::<String>::None);
+    let revealed = use_state(|| HashSet::<u64>::new());
 
     {
         let entries = entries.clone();
@@ -161,14 +241,57 @@ pub fn app() -> Html {
     };
 
     let detail = match (*selected).and_then(|idx| (*entries).get(idx)) {
-        Some(PasteEntry::Text { timestamp, content }) => html! {
+        Some(PasteEntry::Text { timestamp, content }) => {
+            let is_password = is_password_like(content);
+            let key = entry_key(&PasteEntry::Text {
+                timestamp: *timestamp,
+                content: content.clone(),
+            });
+            let is_revealed = (*revealed).contains(&key);
+            let rendered = if is_password && !is_revealed {
+                mask_text(content)
+            } else {
+                content.clone()
+            };
+            let toggle = if is_password {
+                let revealed = revealed.clone();
+                let key = key;
+                html! {
+                    <button class="detail-toggle" onclick={Callback::from(move |_| {
+                        let mut next = (*revealed).clone();
+                        if next.remove(&key) {
+                            revealed.set(next);
+                            return;
+                        }
+
+                        let revealed = revealed.clone();
+                        spawn_local(async move {
+                            let value = invoke("request_admin", JsValue::NULL).await;
+                            let ok = serde_wasm_bindgen::from_value::<bool>(value).unwrap_or(false);
+                            if ok {
+                                let mut next = (*revealed).clone();
+                                next.insert(key);
+                                revealed.set(next);
+                            }
+                        });
+                    })}>
+                        { if is_revealed { "Hide" } else { "Reveal" } }
+                    </button>
+                }
+            } else {
+                html! {}
+            };
+
+            html! {
             <div class="detail">
                 <div class="detail-meta">
-                    <span class="detail-type">{ "Text" }</span>
+                    <span class="detail-type">{ entry_label(&PasteEntry::Text { timestamp: *timestamp, content: content.clone() }) }</span>
                     <span class="detail-ts">{ format!("Timestamp: {}", format_timestamp(*timestamp)) }</span>
+                    { toggle }
                 </div>
-                <pre class="detail-text">{ content.clone() }</pre>
+                <pre class="detail-text">{ rendered }</pre>
             </div>
+        }
         },
         Some(PasteEntry::Image { timestamp, path, hash, data_url }) => html! {
             <div class="detail">
@@ -214,7 +337,14 @@ pub fn app() -> Html {
                             let class = if is_active { "entry-card active" } else { "entry-card" };
                             let on_select = on_select.clone();
                             let preview = match entry {
-                                PasteEntry::Text { content, .. } => preview_text(content, 56),
+                                PasteEntry::Text { content, .. } => {
+                                    if is_password_like(content) {
+                                        let snippet: String = content.chars().take(56).collect();
+                                        mask_text(&snippet)
+                                    } else {
+                                        preview_text(content, 56)
+                                    }
+                                }
                                 PasteEntry::Image { path, .. } => preview_text(path, 56),
                             };
                             let timestamp = match entry {
