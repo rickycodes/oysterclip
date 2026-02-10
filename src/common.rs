@@ -97,7 +97,9 @@ pub fn is_password_like(content: &str) -> bool {
 }
 
 pub fn mask_text(content: &str) -> String {
-    content.chars().map(|_| '•').collect()
+    const MASK_LEN: usize = 12;
+    let _ = content;
+    std::iter::repeat('•').take(MASK_LEN).collect()
 }
 
 pub fn entry_key(entry: &PasteEntry) -> u64 {
