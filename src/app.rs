@@ -21,16 +21,24 @@ pub fn app() -> Html {
     let selected = use_state(|| Option::<usize>::None);
     let error = use_state(|| Option::<String>::None);
     let revealed = use_state(|| HashSet::<u64>::new());
+    let in_flight = use_mut_ref(|| false);
 
     {
         let entries = entries.clone();
         let selected = selected.clone();
         let error = error.clone();
+        let in_flight = in_flight.clone();
         use_effect_with((), move |_| {
             let interval = Interval::new(500, move || {
+                if *in_flight.borrow() {
+                    return;
+                }
+                *in_flight.borrow_mut() = true;
+
                 let entries = entries.clone();
                 let selected = selected.clone();
                 let error = error.clone();
+                let in_flight = in_flight.clone();
                 spawn_local(async move {
                     let value = invoke("get_clipboard_entries", JsValue::NULL).await;
                     match serde_wasm_bindgen::from_value::<ClipboardPayload>(value) {
@@ -65,6 +73,7 @@ pub fn app() -> Html {
                             error.set(Some(err.to_string()));
                         }
                     }
+                    *in_flight.borrow_mut() = false;
                 });
             });
 
