@@ -36,13 +36,21 @@ pub fn app() -> Html {
                     match serde_wasm_bindgen::from_value::<ClipboardPayload>(value) {
                         Ok(payload) => {
                             if let Some(err) = payload.error {
-                                error.set(Some(err));
+                                if error.as_ref() != Some(&err) {
+                                    error.set(Some(err));
+                                }
                                 return;
                             }
 
-                            error.set(None);
-                            let new_len = payload.entries.len();
-                            entries.set(payload.entries);
+                            if (*error).is_some() {
+                                error.set(None);
+                            }
+
+                            let new_entries = payload.entries;
+                            let new_len = new_entries.len();
+                            if entries.as_slice() != new_entries.as_slice() {
+                                entries.set(new_entries);
+                            }
 
                             match (*selected).clone() {
                                 Some(idx) if idx < new_len => {}
