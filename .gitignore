@@ -1,5 +1,6 @@
 .taurignore
 .vscode
+init.sh
 
 /public/
 /dist/
