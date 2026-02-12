@@ -1,7 +1,5 @@
 use js_sys::Date;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
-use std::hash::{Hash, Hasher};
 use wasm_bindgen::prelude::*;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq)]
@@ -39,88 +37,9 @@ pub fn preview_text(content: &str, limit: usize) -> String {
 
 pub fn entry_label(entry: &PasteEntry) -> &'static str {
     match entry {
-        PasteEntry::Text { content, .. } => {
-            if is_password_like(content) {
-                "Password"
-            } else {
-                "Text"
-            }
-        }
+        PasteEntry::Text { .. } => "Text",
         PasteEntry::Image { .. } => "Image",
     }
-}
-
-pub fn is_password_like(content: &str) -> bool {
-    let trimmed = content.trim();
-    if trimmed.is_empty() {
-        return false;
-    }
-    if trimmed.chars().any(|ch| ch.is_whitespace()) {
-        return false;
-    }
-
-    let mut has_upper = false;
-    let mut has_lower = false;
-    let mut has_digit = false;
-    let mut has_punct = false;
-    let mut unique = HashSet::new();
-    let mut len = 0usize;
-
-    for ch in trimmed.chars() {
-        len += 1;
-        unique.insert(ch);
-        if ch.is_ascii_uppercase() {
-            has_upper = true;
-        } else if ch.is_ascii_lowercase() {
-            has_lower = true;
-        } else if ch.is_ascii_digit() {
-            has_digit = true;
-        } else if ch.is_ascii_punctuation() {
-            has_punct = true;
-        } else {
-            // Non-ASCII likely means it's not a generated password.
-            return false;
-        }
-    }
-
-    if len < 8 {
-        return false;
-    }
-
-    let classes = [has_upper, has_lower, has_digit, has_punct]
-        .iter()
-        .filter(|&&v| v)
-        .count();
-    let unique_ratio = unique.len() as f32 / len as f32;
-
-    classes >= 3 && unique_ratio >= 0.6
-}
-
-pub fn mask_text(content: &str) -> String {
-    const MASK_LEN: usize = 12;
-    let _ = content;
-    std::iter::repeat('•').take(MASK_LEN).collect()
-}
-
-pub fn entry_key(entry: &PasteEntry) -> u64 {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    match entry {
-        PasteEntry::Text { timestamp, content } => {
-            timestamp.hash(&mut hasher);
-            content.hash(&mut hasher);
-        }
-        PasteEntry::Image {
-            timestamp,
-            path,
-            hash,
-            ..
-        } => {
-            timestamp.hash(&mut hasher);
-            path.hash(&mut hasher);
-            hash.hash(&mut hasher);
-        }
-    }
-    hasher.finish()
 }
 
 pub fn format_timestamp(timestamp: u64) -> String {

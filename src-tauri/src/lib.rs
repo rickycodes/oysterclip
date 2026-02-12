@@ -4,7 +4,6 @@ use std::env;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::sync::Mutex;
 use std::time::SystemTime;
 
@@ -274,45 +273,6 @@ fn get_clipboard_entries(state: tauri::State<AppState>) -> ClipboardPayload {
     }
 }
 
-#[tauri::command]
-fn request_admin() -> bool {
-    #[cfg(target_os = "linux")]
-    {
-        return Command::new("pkexec")
-            .arg("true")
-            .status()
-            .map(|status| status.success())
-            .unwrap_or(false);
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        return Command::new("osascript")
-            .arg("-e")
-            .arg(r#"do shell script "true" with administrator privileges"#)
-            .status()
-            .map(|status| status.success())
-            .unwrap_or(false);
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        return Command::new("powershell")
-            .args([
-                "-Command",
-                "Start-Process -Verb RunAs -FilePath cmd -ArgumentList '/c exit' -Wait",
-            ])
-            .status()
-            .map(|status| status.success())
-            .unwrap_or(false);
-    }
-
-    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
-    {
-        false
-    }
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let source = ClipboardSource::from_env();
@@ -321,7 +281,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(state)
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![get_clipboard_entries, request_admin])
+        .invoke_handler(tauri::generate_handler![get_clipboard_entries])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
