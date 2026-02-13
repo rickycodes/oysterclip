@@ -1,4 +1,5 @@
 use gloo_timers::callback::Interval;
+use js_sys::Promise;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
@@ -11,6 +12,9 @@ use crate::common::{
 extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
     async fn invoke(cmd: &str, args: JsValue) -> JsValue;
+
+    #[wasm_bindgen(js_namespace = ["navigator", "clipboard"], js_name = writeText)]
+    fn write_clipboard_text(text: &str) -> Promise;
 }
 
 #[function_component(App)]
@@ -18,6 +22,7 @@ pub fn app() -> Html {
     let entries = use_state(|| Vec::<PasteEntry>::new());
     let selected = use_state(|| Option::<usize>::None);
     let error = use_state(|| Option::<String>::None);
+    let copy_status = use_state(|| Option::<String>::None);
     let in_flight = use_mut_ref(|| false);
 
     {
@@ -79,21 +84,49 @@ pub fn app() -> Html {
 
     let on_select = {
         let selected = selected.clone();
+        let copy_status = copy_status.clone();
         Callback::from(move |idx: usize| {
             selected.set(Some(idx));
+            if (*copy_status).is_some() {
+                copy_status.set(None);
+            }
         })
     };
 
     let detail = match (*selected).and_then(|idx| (*entries).get(idx)) {
-        Some(PasteEntry::Text { timestamp, content }) => html! {
+        Some(PasteEntry::Text { timestamp, content }) => {
+            let copy_status = copy_status.clone();
+            let copy_status_for_click = copy_status.clone();
+            let text = content.clone();
+            let on_copy = Callback::from(move |_| {
+                let copy_status = copy_status_for_click.clone();
+                let text = text.clone();
+                spawn_local(async move {
+                    let result =
+                        wasm_bindgen_futures::JsFuture::from(write_clipboard_text(&text)).await;
+                    match result {
+                        Ok(_) => copy_status.set(Some("Copied".to_string())),
+                        Err(_) => copy_status.set(Some("Copy failed".to_string())),
+                    }
+                });
+            });
+
+            html! {
             <div class="detail">
                 <div class="detail-meta">
                     <span class="detail-type">{ "Text" }</span>
                     <span class="detail-ts">{ format!("Timestamp: {}", format_timestamp(*timestamp)) }</span>
                 </div>
                 <pre class="detail-text">{ content.clone() }</pre>
+                <div class="detail-actions">
+                    <button class="detail-copy-btn" onclick={on_copy}>{ "Copy" }</button>
+                    if let Some(status) = (*copy_status).clone() {
+                        <span class="detail-copy-status">{ status }</span>
+                    }
+                </div>
             </div>
-        },
+            }
+        }
         Some(PasteEntry::Image { timestamp, path, hash, data_url }) => html! {
             <div class="detail">
                 <div class="detail-meta">

@@ -190,6 +190,35 @@ body {
   color: var(--ink-soft);
 }
 
+.detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.detail-copy-btn {
+  border: 1px solid var(--border-strong);
+  background: var(--panel-strong);
+  color: var(--ink);
+  padding: 5px 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.detail-copy-btn:hover {
+  border-color: rgba(255, 255, 255, 0.38);
+  background: #171a26;
+}
+
+.detail-copy-status {
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 .detail-type {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.14);
