@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use crate::common::{
     entry_label, format_timestamp, get_clipboard_entries, preview_text, CachedEntries,
-    ClipboardSource, PasteEntry,
+    ClipboardEntry, ClipboardSource,
 };
 
 const APP_STYLE: &str = include_str!("../styles.css");
@@ -14,7 +14,7 @@ const APP_STYLE: &str = include_str!("../styles.css");
 pub fn App() -> Element {
     let source = use_hook(|| Arc::new(ClipboardSource::from_env()));
     let cache = use_hook(|| Arc::new(Mutex::new(None::<CachedEntries>)));
-    let mut entries = use_signal(Vec::<PasteEntry>::new);
+    let mut entries = use_signal(Vec::<ClipboardEntry>::new);
     let mut selected = use_signal(|| None::<usize>);
     let mut error = use_signal(|| None::<String>);
     let copy_status = use_signal(|| None::<String>);
@@ -82,12 +82,12 @@ pub fn App() -> Element {
                             let is_active = Some(idx) == current_selected;
                             let class = if is_active { "entry-card active" } else { "entry-card" };
                             let preview = match entry {
-                                PasteEntry::Text { content, .. } => preview_text(content, 56),
-                                PasteEntry::Image { path, .. } => preview_text(path, 56),
+                                ClipboardEntry::Text { content, .. } => preview_text(content, 56),
+                                ClipboardEntry::Image { path, .. } => preview_text(path, 56),
                             };
                             let timestamp = match entry {
-                                PasteEntry::Text { timestamp, .. } => *timestamp,
-                                PasteEntry::Image { timestamp, .. } => *timestamp,
+                                ClipboardEntry::Text { timestamp, .. } => *timestamp,
+                                ClipboardEntry::Image { timestamp, .. } => *timestamp,
                             };
                             let mut selected = selected;
                             let mut copy_status = copy_status;
@@ -112,7 +112,7 @@ pub fn App() -> Element {
             section { class: "content",
                 {
                     match detail {
-                        Some(PasteEntry::Text { timestamp, content }) => {
+                        Some(ClipboardEntry::Text { timestamp, content }) => {
                             let mut copy_status = copy_status;
                             let text = content.clone();
                             rsx! {
@@ -142,7 +142,7 @@ pub fn App() -> Element {
                                 }
                             }
                         }
-                        Some(PasteEntry::Image {
+                        Some(ClipboardEntry::Image {
                             timestamp,
                             path,
                             hash,

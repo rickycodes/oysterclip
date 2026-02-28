@@ -36,12 +36,12 @@ pub enum SourceStamp {
 #[derive(Clone)]
 pub struct CachedEntries {
     pub stamp: SourceStamp,
-    pub entries: Vec<PasteEntry>,
+    pub entries: Vec<ClipboardEntry>,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq)]
 #[serde(tag = "type")]
-pub enum PasteEntry {
+pub enum ClipboardEntry {
     Text {
         #[serde(deserialize_with = "deserialize_timestamp")]
         timestamp: u64,
@@ -59,7 +59,7 @@ pub enum PasteEntry {
 
 #[derive(Serialize, Deserialize, Clone, PartialEq)]
 pub struct ClipboardPayload {
-    pub entries: Vec<PasteEntry>,
+    pub entries: Vec<ClipboardEntry>,
     pub error: Option<String>,
 }
 
@@ -155,10 +155,10 @@ pub fn preview_text(content: &str, limit: usize) -> String {
     preview
 }
 
-pub fn entry_label(entry: &PasteEntry) -> &'static str {
+pub fn entry_label(entry: &ClipboardEntry) -> &'static str {
     match entry {
-        PasteEntry::Text { .. } => "Text",
-        PasteEntry::Image { .. } => "Image",
+        ClipboardEntry::Text { .. } => "Text",
+        ClipboardEntry::Image { .. } => "Image",
     }
 }
 
@@ -195,7 +195,7 @@ fn source_stamp(source: &ClipboardSource) -> Result<SourceStamp, String> {
     }
 }
 
-fn load_entries(source: &ClipboardSource) -> Result<Vec<PasteEntry>, String> {
+fn load_entries(source: &ClipboardSource) -> Result<Vec<ClipboardEntry>, String> {
     if let Some(err) = source.error.as_ref() {
         return Err(err.clone());
     }
@@ -219,7 +219,7 @@ fn load_entries(source: &ClipboardSource) -> Result<Vec<PasteEntry>, String> {
     let view_entries = entries
         .into_iter()
         .map(|entry| match entry {
-            FileEntry::Text { timestamp, content } => PasteEntry::Text { timestamp, content },
+            FileEntry::Text { timestamp, content } => ClipboardEntry::Text { timestamp, content },
             FileEntry::Image {
                 timestamp,
                 path,
@@ -235,7 +235,7 @@ fn load_entries(source: &ClipboardSource) -> Result<Vec<PasteEntry>, String> {
                     })
                 });
 
-                PasteEntry::Image {
+                ClipboardEntry::Image {
                     timestamp,
                     path,
                     hash,
