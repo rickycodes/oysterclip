@@ -1,7 +1,18 @@
-# Tauri + Yew
+# Clipboard Viewer (Dioxus Desktop MVP)
 
-This template should help get you started developing with Tauri and Yew.
+This branch ports the UI/runtime path to pure Dioxus Desktop.
+Legacy Tauri sources are archived at `archive/src-tauri-legacy`.
 
-## Recommended IDE Setup
+## Run
 
-[VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
+Pass the clipboard history path (or raw JSON) as the first argument:
+
+```bash
+cargo run -- /path/to/clipboard_history.json
+```
+
+## Notes
+
+- The app polls for changes every 500ms and updates in place.
+- Text entries can be copied back to the system clipboard.
+- Image entries load local image files and render as data URLs.

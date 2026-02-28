@@ -2,8 +2,9 @@ mod app;
 mod common;
 
 use app::App;
+use dioxus::prelude::LaunchBuilder;
 
 fn main() {
-    console_error_panic_hook::set_once();
-    yew::Renderer::<App>::new().render();
+    LaunchBuilder::desktop()
+        .launch(App);
 }
