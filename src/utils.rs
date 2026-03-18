@@ -5,6 +5,27 @@ use std::time::SystemTime;
 
 use crate::common::{PasteEntry, FAILED_IMAGE_BUFFER};
 
+pub(crate) fn detect_text_kind(text: &str) -> &'static str {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return "empty";
+    }
+
+    if trimmed.starts_with("http://") || trimmed.starts_with("https://") {
+        return "url";
+    }
+
+    if serde_json::from_str::<serde_json::Value>(trimmed).is_ok() {
+        return "json";
+    }
+
+    if trimmed.contains('\n') || trimmed.contains('\r') {
+        return "multiline";
+    }
+
+    "plain"
+}
+
 pub(crate) fn simple_image_hash(bytes: &[u8]) -> u64 {
     let mut h = 0xcbf29ce484222325u64;
     for &b in bytes {
@@ -74,7 +95,7 @@ pub(crate) fn current_timestamp() -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use super::{append_history, current_timestamp, save_image};
+    use super::{append_history, current_timestamp, detect_text_kind, save_image};
     use crate::common::{PasteEntry, HISTORY_FILE};
     use std::fs;
     use std::time::SystemTime;
@@ -110,6 +131,7 @@ mod tests {
         let entry = PasteEntry::Text {
             timestamp: 1,
             content: "hello".to_string(),
+            kind: Some("plain".to_string()),
         };
 
         let history_path = temp_dir.join(HISTORY_FILE);
@@ -121,7 +143,10 @@ mod tests {
 
         assert_eq!(history.len(), 1);
         match &history[0] {
-            PasteEntry::Text { content, .. } => assert_eq!(content, "hello"),
+            PasteEntry::Text { content, kind, .. } => {
+                assert_eq!(content, "hello");
+                assert_eq!(kind.as_deref(), Some("plain"));
+            }
             _ => panic!("expected text entry"),
         }
 
@@ -146,5 +171,14 @@ mod tests {
         assert!(filename.ends_with("img_42.png"));
 
         let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn detect_text_kind_classifies_common_types() {
+        assert_eq!(detect_text_kind("https://example.com"), "url");
+        assert_eq!(detect_text_kind("{\"a\":1}"), "json");
+        assert_eq!(detect_text_kind("line1\nline2"), "multiline");
+        assert_eq!(detect_text_kind("hello"), "plain");
+        assert_eq!(detect_text_kind("   "), "empty");
     }
 }

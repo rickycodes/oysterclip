@@ -6,7 +6,7 @@ mod common;
 mod utils;
 
 use crate::common::{PasteEntry, CLIPBOARD_NOT_AVAILABLE, HISTORY_FILE, IMAGE_DIR, INTERVAL_MS};
-use crate::utils::{append_history, current_timestamp, save_image, simple_image_hash};
+use crate::utils::{append_history, current_timestamp, detect_text_kind, save_image, simple_image_hash};
 use std::path::Path;
 
 fn main() {
@@ -19,10 +19,12 @@ fn main() {
     loop {
         if let Ok(text) = clipboard.get_text() {
             if Some(&text) != last_text.as_ref() {
-                println!("(text) {}", text);
+                let kind = detect_text_kind(&text);
+                println!("(text:{}) {}", kind, text);
                 append_history(&PasteEntry::Text {
                     timestamp: current_timestamp(),
                     content: text.clone(),
+                    kind: Some(kind.to_string()),
                 }, Path::new(HISTORY_FILE));
                 last_text = Some(text);
             }

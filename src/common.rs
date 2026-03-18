@@ -12,6 +12,7 @@ pub(crate) enum PasteEntry {
     Text {
         timestamp: u64,
         content: String,
+        kind: Option<String>,
     },
     Image {
         timestamp: u64,
