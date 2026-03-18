@@ -14,7 +14,7 @@ A small Rust daemon that monitors your system clipboard and persists unique clip
 - Image entries are hashed and saved as PNGs under a local image directory.
 
 **Files Created**
-- `.clipboard_history.json` in the working directory.
+- `.clipboard_history.json.gpg` in the working directory.
 - `clipboard_images/` in the working directory, containing `img_<hash>.png`.
 
 **Build**
@@ -25,6 +25,12 @@ cargo build
 **Run**
 ```bash
 cargo run
+```
+
+**CLI**
+```bash
+cargo run -- --help
+cargo run -- --version
 ```
 
 To enable encrypted history writes, set `CLIPBOARD_WATCHER_GPG_RECIPIENT` or create
@@ -41,5 +47,8 @@ cargo test
 
 **Project Layout**
 - `src/main.rs` main loop and clipboard polling.
-- `src/utils.rs` helpers for hashing, persistence, and timestamps.
+- `src/config.rs` config resolution for the GPG recipient.
+- `src/history.rs` encrypted history persistence and timestamps.
+- `src/image_store.rs` image hashing and PNG persistence.
+- `src/text.rs` clipboard text classification.
 - `src/common.rs` shared constants and types.

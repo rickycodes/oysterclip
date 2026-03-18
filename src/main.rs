@@ -2,12 +2,14 @@ use arboard::Clipboard;
 use std::thread::sleep;
 use std::time::Duration;
 
+mod cli;
 mod common;
 mod config;
 mod history;
 mod image_store;
 mod text;
 
+use crate::cli::{print_help, print_version};
 use crate::common::{PasteEntry, CLIPBOARD_NOT_AVAILABLE, HISTORY_FILE, IMAGE_DIR, INTERVAL_MS};
 use crate::config::resolve_gpg_recipient;
 use crate::history::{append_history, current_timestamp};
@@ -16,6 +18,23 @@ use crate::text::detect_text_kind;
 use std::path::Path;
 
 fn main() {
+    if let Some(flag) = std::env::args()
+        .skip(1)
+        .find(|arg| matches!(arg.as_str(), "-h" | "--help" | "-V" | "--version"))
+    {
+        match flag.as_str() {
+            "-h" | "--help" => {
+                print_help();
+                return;
+            }
+            "-V" | "--version" => {
+                print_version();
+                return;
+            }
+            _ => unreachable!(),
+        }
+    }
+
     println!("Starting clipboard watcher — interval: {}ms", INTERVAL_MS);
     let gpg_recipient = resolve_gpg_recipient().unwrap_or_else(|err| {
         eprintln!("Failed to resolve GPG recipient: {}", err);
