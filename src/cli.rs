@@ -10,12 +10,11 @@ Options:
   -h, --help       Show this help message and exit
   -V, --version    Show version information and exit
 
-Config:
-  Uses {recipient_env} or .clipboard-watcher.toml for GPG recipient configuration.
+Storage:
+  Writes clipboard history to .clipboard_history.db and encrypts text content using the OS keychain.
 ",
         name = env!("CARGO_PKG_NAME"),
         version = env!("CARGO_PKG_VERSION"),
-        recipient_env = crate::common::GPG_RECIPIENT_ENV,
     );
 }
 

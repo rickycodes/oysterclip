@@ -1,124 +1,217 @@
-use std::io::{self, Write};
-use std::path::Path;
-use std::process::{Command, Stdio};
+use base64::{engine::general_purpose, Engine as _};
+use chacha20poly1305::aead::{Aead, AeadCore, KeyInit};
+use chacha20poly1305::{XChaCha20Poly1305, XNonce};
+use keyring::Entry;
+use rand::rngs::OsRng;
+use rand::RngCore;
+use rusqlite::{params, Connection, OptionalExtension};
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+use std::io;
+use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-use crate::common::{PasteEntry, GPG_BINARY};
+use crate::common::{PasteEntry, KEYRING_ACCOUNT, KEYRING_SERVICE};
+
+const CREATE_ENTRIES_TABLE_SQL: &str = "\
+CREATE TABLE IF NOT EXISTS entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at INTEGER NOT NULL,
+    entry_type TEXT NOT NULL CHECK (entry_type IN ('text', 'image')),
+    text_kind TEXT,
+    text_ciphertext BLOB,
+    text_nonce BLOB,
+    image_path TEXT,
+    image_hash INTEGER,
+    content_hash TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_entries_created_at ON entries(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_entries_content_hash ON entries(content_hash);
+";
+
+pub(crate) struct HistoryStore {
+    db_path: PathBuf,
+    encryption_key: [u8; 32],
+}
 
 fn io_error(message: impl Into<String>) -> io::Error {
     io::Error::other(message.into())
 }
 
-fn decrypt_history(history_path: &Path) -> io::Result<Vec<PasteEntry>> {
-    let output = Command::new(GPG_BINARY)
-        .arg("--decrypt")
-        .arg(history_path)
-        .output()?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(io_error(format!(
-            "failed to decrypt {} with {}: {}",
-            history_path.display(),
-            GPG_BINARY,
-            stderr.trim()
-        )));
+impl HistoryStore {
+    pub(crate) fn open(db_path: &Path) -> io::Result<Self> {
+        let store = Self {
+            db_path: db_path.to_path_buf(),
+            encryption_key: load_or_create_encryption_key()?,
+        };
+        let conn = store.connection()?;
+        conn.execute_batch(CREATE_ENTRIES_TABLE_SQL)
+            .map_err(|err| io_error(format!("failed to initialize history database: {err}")))?;
+        Ok(store)
     }
 
-    serde_json::from_slice(&output.stdout).map_err(|err| {
-        io_error(format!(
-            "failed to parse decrypted history {}: {err}",
-            history_path.display()
-        ))
-    })
-}
+    pub(crate) fn append_entry(&self, entry: &PasteEntry) -> io::Result<()> {
+        let conn = self.connection()?;
 
-fn load_history(history_path: &Path) -> io::Result<Vec<PasteEntry>> {
-    if history_path.exists() {
-        decrypt_history(history_path)
-    } else {
-        Ok(Vec::new())
-    }
-}
-
-fn write_encrypted_history(
-    history: &[PasteEntry],
-    history_path: &Path,
-    recipient: &str,
-) -> io::Result<()> {
-    let json = serde_json::to_vec_pretty(history)
-        .map_err(|err| io_error(format!("failed to serialize history: {err}")))?;
-
-    let mut child = Command::new(GPG_BINARY)
-        .arg("--encrypt")
-        .arg("--recipient")
-        .arg(recipient)
-        .arg("--output")
-        .arg(history_path)
-        .arg("--yes")
-        .arg("--batch")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped())
-        .spawn()?;
-
-    {
-        let stdin = child
-            .stdin
-            .as_mut()
-            .ok_or_else(|| io_error(format!("failed to open {} stdin", GPG_BINARY)))?;
-        stdin.write_all(&json)?;
-    }
-
-    let output = child.wait_with_output()?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(io_error(format!(
-            "failed to encrypt {} with {} for recipient {}: {}",
-            history_path.display(),
-            GPG_BINARY,
-            recipient,
-            stderr.trim()
-        )));
-    }
-
-    Ok(())
-}
-
-fn push_history_entry(history: &mut Vec<PasteEntry>, entry: &PasteEntry) -> bool {
-    if let PasteEntry::Text {
-        content: new_content,
-        ..
-    } = entry
-    {
-        let is_duplicate = history.iter().any(|existing| {
-            matches!(
-                existing,
-                PasteEntry::Text { content, .. } if content == new_content
-            )
-        });
-
-        if is_duplicate {
-            return false;
+        match entry {
+            PasteEntry::Text {
+                timestamp,
+                content,
+                kind,
+            } => self.insert_text_entry(&conn, *timestamp, content, kind.as_deref()),
+            PasteEntry::Image {
+                timestamp,
+                path,
+                hash,
+            } => self.insert_image_entry(&conn, *timestamp, path, *hash),
         }
     }
 
-    history.push(entry.clone());
-    true
-}
-
-pub(crate) fn append_history(
-    entry: &PasteEntry,
-    history_path: &Path,
-    recipient: &str,
-) -> io::Result<()> {
-    let mut history = load_history(history_path)?;
-
-    if !push_history_entry(&mut history, entry) {
-        return Ok(());
+    fn connection(&self) -> io::Result<Connection> {
+        Connection::open(&self.db_path)
+            .map_err(|err| io_error(format!("failed to open history database: {err}")))
     }
 
-    write_encrypted_history(&history, history_path, recipient)
+    fn insert_text_entry(
+        &self,
+        conn: &Connection,
+        timestamp: u64,
+        content: &str,
+        kind: Option<&str>,
+    ) -> io::Result<()> {
+        let content_hash = text_content_hash(content);
+        let existing: Option<i64> = conn
+            .query_row(
+                "SELECT id FROM entries WHERE entry_type = 'text' AND content_hash = ?1 LIMIT 1",
+                params![content_hash],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(|err| io_error(format!("failed to query existing text history: {err}")))?;
+
+        if existing.is_some() {
+            return Ok(());
+        }
+
+        let encrypted = encrypt_text(content, &self.encryption_key)?;
+        conn.execute(
+            "INSERT INTO entries (
+                created_at,
+                entry_type,
+                text_kind,
+                text_ciphertext,
+                text_nonce,
+                content_hash
+            ) VALUES (?1, 'text', ?2, ?3, ?4, ?5)",
+            params![
+                timestamp as i64,
+                kind,
+                encrypted.ciphertext,
+                encrypted.nonce,
+                content_hash
+            ],
+        )
+        .map_err(|err| io_error(format!("failed to insert text history entry: {err}")))?;
+
+        Ok(())
+    }
+
+    fn insert_image_entry(
+        &self,
+        conn: &Connection,
+        timestamp: u64,
+        path: &str,
+        hash: u64,
+    ) -> io::Result<()> {
+        conn.execute(
+            "INSERT INTO entries (
+                created_at,
+                entry_type,
+                image_path,
+                image_hash
+            ) VALUES (?1, 'image', ?2, ?3)",
+            params![timestamp as i64, path, hash as i64],
+        )
+        .map_err(|err| io_error(format!("failed to insert image history entry: {err}")))?;
+
+        Ok(())
+    }
+}
+
+struct EncryptedText {
+    ciphertext: Vec<u8>,
+    nonce: Vec<u8>,
+}
+
+fn load_or_create_encryption_key() -> io::Result<[u8; 32]> {
+    let entry = Entry::new(KEYRING_SERVICE, KEYRING_ACCOUNT)
+        .map_err(|err| io_error(format!("failed to access OS keychain entry: {err}")))?;
+
+    match entry.get_password() {
+        Ok(encoded) => decode_encryption_key(&encoded),
+        Err(keyring::Error::NoEntry) => {
+            let mut key = [0u8; 32];
+            OsRng.fill_bytes(&mut key);
+            entry
+                .set_password(&general_purpose::STANDARD.encode(key))
+                .map_err(|err| {
+                    io_error(format!(
+                        "failed to save encryption key to OS keychain: {err}"
+                    ))
+                })?;
+            Ok(key)
+        }
+        Err(err) => Err(io_error(format!(
+            "failed to read encryption key from OS keychain: {err}"
+        ))),
+    }
+}
+
+fn decode_encryption_key(encoded: &str) -> io::Result<[u8; 32]> {
+    let decoded = general_purpose::STANDARD
+        .decode(encoded)
+        .map_err(|err| io_error(format!("failed to decode keychain encryption key: {err}")))?;
+
+    if decoded.len() != 32 {
+        return Err(io_error(format!(
+            "invalid key length in keychain: expected 32 bytes, got {}",
+            decoded.len()
+        )));
+    }
+
+    let mut key = [0u8; 32];
+    key.copy_from_slice(&decoded);
+    Ok(key)
+}
+
+fn encrypt_text(content: &str, key: &[u8; 32]) -> io::Result<EncryptedText> {
+    let cipher = XChaCha20Poly1305::new(key.into());
+    let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
+    let ciphertext = cipher
+        .encrypt(&nonce, content.as_bytes())
+        .map_err(|err| io_error(format!("failed to encrypt clipboard text: {err}")))?;
+
+    Ok(EncryptedText {
+        ciphertext,
+        nonce: nonce.to_vec(),
+    })
+}
+
+fn text_content_hash(content: &str) -> String {
+    let mut hasher = DefaultHasher::new();
+    content.hash(&mut hasher);
+    format!("{:016x}", hasher.finish())
+}
+
+#[allow(dead_code)]
+fn decrypt_text(ciphertext: &[u8], nonce: &[u8], key: &[u8; 32]) -> io::Result<String> {
+    let cipher = XChaCha20Poly1305::new(key.into());
+    let nonce = XNonce::from_slice(nonce);
+    let plaintext = cipher
+        .decrypt(nonce, ciphertext)
+        .map_err(|err| io_error(format!("failed to decrypt clipboard text: {err}")))?;
+    String::from_utf8(plaintext)
+        .map_err(|err| io_error(format!("failed to decode decrypted clipboard text: {err}")))
 }
 
 pub(crate) fn current_timestamp() -> u64 {
@@ -130,8 +223,7 @@ pub(crate) fn current_timestamp() -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use super::{current_timestamp, push_history_entry};
-    use crate::common::PasteEntry;
+    use super::{current_timestamp, decrypt_text, encrypt_text, text_content_hash};
     use std::time::SystemTime;
 
     #[test]
@@ -153,24 +245,16 @@ mod tests {
     }
 
     #[test]
-    fn push_history_entry_deduplicates_text_entries() {
-        let entry = PasteEntry::Text {
-            timestamp: 1,
-            content: "hello".to_string(),
-            kind: Some("plain".to_string()),
-        };
+    fn text_encryption_round_trips() {
+        let key = [7u8; 32];
+        let encrypted = encrypt_text("hello", &key).unwrap();
+        let decrypted = decrypt_text(&encrypted.ciphertext, &encrypted.nonce, &key).unwrap();
+        assert_eq!(decrypted, "hello");
+    }
 
-        let mut history = Vec::new();
-        assert!(push_history_entry(&mut history, &entry));
-        assert!(!push_history_entry(&mut history, &entry));
-
-        assert_eq!(history.len(), 1);
-        match &history[0] {
-            PasteEntry::Text { content, kind, .. } => {
-                assert_eq!(content, "hello");
-                assert_eq!(kind.as_deref(), Some("plain"));
-            }
-            _ => panic!("expected text entry"),
-        }
+    #[test]
+    fn text_content_hash_is_stable() {
+        assert_eq!(text_content_hash("hello"), text_content_hash("hello"));
+        assert_ne!(text_content_hash("hello"), text_content_hash("world"));
     }
 }

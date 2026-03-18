@@ -1,13 +1,12 @@
 use serde::{Deserialize, Serialize};
 
 pub(crate) const INTERVAL_MS: u64 = 500;
-pub(crate) const HISTORY_FILE: &str = ".clipboard_history.json.gpg";
-pub(crate) const CONFIG_FILE: &str = ".clipboard-watcher.toml";
+pub(crate) const HISTORY_FILE: &str = ".clipboard_history.db";
 pub(crate) const IMAGE_DIR: &str = "clipboard_images";
 pub(crate) const CLIPBOARD_NOT_AVAILABLE: &str = "Clipboard not available";
 pub(crate) const FAILED_IMAGE_BUFFER: &str = "Failed to create image buffer";
-pub(crate) const GPG_BINARY: &str = "gpg2";
-pub(crate) const GPG_RECIPIENT_ENV: &str = "CLIPBOARD_WATCHER_GPG_RECIPIENT";
+pub(crate) const KEYRING_SERVICE: &str = "clipboard-manager";
+pub(crate) const KEYRING_ACCOUNT: &str = "default-encryption-key";
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type")]

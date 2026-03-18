@@ -4,15 +4,13 @@ use std::time::Duration;
 
 mod cli;
 mod common;
-mod config;
 mod history;
 mod image_store;
 mod text;
 
 use crate::cli::{print_help, print_version};
 use crate::common::{PasteEntry, CLIPBOARD_NOT_AVAILABLE, HISTORY_FILE, IMAGE_DIR, INTERVAL_MS};
-use crate::config::resolve_gpg_recipient;
-use crate::history::{append_history, current_timestamp};
+use crate::history::{current_timestamp, HistoryStore};
 use crate::image_store::{save_image, simple_image_hash};
 use crate::text::detect_text_kind;
 use std::path::Path;
@@ -36,8 +34,8 @@ fn main() {
     }
 
     println!("Starting clipboard watcher — interval: {}ms", INTERVAL_MS);
-    let gpg_recipient = resolve_gpg_recipient().unwrap_or_else(|err| {
-        eprintln!("Failed to resolve GPG recipient: {}", err);
+    let history_store = HistoryStore::open(Path::new(HISTORY_FILE)).unwrap_or_else(|err| {
+        eprintln!("Failed to open history store: {}", err);
         std::process::exit(1);
     });
 
@@ -49,17 +47,17 @@ fn main() {
         if let Ok(text) = clipboard.get_text() {
             if Some(&text) != last_text.as_ref() {
                 let kind = detect_text_kind(&text);
-                println!("(text:{}) captured {} chars", kind, text.chars().count());
-                if let Err(err) = append_history(
-                    &PasteEntry::Text {
+                if kind == "empty" {
+                    println!("(text:empty) skipped");
+                } else {
+                    println!("(text:{}) captured {} chars", kind, text.chars().count());
+                    if let Err(err) = history_store.append_entry(&PasteEntry::Text {
                         timestamp: current_timestamp(),
                         content: text.clone(),
                         kind: Some(kind.to_string()),
-                    },
-                    Path::new(HISTORY_FILE),
-                    &gpg_recipient,
-                ) {
-                    eprintln!("Failed to append text history: {}", err);
+                    }) {
+                        eprintln!("Failed to append text history: {}", err);
+                    }
                 }
                 last_text = Some(text);
             }
@@ -74,15 +72,11 @@ fn main() {
                     save_image(&bytes, img.width, img.height, hash, Path::new(IMAGE_DIR))
                 {
                     println!("(image) saved: {}", path);
-                    if let Err(err) = append_history(
-                        &PasteEntry::Image {
-                            timestamp: current_timestamp(),
-                            path,
-                            hash,
-                        },
-                        Path::new(HISTORY_FILE),
-                        &gpg_recipient,
-                    ) {
+                    if let Err(err) = history_store.append_entry(&PasteEntry::Image {
+                        timestamp: current_timestamp(),
+                        path,
+                        hash,
+                    }) {
                         eprintln!("Failed to append image history: {}", err);
                     }
                 }
