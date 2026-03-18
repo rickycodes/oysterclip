@@ -3,13 +3,16 @@ use std::thread::sleep;
 use std::time::Duration;
 
 mod common;
-mod utils;
+mod config;
+mod history;
+mod image_store;
+mod text;
 
 use crate::common::{PasteEntry, CLIPBOARD_NOT_AVAILABLE, HISTORY_FILE, IMAGE_DIR, INTERVAL_MS};
-use crate::utils::{
-    append_history, current_timestamp, detect_text_kind, resolve_gpg_recipient, save_image,
-    simple_image_hash,
-};
+use crate::config::resolve_gpg_recipient;
+use crate::history::{append_history, current_timestamp};
+use crate::image_store::{save_image, simple_image_hash};
+use crate::text::detect_text_kind;
 use std::path::Path;
 
 fn main() {
