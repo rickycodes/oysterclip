@@ -5,6 +5,7 @@ use std::env;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::time::SystemTime;
 
 #[derive(Clone)]
@@ -62,6 +63,8 @@ pub struct ClipboardPayload {
     pub entries: Vec<ClipboardEntry>,
     pub error: Option<String>,
 }
+
+const GPG_BINARY: &str = "gpg2";
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
@@ -202,8 +205,7 @@ fn load_entries(source: &ClipboardSource) -> Result<Vec<ClipboardEntry>, String>
 
     let (data, base_dir) = match &source.kind {
         SourceKind::File(path) => {
-            let data =
-                fs::read_to_string(path).map_err(|e| format!("Failed to read history file: {e}"))?;
+            let data = read_history_file(path)?;
             let base_dir = path.parent().map(|p| p.to_path_buf());
             (data, base_dir)
         }
@@ -246,6 +248,29 @@ fn load_entries(source: &ClipboardSource) -> Result<Vec<ClipboardEntry>, String>
         .collect();
 
     Ok(view_entries)
+}
+
+fn read_history_file(path: &Path) -> Result<String, String> {
+    if path.extension().and_then(|ext| ext.to_str()) == Some("gpg") {
+        let output = Command::new(GPG_BINARY)
+            .arg("--decrypt")
+            .arg(path)
+            .output()
+            .map_err(|e| format!("Failed to run {GPG_BINARY}: {e}"))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format!(
+                "Failed to decrypt history file with {GPG_BINARY}: {}",
+                stderr.trim()
+            ));
+        }
+
+        String::from_utf8(output.stdout)
+            .map_err(|e| format!("Failed to decode decrypted history output: {e}"))
+    } else {
+        fs::read_to_string(path).map_err(|e| format!("Failed to read history file: {e}"))
+    }
 }
 
 fn resolve_image_path(base_dir: Option<&Path>, path_str: &str) -> Option<PathBuf> {

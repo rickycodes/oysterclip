@@ -8,7 +8,7 @@ Legacy Tauri sources are archived at `archive/src-tauri-legacy`.
 Pass the clipboard history path (or raw JSON) as the first argument:
 
 ```bash
-cargo run -- /path/to/clipboard_history.json
+cargo run -- /path/to/.clipboard_history.json.gpg
 ```
 
 ## Hot Reload (Desktop)
@@ -22,13 +22,13 @@ cargo install dioxus-cli --version 0.7.3 --locked
 Run with hot reload:
 
 ```bash
-dx serve --platform desktop --args /path/to/clipboard_history.json
+dx serve --platform desktop --args /path/to/.clipboard_history.json.gpg
 ```
 
 Or use the helper script, which also starts `clipboard-watcher`:
 
 ```bash
-./init.sh /path/to/clipboard_history.json
+./init.sh /path/to/.clipboard_history.json.gpg
 ```
 
 ## Notes
