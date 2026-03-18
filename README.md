@@ -5,10 +5,10 @@ Legacy Tauri sources are archived at `archive/src-tauri-legacy`.
 
 ## Run
 
-Pass the clipboard history path (or raw JSON) as the first argument:
+Pass the clipboard history database path as the first argument:
 
 ```bash
-cargo run -- /path/to/.clipboard_history.json.gpg
+cargo run -- /path/to/.clipboard_history.db
 ```
 
 ## Hot Reload (Desktop)
@@ -22,17 +22,18 @@ cargo install dioxus-cli --version 0.7.3 --locked
 Run with hot reload:
 
 ```bash
-dx serve --platform desktop --args /path/to/.clipboard_history.json.gpg
+dx serve --platform desktop --args /path/to/.clipboard_history.db
 ```
 
 Or use the helper script, which also starts `clipboard-watcher`:
 
 ```bash
-./init.sh /path/to/.clipboard_history.json.gpg
+./init.sh /path/to/.clipboard_history.db
 ```
 
 ## Notes
 
 - The app polls for changes every 500ms and updates in place.
+- Text entries are decrypted from the shared SQLite history database using the OS keychain.
 - Text entries can be copied back to the system clipboard.
 - Image entries load local image files and render as data URLs.

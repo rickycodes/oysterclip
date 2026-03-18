@@ -1,12 +1,18 @@
 use base64::{engine::general_purpose, Engine as _};
+use chacha20poly1305::aead::{Aead, KeyInit};
+use chacha20poly1305::{XChaCha20Poly1305, XNonce};
 use chrono::{DateTime, Local, Utc};
+use keyring::Entry;
+use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::time::SystemTime;
+
+const KEYRING_SERVICE: &str = "clipboard-manager";
+const KEYRING_ACCOUNT: &str = "default-encryption-key";
 
 #[derive(Clone)]
 pub struct ClipboardSource {
@@ -41,19 +47,15 @@ pub struct CachedEntries {
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq)]
-#[serde(tag = "type")]
 pub enum ClipboardEntry {
     Text {
-        #[serde(deserialize_with = "deserialize_timestamp")]
         timestamp: u64,
         content: String,
         kind: Option<String>,
     },
     Image {
-        #[serde(deserialize_with = "deserialize_timestamp")]
         timestamp: u64,
         path: String,
-        #[serde(deserialize_with = "deserialize_u64")]
         hash: u64,
         data_url: Option<String>,
     },
@@ -63,26 +65,6 @@ pub enum ClipboardEntry {
 pub struct ClipboardPayload {
     pub entries: Vec<ClipboardEntry>,
     pub error: Option<String>,
-}
-
-const GPG_BINARY: &str = "gpg2";
-
-#[derive(Serialize, Deserialize)]
-#[serde(tag = "type")]
-enum FileEntry {
-    Text {
-        #[serde(deserialize_with = "deserialize_timestamp")]
-        timestamp: u64,
-        content: String,
-        kind: Option<String>,
-    },
-    Image {
-        #[serde(deserialize_with = "deserialize_timestamp")]
-        timestamp: u64,
-        path: String,
-        #[serde(deserialize_with = "deserialize_u64")]
-        hash: u64,
-    },
 }
 
 impl ClipboardSource {
@@ -205,39 +187,78 @@ fn load_entries(source: &ClipboardSource) -> Result<Vec<ClipboardEntry>, String>
         return Err(err.clone());
     }
 
-    let (data, base_dir) = match &source.kind {
-        SourceKind::File(path) => {
-            let data = read_history_file(path)?;
-            let base_dir = path.parent().map(|p| p.to_path_buf());
-            (data, base_dir)
-        }
-        SourceKind::RawJson(json) => (json.clone(), env::current_dir().ok()),
-        SourceKind::Empty => {
-            return Err("Missing clipboard history argument.".to_string());
-        }
-    };
+    match &source.kind {
+        SourceKind::File(path) => load_entries_from_db(path),
+        SourceKind::RawJson(json) => serde_json::from_str(json)
+            .map_err(|e| format!("Invalid clipboard JSON: {e}")),
+        SourceKind::Empty => Err("Missing clipboard history argument.".to_string()),
+    }
+}
 
-    let entries: Vec<FileEntry> =
-        serde_json::from_str(&data).map_err(|e| format!("Invalid history JSON: {e}"))?;
+fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
+    let conn = Connection::open(path)
+        .map_err(|e| format!("Failed to open history database: {e}"))?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT created_at, entry_type, text_kind, text_ciphertext, text_nonce, image_path, image_hash FROM entries ORDER BY id ASC",
+        )
+        .map_err(|e| format!("Failed to prepare history query: {e}"))?;
+    let mut rows = stmt
+        .query([])
+        .map_err(|e| format!("Failed to query history database: {e}"))?;
 
-    let view_entries = entries
-        .into_iter()
-        .map(|entry| match entry {
-            FileEntry::Text {
-                timestamp,
-                content,
-                kind,
-            } => ClipboardEntry::Text {
-                timestamp,
-                content,
-                kind,
-            },
-            FileEntry::Image {
-                timestamp,
-                path,
-                hash,
-            } => {
-                let resolved = resolve_image_path(base_dir.as_deref(), &path);
+    let key = load_encryption_key()?;
+    let base_dir = path.parent();
+    let mut entries = Vec::new();
+
+    while let Some(row) = rows
+        .next()
+        .map_err(|e| format!("Failed to iterate history rows: {e}"))?
+    {
+        let timestamp: i64 = row
+            .get(0)
+            .map_err(|e| format!("Failed to read entry timestamp: {e}"))?;
+        let entry_type: String = row
+            .get(1)
+            .map_err(|e| format!("Failed to read entry type: {e}"))?;
+
+        match entry_type.as_str() {
+            "text" => {
+                let kind: Option<String> = row
+                    .get(2)
+                    .map_err(|e| format!("Failed to read text kind: {e}"))?;
+                let ciphertext: Option<Vec<u8>> = row
+                    .get(3)
+                    .map_err(|e| format!("Failed to read encrypted text content: {e}"))?;
+                let nonce: Option<Vec<u8>> = row
+                    .get(4)
+                    .map_err(|e| format!("Failed to read text nonce: {e}"))?;
+                let content = decrypt_text(
+                    ciphertext
+                        .as_deref()
+                        .ok_or_else(|| "Missing encrypted text content.".to_string())?,
+                    nonce
+                        .as_deref()
+                        .ok_or_else(|| "Missing text nonce.".to_string())?,
+                    &key,
+                )?;
+
+                entries.push(ClipboardEntry::Text {
+                    timestamp: timestamp as u64,
+                    content,
+                    kind,
+                });
+            }
+            "image" => {
+                let image_path: Option<String> = row
+                    .get(5)
+                    .map_err(|e| format!("Failed to read image path: {e}"))?;
+                let image_hash: Option<i64> = row
+                    .get(6)
+                    .map_err(|e| format!("Failed to read image hash: {e}"))?;
+                let path = image_path.ok_or_else(|| "Missing image path.".to_string())?;
+                let hash = image_hash.ok_or_else(|| "Missing image hash.".to_string())? as u64;
+                let resolved = resolve_image_path(base_dir, &path);
                 let data_url = resolved.and_then(|resolved_path| {
                     fs::read(resolved_path).ok().map(|bytes| {
                         format!(
@@ -247,40 +268,57 @@ fn load_entries(source: &ClipboardSource) -> Result<Vec<ClipboardEntry>, String>
                     })
                 });
 
-                ClipboardEntry::Image {
-                    timestamp,
+                entries.push(ClipboardEntry::Image {
+                    timestamp: timestamp as u64,
                     path,
                     hash,
                     data_url,
-                }
+                });
             }
-        })
-        .collect();
+            other => return Err(format!("Unknown history entry type: {other}")),
+        }
+    }
 
-    Ok(view_entries)
+    Ok(entries)
 }
 
-fn read_history_file(path: &Path) -> Result<String, String> {
-    if path.extension().and_then(|ext| ext.to_str()) == Some("gpg") {
-        let output = Command::new(GPG_BINARY)
-            .arg("--decrypt")
-            .arg(path)
-            .output()
-            .map_err(|e| format!("Failed to run {GPG_BINARY}: {e}"))?;
+fn load_encryption_key() -> Result<[u8; 32], String> {
+    let entry = Entry::new(KEYRING_SERVICE, KEYRING_ACCOUNT)
+        .map_err(|e| format!("Failed to access OS keychain entry: {e}"))?;
+    let encoded = entry
+        .get_password()
+        .map_err(|e| format!("Failed to read encryption key from OS keychain: {e}"))?;
+    let decoded = general_purpose::STANDARD
+        .decode(encoded)
+        .map_err(|e| format!("Failed to decode keychain encryption key: {e}"))?;
 
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(format!(
-                "Failed to decrypt history file with {GPG_BINARY}: {}",
-                stderr.trim()
-            ));
-        }
-
-        String::from_utf8(output.stdout)
-            .map_err(|e| format!("Failed to decode decrypted history output: {e}"))
-    } else {
-        fs::read_to_string(path).map_err(|e| format!("Failed to read history file: {e}"))
+    if decoded.len() != 32 {
+        return Err(format!(
+            "Invalid key length in keychain: expected 32 bytes, got {}",
+            decoded.len()
+        ));
     }
+
+    let mut key = [0u8; 32];
+    key.copy_from_slice(&decoded);
+    Ok(key)
+}
+
+fn decrypt_text(ciphertext: &[u8], nonce: &[u8], key: &[u8; 32]) -> Result<String, String> {
+    if nonce.len() != 24 {
+        return Err(format!(
+            "Invalid text nonce length: expected 24 bytes, got {}",
+            nonce.len()
+        ));
+    }
+
+    let cipher = XChaCha20Poly1305::new(key.into());
+    let plaintext = cipher
+        .decrypt(XNonce::from_slice(nonce), ciphertext)
+        .map_err(|e| format!("Failed to decrypt clipboard text: {e}"))?;
+
+    String::from_utf8(plaintext)
+        .map_err(|e| format!("Failed to decode decrypted clipboard text: {e}"))
 }
 
 fn resolve_image_path(base_dir: Option<&Path>, path_str: &str) -> Option<PathBuf> {
@@ -295,34 +333,4 @@ fn hash_str(value: &str) -> u64 {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     value.hash(&mut hasher);
     hasher.finish()
-}
-
-fn deserialize_timestamp<'de, D>(deserializer: D) -> Result<u64, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    deserialize_u64(deserializer)
-}
-
-fn deserialize_u64<'de, D>(deserializer: D) -> Result<u64, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    use serde::de::Error;
-    let value = serde_json::Value::deserialize(deserializer)?;
-    match value {
-        serde_json::Value::Number(num) => {
-            if let Some(u) = num.as_u64() {
-                Ok(u)
-            } else if let Some(f) = num.as_f64() {
-                Ok(f.round() as u64)
-            } else {
-                Err(D::Error::custom("invalid number for u64"))
-            }
-        }
-        serde_json::Value::String(s) => s
-            .parse::<u64>()
-            .map_err(|_| D::Error::custom("invalid string for u64")),
-        _ => Err(D::Error::custom("invalid type for u64")),
-    }
 }
