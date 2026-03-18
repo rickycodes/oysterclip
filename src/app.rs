@@ -112,7 +112,7 @@ pub fn App() -> Element {
             section { class: "content",
                 {
                     match detail {
-                        Some(ClipboardEntry::Text { timestamp, content }) => {
+                        Some(ClipboardEntry::Text { timestamp, content, .. }) => {
                             let mut copy_status = copy_status;
                             let text = content.clone();
                             rsx! {

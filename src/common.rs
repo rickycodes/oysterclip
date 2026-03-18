@@ -47,6 +47,7 @@ pub enum ClipboardEntry {
         #[serde(deserialize_with = "deserialize_timestamp")]
         timestamp: u64,
         content: String,
+        kind: Option<String>,
     },
     Image {
         #[serde(deserialize_with = "deserialize_timestamp")]
@@ -73,6 +74,7 @@ enum FileEntry {
         #[serde(deserialize_with = "deserialize_timestamp")]
         timestamp: u64,
         content: String,
+        kind: Option<String>,
     },
     Image {
         #[serde(deserialize_with = "deserialize_timestamp")]
@@ -221,7 +223,15 @@ fn load_entries(source: &ClipboardSource) -> Result<Vec<ClipboardEntry>, String>
     let view_entries = entries
         .into_iter()
         .map(|entry| match entry {
-            FileEntry::Text { timestamp, content } => ClipboardEntry::Text { timestamp, content },
+            FileEntry::Text {
+                timestamp,
+                content,
+                kind,
+            } => ClipboardEntry::Text {
+                timestamp,
+                content,
+                kind,
+            },
             FileEntry::Image {
                 timestamp,
                 path,
