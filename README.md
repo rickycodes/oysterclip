@@ -27,6 +27,13 @@ cargo build
 cargo run
 ```
 
+To enable encrypted history writes, set `CLIPBOARD_WATCHER_GPG_RECIPIENT` or create
+`.clipboard-watcher.toml` in the project directory with:
+
+```toml
+gpg_recipient = "your-key-id-or-email"
+```
+
 **Test**
 ```bash
 cargo test

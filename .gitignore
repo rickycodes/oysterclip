@@ -1,3 +1,4 @@
 /target
 /clipboard_images
-.clipboard_history.json
+.clipboard_history.json.gpg
+.clipboard-watcher.toml
