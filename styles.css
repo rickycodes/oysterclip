@@ -62,6 +62,12 @@ body {
   margin-bottom: 14px;
 }
 
+.sidebar-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .sidebar-header h1 {
   margin: 0;
   font-size: 24px;
@@ -80,6 +86,15 @@ body {
   border: 1px solid rgba(255, 100, 100, 0.4);
   background: rgba(255, 80, 80, 0.12);
   color: #ffb8b8;
+  padding: 8px 10px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.sidebar-status {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink-soft);
   padding: 8px 10px;
   font-size: 13px;
   margin-bottom: 12px;
@@ -221,6 +236,24 @@ body {
   background: #171a26;
 }
 
+.sidebar-clear-btn,
+.detail-delete-btn {
+  border: 1px solid rgba(255, 120, 120, 0.32);
+  background: rgba(120, 20, 20, 0.18);
+  color: #ffd4d4;
+  padding: 5px 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.sidebar-clear-btn:hover,
+.detail-delete-btn:hover {
+  border-color: rgba(255, 150, 150, 0.5);
+  background: rgba(140, 30, 30, 0.24);
+}
+
 .detail-copy-status {
   font-size: 12px;
   color: var(--ink-soft);
@@ -276,12 +309,15 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 280px;
+  min-height: 60vh;
 }
 
 .detail-image {
+  width: 100%;
+  height: 100%;
   max-width: 100%;
   max-height: 60vh;
+  object-fit: contain;
 }
 
 .detail-image-missing {
