@@ -49,6 +49,11 @@ fn main() {
                 let kind = detect_text_kind(&text);
                 if kind == "empty" {
                     println!("(text:empty) skipped");
+                } else if kind == "image-data-uri" {
+                    println!(
+                        "(text:image-data-uri) skipped {} chars for review",
+                        text.chars().count()
+                    );
                 } else {
                     println!("(text:{}) captured {} chars", kind, text.chars().count());
                     if let Err(err) = history_store.append_entry(&PasteEntry::Text {
