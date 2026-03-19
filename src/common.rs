@@ -49,11 +49,13 @@ pub struct CachedEntries {
 #[derive(Serialize, Deserialize, Clone, PartialEq)]
 pub enum ClipboardEntry {
     Text {
+        id: i64,
         timestamp: u64,
         content: String,
         kind: Option<String>,
     },
     Image {
+        id: i64,
         timestamp: u64,
         path: String,
         hash: u64,
@@ -89,6 +91,36 @@ impl ClipboardSource {
                 error: None,
             }
         }
+    }
+}
+
+pub fn delete_entry(source: &ClipboardSource, id: i64) -> Result<(), String> {
+    let path = source_file_path(source)?;
+    let conn = Connection::open(path)
+        .map_err(|e| format!("Failed to open history database: {e}"))?;
+    conn.execute("DELETE FROM entries WHERE id = ?1", [id])
+        .map_err(|e| format!("Failed to delete history entry: {e}"))?;
+    Ok(())
+}
+
+pub fn clear_history(source: &ClipboardSource) -> Result<(), String> {
+    let path = source_file_path(source)?;
+    let conn = Connection::open(path)
+        .map_err(|e| format!("Failed to open history database: {e}"))?;
+    conn.execute("DELETE FROM entries", [])
+        .map_err(|e| format!("Failed to clear history: {e}"))?;
+    Ok(())
+}
+
+fn source_file_path(source: &ClipboardSource) -> Result<&Path, String> {
+    if let Some(err) = source.error.as_ref() {
+        return Err(err.clone());
+    }
+
+    match &source.kind {
+        SourceKind::File(path) => Ok(path.as_path()),
+        SourceKind::RawJson(_) => Err("History mutations are not supported for raw JSON input.".to_string()),
+        SourceKind::Empty => Err("Missing clipboard history argument.".to_string()),
     }
 }
 
@@ -214,7 +246,7 @@ fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
         .map_err(|e| format!("Failed to open history database: {e}"))?;
     let mut stmt = conn
         .prepare(
-            "SELECT created_at, entry_type, text_kind, text_ciphertext, text_nonce, image_path, image_hash FROM entries ORDER BY id ASC",
+            "SELECT id, created_at, entry_type, text_kind, text_ciphertext, text_nonce, image_path, image_hash FROM entries ORDER BY id ASC",
         )
         .map_err(|e| format!("Failed to prepare history query: {e}"))?;
     let mut rows = stmt
@@ -229,23 +261,26 @@ fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
         .next()
         .map_err(|e| format!("Failed to iterate history rows: {e}"))?
     {
-        let timestamp: i64 = row
+        let id: i64 = row
             .get(0)
+            .map_err(|e| format!("Failed to read entry id: {e}"))?;
+        let timestamp: i64 = row
+            .get(1)
             .map_err(|e| format!("Failed to read entry timestamp: {e}"))?;
         let entry_type: String = row
-            .get(1)
+            .get(2)
             .map_err(|e| format!("Failed to read entry type: {e}"))?;
 
         match entry_type.as_str() {
             "text" => {
                 let kind: Option<String> = row
-                    .get(2)
+                    .get(3)
                     .map_err(|e| format!("Failed to read text kind: {e}"))?;
                 let ciphertext: Option<Vec<u8>> = row
-                    .get(3)
+                    .get(4)
                     .map_err(|e| format!("Failed to read encrypted text content: {e}"))?;
                 let nonce: Option<Vec<u8>> = row
-                    .get(4)
+                    .get(5)
                     .map_err(|e| format!("Failed to read text nonce: {e}"))?;
                 let content = decrypt_text(
                     ciphertext
@@ -258,6 +293,7 @@ fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
                 )?;
 
                 entries.push(ClipboardEntry::Text {
+                    id,
                     timestamp: timestamp as u64,
                     content,
                     kind,
@@ -265,10 +301,10 @@ fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
             }
             "image" => {
                 let image_path: Option<String> = row
-                    .get(5)
+                    .get(6)
                     .map_err(|e| format!("Failed to read image path: {e}"))?;
                 let image_hash: Option<i64> = row
-                    .get(6)
+                    .get(7)
                     .map_err(|e| format!("Failed to read image hash: {e}"))?;
                 let path = image_path.ok_or_else(|| "Missing image path.".to_string())?;
                 let hash = image_hash.ok_or_else(|| "Missing image hash.".to_string())? as u64;
@@ -283,6 +319,7 @@ fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
                 });
 
                 entries.push(ClipboardEntry::Image {
+                    id,
                     timestamp: timestamp as u64,
                     path,
                     hash,
