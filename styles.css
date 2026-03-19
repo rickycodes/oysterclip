@@ -12,7 +12,7 @@
   --accent-soft: #c8ceda;
   --border: rgba(255, 255, 255, 0.11);
   --border-strong: rgba(255, 255, 255, 0.2);
-  font-family: "Space Grotesk", "Satoshi", "General Sans", "Avenir Next", sans-serif;
+  font-family: "Satoshi", "General Sans", "Avenir Next", sans-serif;
   font-size: 16px;
   line-height: 1.45;
   font-weight: 400;
@@ -28,6 +28,7 @@
 body {
   margin: 0;
   background: transparent;
+  overflow-y: auto;
 }
 
 .app {
@@ -36,6 +37,7 @@ body {
   grid-template-columns: 400px 1fr;
   gap: 12px;
   padding: 12px;
+  align-items: start;
 }
 
 .sidebar,
@@ -49,7 +51,7 @@ body {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 28px);
+  min-width: 0;
 }
 
 .sidebar-header {
@@ -86,32 +88,24 @@ body {
 .entry-list {
   display: grid;
   gap: 8px;
-  flex: 1;
-  overflow-y: auto;
   padding: 2px 2px 6px;
-  scrollbar-gutter: stable;
-}
-
-.entry-list::-webkit-scrollbar {
-  width: 10px;
-}
-
-.entry-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.entry-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.14);
+  min-width: 0;
 }
 
 .entry-card {
   width: 100%;
+  min-width: 0;
   display: block;
+  appearance: none;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: var(--panel-strong);
   padding: 10px 11px;
+  margin: 0;
   text-align: left;
+  color: inherit;
+  font: inherit;
   cursor: pointer;
+  overflow: hidden;
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease,
     box-shadow 0.18s ease;
 }
@@ -128,6 +122,11 @@ body {
 }
 
 .entry-title {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -136,29 +135,38 @@ body {
 }
 
 .entry-preview {
+  display: block;
+  max-width: 100%;
   font-size: 14px;
   margin: 6px 0;
   color: var(--ink);
   line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .entry-ts {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12px;
   color: var(--ink-soft);
 }
 
 .content {
   padding: 20px;
-  min-height: calc(100vh - 28px);
+  position: sticky;
+  top: 12px;
+  align-self: start;
 }
 
 .detail {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  position: sticky;
-  top: 20px;
-  z-index: 1;
   animation: detail-enter 180ms ease-out;
 }
 
@@ -285,9 +293,6 @@ body {
 
   .content {
     padding: 14px;
-  }
-
-  .detail {
     position: static;
     top: auto;
   }
