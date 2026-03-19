@@ -161,6 +161,7 @@ body {
   position: sticky;
   top: 12px;
   align-self: start;
+  min-width: 0;
 }
 
 .detail {
@@ -235,8 +236,18 @@ body {
   font-weight: 600;
 }
 
+.detail-note {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink-soft);
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .detail-text {
   margin: 0;
+  max-width: 100%;
   padding: 14px;
   background: var(--panel-strong);
   border: 1px solid var(--border);
@@ -244,7 +255,18 @@ body {
   font-size: 14px;
   color: var(--ink);
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   line-height: 1.5;
+}
+
+.detail-text.detail-text-truncated {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .detail-image-wrap {

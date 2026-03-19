@@ -142,6 +142,20 @@ pub fn preview_text(content: &str, limit: usize) -> String {
     preview
 }
 
+pub fn is_image_data_uri(content: &str) -> bool {
+    let trimmed = content.trim();
+    trimmed.starts_with("data:image/") && trimmed.contains(";base64,")
+}
+
+pub fn image_data_uri_summary(content: &str) -> String {
+    let trimmed = content.trim();
+    let media_type = trimmed
+        .strip_prefix("data:")
+        .and_then(|value| value.split(';').next())
+        .unwrap_or("image data");
+    format!("{} hidden for readability ({} chars)", media_type, trimmed.chars().count())
+}
+
 pub fn entry_label(entry: &ClipboardEntry) -> &'static str {
     match entry {
         ClipboardEntry::Text { .. } => "Text",

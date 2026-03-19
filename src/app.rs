@@ -4,8 +4,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::common::{
-    entry_label, format_timestamp, get_clipboard_entries, preview_text, CachedEntries,
-    ClipboardEntry, ClipboardSource,
+    entry_label, format_timestamp, get_clipboard_entries, image_data_uri_summary,
+    is_image_data_uri, preview_text, CachedEntries, ClipboardEntry, ClipboardSource,
 };
 
 const APP_STYLE: &str = include_str!("../styles.css");
@@ -115,13 +115,27 @@ pub fn App() -> Element {
                         Some(ClipboardEntry::Text { timestamp, content, .. }) => {
                             let mut copy_status = copy_status;
                             let text = content.clone();
+                            let is_data_uri = is_image_data_uri(&content);
+                            let summary = if is_data_uri {
+                                Some(image_data_uri_summary(&content))
+                            } else {
+                                None
+                            };
+                            let display_text = if is_data_uri {
+                                preview_text(&content, 96)
+                            } else {
+                                content.clone()
+                            };
                             rsx! {
                                 div { class: "detail",
                                     div { class: "detail-meta",
                                         span { class: "detail-type", "Text" }
                                         span { class: "detail-ts", "Timestamp: {format_timestamp(timestamp)}" }
                                     }
-                                    pre { class: "detail-text", "{content}" }
+                                    if let Some(summary) = summary {
+                                        div { class: "detail-note", "{summary}. Copy still uses the full value." }
+                                    }
+                                    pre { class: if is_data_uri { "detail-text detail-text-truncated" } else { "detail-text" }, "{display_text}" }
                                     div { class: "detail-actions",
                                         button {
                                             class: "detail-copy-btn",
