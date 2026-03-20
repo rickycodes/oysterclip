@@ -11,7 +11,8 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-use crate::common::{PasteEntry, KEYRING_ACCOUNT, KEYRING_SERVICE};
+use crate::constants::{KEYRING_ACCOUNT, KEYRING_SERVICE};
+use crate::entry::PasteEntry;
 
 const CREATE_ENTRIES_TABLE_SQL: &str = "\
 CREATE TABLE IF NOT EXISTS entries (

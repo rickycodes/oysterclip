@@ -2,7 +2,7 @@ use image::{ImageBuffer, ImageFormat, Rgba};
 use std::fs;
 use std::path::Path;
 
-use crate::common::FAILED_IMAGE_BUFFER;
+use crate::constants::FAILED_IMAGE_BUFFER;
 
 pub(crate) fn simple_image_hash(bytes: &[u8]) -> u64 {
     let mut h = 0xcbf29ce484222325u64;

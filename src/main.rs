@@ -3,13 +3,15 @@ use std::thread::sleep;
 use std::time::Duration;
 
 mod cli;
-mod common;
+mod constants;
+mod entry;
 mod history;
 mod image_store;
 mod text;
 
 use crate::cli::{print_help, print_version};
-use crate::common::{PasteEntry, CLIPBOARD_NOT_AVAILABLE, HISTORY_FILE, IMAGE_DIR, INTERVAL_MS};
+use crate::constants::{CLIPBOARD_NOT_AVAILABLE, HISTORY_FILE, IMAGE_DIR, INTERVAL_MS};
+use crate::entry::PasteEntry;
 use crate::history::{current_timestamp, HistoryStore};
 use crate::image_store::{save_image, simple_image_hash};
 use crate::text::detect_text_kind;
