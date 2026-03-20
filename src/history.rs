@@ -12,14 +12,15 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 use crate::constants::{
-    CREATE_ENTRIES_TABLE_SQL, INSERT_IMAGE_ENTRY_SQL, INSERT_TEXT_ENTRY_SQL, KEYRING_ACCOUNT,
-    KEYRING_SERVICE, SELECT_EXISTING_TEXT_ENTRY_SQL,
+    CREATE_ENTRIES_TABLE_SQL, DELETE_PRUNABLE_ENTRIES_SQL, INSERT_IMAGE_ENTRY_SQL,
+    INSERT_TEXT_ENTRY_SQL, KEYRING_ACCOUNT, KEYRING_SERVICE, SELECT_EXISTING_TEXT_ENTRY_SQL,
 };
 use crate::entry::PasteEntry;
 
 pub(crate) struct HistoryStore {
     db_path: PathBuf,
     encryption_key: [u8; 32],
+    max_history_entries: usize,
 }
 
 fn io_error(message: impl Into<String>) -> io::Error {
@@ -27,10 +28,11 @@ fn io_error(message: impl Into<String>) -> io::Error {
 }
 
 impl HistoryStore {
-    pub(crate) fn open(db_path: &Path) -> io::Result<Self> {
+    pub(crate) fn open(db_path: &Path, max_history_entries: usize) -> io::Result<Self> {
         let store = Self {
             db_path: db_path.to_path_buf(),
             encryption_key: load_or_create_encryption_key()?,
+            max_history_entries,
         };
         let conn = store.connection()?;
         conn.execute_batch(CREATE_ENTRIES_TABLE_SQL)
@@ -46,13 +48,15 @@ impl HistoryStore {
                 timestamp,
                 content,
                 kind,
-            } => self.insert_text_entry(&conn, *timestamp, content, kind.as_deref()),
+            } => self.insert_text_entry(&conn, *timestamp, content, kind.as_deref())?,
             PasteEntry::Image {
                 timestamp,
                 path,
                 hash,
-            } => self.insert_image_entry(&conn, *timestamp, path, *hash),
-        }
+            } => self.insert_image_entry(&conn, *timestamp, path, *hash)?,
+        };
+
+        prune_history(&conn, &self.db_path, self.max_history_entries)
     }
 
     fn connection(&self) -> io::Result<Connection> {
@@ -112,6 +116,12 @@ impl HistoryStore {
 
         Ok(())
     }
+}
+
+fn prune_history(conn: &Connection, _db_path: &Path, max_entries: usize) -> io::Result<()> {
+    conn.execute(DELETE_PRUNABLE_ENTRIES_SQL, params![max_entries as i64])
+        .map_err(|err| io_error(format!("failed to prune old history entries: {err}")))?;
+    Ok(())
 }
 
 struct EncryptedText {
@@ -199,8 +209,12 @@ pub(crate) fn current_timestamp() -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use super::{current_timestamp, decrypt_text, encrypt_text, text_content_hash};
+    use super::{current_timestamp, decrypt_text, encrypt_text, prune_history, text_content_hash};
+    use rusqlite::{params, Connection};
+    use std::path::Path;
     use std::time::SystemTime;
+
+    use crate::constants::CREATE_ENTRIES_TABLE_SQL;
 
     #[test]
     fn current_timestamp_returns_unix_seconds_between_bounds() {
@@ -232,5 +246,52 @@ mod tests {
     fn text_content_hash_is_stable() {
         assert_eq!(text_content_hash("hello"), text_content_hash("hello"));
         assert_ne!(text_content_hash("hello"), text_content_hash("world"));
+    }
+
+    #[test]
+    fn prune_history_keeps_latest_entries() {
+        let mut temp_dir = std::env::temp_dir();
+        let nanos = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        temp_dir.push(format!(
+            "clipboard-watcher-history-prune-{}-{}",
+            std::process::id(),
+            nanos
+        ));
+        std::fs::create_dir_all(&temp_dir).unwrap();
+
+        let db_path = temp_dir.join(".clipboard_history.db");
+        let conn = Connection::open(&db_path).unwrap();
+        conn.execute_batch(CREATE_ENTRIES_TABLE_SQL).unwrap();
+
+        let old_path = "clipboard_images/old.png";
+        let kept_path = "clipboard_images/kept.png";
+
+        conn.execute(
+            "INSERT INTO entries (created_at, entry_type, image_path, image_hash) VALUES (1, 'image', ?1, 1)",
+            params![old_path],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO entries (created_at, entry_type, image_path, image_hash) VALUES (2, 'image', ?1, 2)",
+            params![kept_path],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO entries (created_at, entry_type, text_kind, text_ciphertext, text_nonce, content_hash) VALUES (3, 'text', 'plain', X'01', X'020202020202020202020202020202020202020202020202', 'hash')",
+            [],
+        )
+        .unwrap();
+
+        prune_history(&conn, Path::new(&db_path), 2).unwrap();
+
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM entries", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 2);
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }

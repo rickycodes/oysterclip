@@ -3,6 +3,7 @@ use std::thread::sleep;
 use std::time::Duration;
 
 mod cli;
+mod config;
 mod constants;
 mod entry;
 mod history;
@@ -10,6 +11,7 @@ mod image_store;
 mod text;
 
 use crate::cli::{print_help, print_version};
+use crate::config::load_max_history_entries;
 use crate::constants::{
     APPEND_IMAGE_HISTORY_FAILED, APPEND_TEXT_HISTORY_FAILED, CLIPBOARD_NOT_AVAILABLE,
     HELP_FLAG_LONG, HELP_FLAG_SHORT, HISTORY_FILE, IMAGE_DIR, IMAGE_SAVED, INTERVAL_MS,
@@ -44,10 +46,12 @@ fn main() {
     }
 
     println!("{STARTUP_MESSAGE} — interval: {INTERVAL_MS}ms");
-    let history_store = HistoryStore::open(Path::new(HISTORY_FILE)).unwrap_or_else(|err| {
-        eprintln!("{OPEN_HISTORY_STORE_FAILED}: {err}");
-        std::process::exit(1);
-    });
+    let max_history_entries = load_max_history_entries();
+    let history_store = HistoryStore::open(Path::new(HISTORY_FILE), max_history_entries)
+        .unwrap_or_else(|err| {
+            eprintln!("{OPEN_HISTORY_STORE_FAILED}: {err}");
+            std::process::exit(1);
+        });
 
     let mut clipboard = Clipboard::new().expect(CLIPBOARD_NOT_AVAILABLE);
     let mut last_text: Option<String> = None;

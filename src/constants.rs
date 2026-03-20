@@ -1,5 +1,7 @@
 pub(crate) const INTERVAL_MS: u64 = 500;
+pub(crate) const MAX_HISTORY_ENTRIES: usize = 500;
 pub(crate) const HISTORY_FILE: &str = ".clipboard_history.db";
+pub(crate) const CONFIG_FILE: &str = ".clipboard-watcher.toml";
 pub(crate) const IMAGE_DIR: &str = "clipboard_images";
 pub(crate) const CLIPBOARD_NOT_AVAILABLE: &str = "Clipboard not available";
 pub(crate) const FAILED_IMAGE_BUFFER: &str = "Failed to create image buffer";
@@ -56,3 +58,10 @@ INSERT INTO entries (
     image_path,
     image_hash
 ) VALUES (?1, 'image', ?2, ?3)";
+pub(crate) const DELETE_PRUNABLE_ENTRIES_SQL: &str = "\
+DELETE FROM entries
+WHERE id IN (
+    SELECT id FROM entries
+    ORDER BY created_at DESC, id DESC
+    LIMIT -1 OFFSET ?1
+)";
