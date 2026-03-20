@@ -85,6 +85,12 @@ pub fn App() -> Element {
             .find(|entry| entry_id(entry) == id)
             .cloned()
     });
+    let selected_text = current_selected_id.and_then(|id| {
+        filtered_entries.iter().find_map(|entry| match entry {
+            ClipboardEntry::Text { id: entry_id, content, .. } if *entry_id == id => Some(content.clone()),
+            _ => None,
+        })
+    });
     let detail_state = if let Some(message) = error() {
         DetailState::Error(message)
     } else if current_entries.is_empty() {
@@ -139,11 +145,10 @@ pub fn App() -> Element {
         }
     };
 
-    let handle_copy_text = move |text: String| {
-        let result = Clipboard::new().and_then(|mut cb| cb.set_text(text));
-        match result {
-            Ok(_) => set_temporary_status(copy_status, "Copied"),
-            Err(_) => set_temporary_status(copy_status, "Copy failed"),
+    let handle_copy_text = {
+        let copy_status_signal = copy_status;
+        move |text: String| {
+            copy_text_to_clipboard(copy_status_signal, text);
         }
     };
 
@@ -171,6 +176,8 @@ pub fn App() -> Element {
 
     let handle_keydown = {
         let keyboard_entries = filtered_entries.clone();
+        let selected_text_for_enter = selected_text.clone();
+        let copy_status_for_enter = copy_status;
         move |event: KeyboardEvent| {
             match event.code() {
                 Code::ArrowDown => {
@@ -207,6 +214,12 @@ pub fn App() -> Element {
                         if copy_status().is_some() {
                             copy_status.set(None);
                         }
+                    }
+                }
+                Code::Enter => {
+                    if let Some(text) = selected_text_for_enter.clone() {
+                        event.prevent_default();
+                        copy_text_to_clipboard(copy_status_for_enter, text);
                     }
                 }
                 Code::Delete | Code::Backspace => {
@@ -358,4 +371,13 @@ fn set_temporary_status(mut status: Signal<Option<String>>, message: impl Into<S
             }
         }
     });
+}
+
+
+fn copy_text_to_clipboard(copy_status: Signal<Option<String>>, text: String) {
+    let result = Clipboard::new().and_then(|mut cb| cb.set_text(text));
+    match result {
+        Ok(_) => set_temporary_status(copy_status, "Copied"),
+        Err(_) => set_temporary_status(copy_status, "Copy failed"),
+    }
 }
