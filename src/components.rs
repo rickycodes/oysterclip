@@ -8,10 +8,12 @@ use crate::format::{
 #[component]
 pub fn Sidebar(
     entries: Vec<ClipboardEntry>,
-    selected: Option<usize>,
+    selected_id: Option<i64>,
+    query: String,
     error: Option<String>,
     action_status: Option<String>,
-    on_select: EventHandler<usize>,
+    on_select: EventHandler<i64>,
+    on_query_input: EventHandler<String>,
     on_clear: EventHandler<()>,
 ) -> Element {
     rsx! {
@@ -27,6 +29,15 @@ pub fn Sidebar(
                     }
                 }
             }
+            div { class: "sidebar-search",
+                input {
+                    class: "sidebar-search-input",
+                    r#type: "search",
+                    placeholder: "Search history",
+                    value: "{query}",
+                    oninput: move |event| on_query_input.call(event.value().to_string()),
+                }
+            }
             if let Some(err) = error {
                 div { class: "sidebar-error", "{err}" }
             }
@@ -34,9 +45,21 @@ pub fn Sidebar(
                 div { class: "sidebar-status", "{status}" }
             }
             div { class: "entry-list",
-                for (idx, entry) in entries.iter().enumerate() {
+                if entries.is_empty() {
+                    div { class: "sidebar-empty",
+                        if query.is_empty() {
+                            "No history yet."
+                        } else {
+                            "No matching entries."
+                        }
+                    }
+                }
+                for entry in entries.iter() {
                     {
-                        let is_active = Some(idx) == selected;
+                        let entry_id = match entry {
+                            ClipboardEntry::Text { id, .. } | ClipboardEntry::Image { id, .. } => *id,
+                        };
+                        let is_active = Some(entry_id) == selected_id;
                         let class = if is_active { "entry-card active" } else { "entry-card" };
                         let preview = match entry {
                             ClipboardEntry::Text { content, .. } => preview_text(content, 56),
@@ -49,7 +72,7 @@ pub fn Sidebar(
                         rsx! {
                             button {
                                 class: "{class}",
-                                onclick: move |_| on_select.call(idx),
+                                onclick: move |_| on_select.call(entry_id),
                                 div { class: "entry-title", "{entry_label(entry)}" }
                                 div { class: "entry-preview", "{preview}" }
                                 div { class: "entry-ts", "{format_timestamp(timestamp)}" }

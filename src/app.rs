@@ -16,7 +16,8 @@ pub fn App() -> Element {
     let source = use_hook(|| Arc::new(ClipboardSource::from_env()));
     let cache = use_hook(|| Arc::new(Mutex::new(None::<CachedEntries>)));
     let mut entries = use_signal(Vec::<ClipboardEntry>::new);
-    let mut selected = use_signal(|| None::<usize>);
+    let mut selected_id = use_signal(|| None::<i64>);
+    let mut query = use_signal(String::new);
     let mut error = use_signal(|| None::<String>);
     let mut copy_status = use_signal(|| None::<String>);
     let mut action_status = use_signal(|| None::<String>);
@@ -49,15 +50,17 @@ pub fn App() -> Element {
                         error.set(None);
                     }
 
-                    let new_len = payload.entries.len();
-                    if entries() != payload.entries {
-                        entries.set(payload.entries);
+                    let new_entries = payload.entries;
+                    let new_len = new_entries.len();
+                    let selected_still_exists = selected_id()
+                        .map(|id| new_entries.iter().any(|entry| entry_id(entry) == id))
+                        .unwrap_or(false);
+                    if entries() != new_entries {
+                        entries.set(new_entries);
                     }
 
-                    match selected() {
-                        Some(idx) if idx < new_len => {}
-                        _ if new_len == 0 => selected.set(None),
-                        _ => {}
+                    if !selected_still_exists || new_len == 0 {
+                        selected_id.set(None);
                     }
                 }
 
@@ -67,14 +70,29 @@ pub fn App() -> Element {
     });
 
     let current_entries = entries();
-    let current_selected = selected();
-    let detail = current_selected.and_then(|idx| current_entries.get(idx).cloned());
+    let current_query = query();
+    let filtered_entries: Vec<ClipboardEntry> = current_entries
+        .iter()
+        .filter(|entry| matches_query(entry, &current_query))
+        .cloned()
+        .collect();
+    let current_selected_id = selected_id();
+    let detail = current_selected_id.and_then(|id| {
+        filtered_entries
+            .iter()
+            .find(|entry| entry_id(entry) == id)
+            .cloned()
+    });
 
-    let handle_select = move |idx: usize| {
-        selected.set(Some(idx));
+    let handle_select = move |id: i64| {
+        selected_id.set(Some(id));
         if copy_status().is_some() {
             copy_status.set(None);
         }
+    };
+
+    let handle_query_input = move |value: String| {
+        query.set(value);
     };
 
     let source_for_clear = source.clone();
@@ -97,7 +115,7 @@ pub fn App() -> Element {
                     *cache_guard = None;
                 }
                 entries.set(Vec::new());
-                selected.set(None);
+                selected_id.set(None);
                 error.set(None);
                 action_status.set(Some("History cleared".to_string()));
             }
@@ -141,7 +159,7 @@ pub fn App() -> Element {
                     | ClipboardEntry::Image { id: entry_id, .. } => *entry_id != id,
                 });
                 entries.set(next_entries);
-                selected.set(None);
+                selected_id.set(None);
                 error.set(None);
                 action_status.set(Some("Entry deleted".to_string()));
             }
@@ -156,11 +174,13 @@ pub fn App() -> Element {
         style { "{APP_STYLE}" }
         main { class: "app",
             Sidebar {
-                entries: current_entries.clone(),
-                selected: current_selected,
+                entries: filtered_entries.clone(),
+                selected_id: current_selected_id,
+                query: current_query,
                 error: error(),
                 action_status: action_status(),
                 on_select: handle_select,
+                on_query_input: handle_query_input,
                 on_clear: handle_clear,
             }
             DetailPane {
@@ -169,6 +189,34 @@ pub fn App() -> Element {
                 on_copy_text: handle_copy_text,
                 on_delete: handle_delete,
             }
+        }
+    }
+}
+
+fn entry_id(entry: &ClipboardEntry) -> i64 {
+    match entry {
+        ClipboardEntry::Text { id, .. } | ClipboardEntry::Image { id, .. } => *id,
+    }
+}
+
+fn matches_query(entry: &ClipboardEntry, query: &str) -> bool {
+    let trimmed = query.trim();
+    if trimmed.is_empty() {
+        return true;
+    }
+
+    let query = trimmed.to_lowercase();
+    match entry {
+        ClipboardEntry::Text { content, kind, .. } => {
+            content.to_lowercase().contains(&query)
+                || kind
+                    .as_deref()
+                    .map(|kind| kind.to_lowercase().contains(&query))
+                    .unwrap_or(false)
+                || "text".contains(&query)
+        }
+        ClipboardEntry::Image { path, .. } => {
+            path.to_lowercase().contains(&query) || "image".contains(&query)
         }
     }
 }
