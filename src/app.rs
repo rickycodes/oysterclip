@@ -4,11 +4,10 @@ use rfd::{MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use crate::common::{
-    clear_history, delete_entry, entry_label, format_timestamp, get_clipboard_entries,
-    image_data_uri_summary, is_image_data_uri, preview_text, CachedEntries, ClipboardEntry,
-    ClipboardSource,
-};
+use crate::components::{DetailPane, Sidebar};
+use crate::entry::{CachedEntries, ClipboardEntry, ClipboardPayload};
+use crate::history::{clear_history, delete_entry, get_clipboard_entries};
+use crate::source::ClipboardSource;
 
 const APP_STYLE: &str = include_str!("../styles.css");
 
@@ -19,8 +18,8 @@ pub fn App() -> Element {
     let mut entries = use_signal(Vec::<ClipboardEntry>::new);
     let mut selected = use_signal(|| None::<usize>);
     let mut error = use_signal(|| None::<String>);
-    let copy_status = use_signal(|| None::<String>);
-    let action_status = use_signal(|| None::<String>);
+    let mut copy_status = use_signal(|| None::<String>);
+    let mut action_status = use_signal(|| None::<String>);
 
     let polling_source = source.clone();
     let polling_cache = cache.clone();
@@ -34,7 +33,7 @@ pub fn App() -> Element {
                     if let Ok(mut cache_guard) = cache.lock() {
                         get_clipboard_entries(&source, &mut cache_guard)
                     } else {
-                        crate::common::ClipboardPayload {
+                        ClipboardPayload {
                             entries: Vec::new(),
                             error: Some("Failed to acquire cache lock.".to_string()),
                         }
@@ -71,270 +70,104 @@ pub fn App() -> Element {
     let current_selected = selected();
     let detail = current_selected.and_then(|idx| current_entries.get(idx).cloned());
 
+    let handle_select = move |idx: usize| {
+        selected.set(Some(idx));
+        if copy_status().is_some() {
+            copy_status.set(None);
+        }
+    };
+
+    let source_for_clear = source.clone();
+    let cache_for_clear = cache.clone();
+    let handle_clear = move |_| {
+        let confirmed = MessageDialog::new()
+            .set_level(MessageLevel::Warning)
+            .set_title("Clear clipboard history?")
+            .set_description("This will permanently delete all clipboard history entries.")
+            .set_buttons(MessageButtons::OkCancel)
+            .show();
+
+        if !matches!(confirmed, MessageDialogResult::Ok) {
+            return;
+        }
+
+        match clear_history(&source_for_clear) {
+            Ok(_) => {
+                if let Ok(mut cache_guard) = cache_for_clear.lock() {
+                    *cache_guard = None;
+                }
+                entries.set(Vec::new());
+                selected.set(None);
+                error.set(None);
+                action_status.set(Some("History cleared".to_string()));
+            }
+            Err(err) => {
+                error.set(Some(err));
+                action_status.set(Some("Clear failed".to_string()));
+            }
+        }
+    };
+
+    let handle_copy_text = move |text: String| {
+        let result = Clipboard::new().and_then(|mut cb| cb.set_text(text));
+        match result {
+            Ok(_) => copy_status.set(Some("Copied".to_string())),
+            Err(_) => copy_status.set(Some("Copy failed".to_string())),
+        }
+    };
+
+    let source_for_delete = source.clone();
+    let cache_for_delete = cache.clone();
+    let handle_delete = move |id: i64| {
+        let confirmed = MessageDialog::new()
+            .set_level(MessageLevel::Warning)
+            .set_title("Delete clipboard entry?")
+            .set_description("This will permanently delete the selected clipboard entry.")
+            .set_buttons(MessageButtons::OkCancel)
+            .show();
+
+        if !matches!(confirmed, MessageDialogResult::Ok) {
+            return;
+        }
+
+        match delete_entry(&source_for_delete, id) {
+            Ok(_) => {
+                if let Ok(mut cache_guard) = cache_for_delete.lock() {
+                    *cache_guard = None;
+                }
+                let mut next_entries = entries();
+                next_entries.retain(|entry| match entry {
+                    ClipboardEntry::Text { id: entry_id, .. }
+                    | ClipboardEntry::Image { id: entry_id, .. } => *entry_id != id,
+                });
+                entries.set(next_entries);
+                selected.set(None);
+                error.set(None);
+                action_status.set(Some("Entry deleted".to_string()));
+            }
+            Err(err) => {
+                error.set(Some(err));
+                action_status.set(Some("Delete failed".to_string()));
+            }
+        }
+    };
+
     rsx! {
         style { "{APP_STYLE}" }
         main { class: "app",
-            aside { class: "sidebar",
-                div { class: "sidebar-header",
-                    h1 { "Clipboard" }
-                    div { class: "sidebar-header-actions",
-                        span { class: "sidebar-count", "{current_entries.len()} entries" }
-                        {
-                            let source = source.clone();
-                            let cache = cache.clone();
-                            let mut entries = entries;
-                            let mut selected = selected;
-                            let mut error = error;
-                            let mut action_status = action_status;
-                            rsx! {
-                                button {
-                                    class: "sidebar-clear-btn",
-                                    onclick: move |_| {
-                                        let confirmed = MessageDialog::new()
-                                            .set_level(MessageLevel::Warning)
-                                            .set_title("Clear clipboard history?")
-                                            .set_description(
-                                                "This will permanently delete all clipboard history entries.",
-                                            )
-                                            .set_buttons(MessageButtons::OkCancel)
-                                            .show();
-
-                                        if !matches!(confirmed, MessageDialogResult::Ok) {
-                                            return;
-                                        }
-
-                                        match clear_history(&source) {
-                                            Ok(_) => {
-                                                if let Ok(mut cache_guard) = cache.lock() {
-                                                    *cache_guard = None;
-                                                }
-                                                entries.set(Vec::new());
-                                                selected.set(None);
-                                                error.set(None);
-                                                action_status.set(Some("History cleared".to_string()));
-                                            }
-                                            Err(err) => {
-                                                error.set(Some(err));
-                                                action_status.set(Some("Clear failed".to_string()));
-                                            }
-                                        }
-                                    },
-                                    "Clear"
-                                }
-                            }
-                        }
-                    }
-                }
-                if let Some(err) = error() {
-                    div { class: "sidebar-error", "{err}" }
-                }
-                if let Some(status) = action_status() {
-                    div { class: "sidebar-status", "{status}" }
-                }
-                div { class: "entry-list",
-                    for (idx, entry) in current_entries.iter().enumerate() {
-                        {
-                            let is_active = Some(idx) == current_selected;
-                            let class = if is_active { "entry-card active" } else { "entry-card" };
-                            let preview = match entry {
-                                ClipboardEntry::Text { content, .. } => preview_text(content, 56),
-                                ClipboardEntry::Image { path, .. } => preview_text(path, 56),
-                            };
-                            let timestamp = match entry {
-                                ClipboardEntry::Text { timestamp, .. } => *timestamp,
-                                ClipboardEntry::Image { timestamp, .. } => *timestamp,
-                            };
-                            let mut selected = selected;
-                            let mut copy_status = copy_status;
-                            rsx! {
-                                button {
-                                    class: "{class}",
-                                    onclick: move |_| {
-                                        selected.set(Some(idx));
-                                        if copy_status().is_some() {
-                                            copy_status.set(None);
-                                        }
-                                    },
-                                    div { class: "entry-title", "{entry_label(entry)}" }
-                                    div { class: "entry-preview", "{preview}" }
-                                    div { class: "entry-ts", "{format_timestamp(timestamp)}" }
-                                }
-                            }
-                        }
-                    }
-                }
+            Sidebar {
+                entries: current_entries.clone(),
+                selected: current_selected,
+                error: error(),
+                action_status: action_status(),
+                on_select: handle_select,
+                on_clear: handle_clear,
             }
-            section { class: "content",
-                {
-                    match detail {
-                        Some(ClipboardEntry::Text { id, timestamp, content, .. }) => {
-                            let mut copy_status = copy_status;
-                            let text = content.clone();
-                            let is_data_uri = is_image_data_uri(&content);
-                            let summary = if is_data_uri {
-                                Some(image_data_uri_summary(&content))
-                            } else {
-                                None
-                            };
-                            let display_text = if is_data_uri {
-                                preview_text(&content, 96)
-                            } else {
-                                content.clone()
-                            };
-                            rsx! {
-                                div { class: "detail",
-                                    div { class: "detail-meta",
-                                        span { class: "detail-type", "Text" }
-                                        span { class: "detail-ts", "Timestamp: {format_timestamp(timestamp)}" }
-                                    }
-                                    if let Some(summary) = summary {
-                                        div { class: "detail-note", "{summary}. Copy still uses the full value." }
-                                    }
-                                    pre { class: if is_data_uri { "detail-text detail-text-truncated" } else { "detail-text" }, "{display_text}" }
-                                    div { class: "detail-actions",
-                                        button {
-                                            class: "detail-copy-btn",
-                                            onclick: move |_| {
-                                                let result = Clipboard::new()
-                                                    .and_then(|mut cb| cb.set_text(text.clone()));
-                                                match result {
-                                                    Ok(_) => copy_status.set(Some("Copied".to_string())),
-                                                    Err(_) => copy_status.set(Some("Copy failed".to_string())),
-                                                }
-                                            },
-                                            "Copy"
-                                        }
-                                        {
-                                            let source = source.clone();
-                                            let cache = cache.clone();
-                                            let mut entries = entries;
-                                            let mut selected = selected;
-                                            let mut error = error;
-                                            let mut action_status = action_status;
-                                            rsx! {
-                                                button {
-                                                    class: "detail-delete-btn",
-                                                    onclick: move |_| {
-                                                        let confirmed = MessageDialog::new()
-                                                            .set_level(MessageLevel::Warning)
-                                                            .set_title("Delete clipboard entry?")
-                                                            .set_description(
-                                                                "This will permanently delete the selected clipboard entry.",
-                                                            )
-                                                            .set_buttons(MessageButtons::OkCancel)
-                                                            .show();
-
-                                                        if !matches!(confirmed, MessageDialogResult::Ok) {
-                                                            return;
-                                                        }
-
-                                                        match delete_entry(&source, id) {
-                                                            Ok(_) => {
-                                                                if let Ok(mut cache_guard) = cache.lock() {
-                                                                    *cache_guard = None;
-                                                                }
-                                                                let mut next_entries = entries();
-                                                                next_entries.retain(|entry| !matches!(entry, ClipboardEntry::Text { id: entry_id, .. } if *entry_id == id));
-                                                                entries.set(next_entries);
-                                                                selected.set(None);
-                                                                error.set(None);
-                                                                action_status.set(Some("Entry deleted".to_string()));
-                                                            }
-                                                            Err(err) => {
-                                                                error.set(Some(err));
-                                                                action_status.set(Some("Delete failed".to_string()));
-                                                            }
-                                                        }
-                                                    },
-                                                    "Delete"
-                                                }
-                                            }
-                                        }
-                                        if let Some(status) = copy_status() {
-                                            span { class: "detail-copy-status", "{status}" }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        Some(ClipboardEntry::Image {
-                            id,
-                            timestamp,
-                            path,
-                            hash,
-                            data_url,
-                        }) => rsx! {
-                            div { class: "detail",
-                                div { class: "detail-meta",
-                                    span { class: "detail-type", "Image" }
-                                    span { class: "detail-ts", "Timestamp: {format_timestamp(timestamp)}" }
-                                }
-                                div { class: "detail-image-wrap",
-                                    if let Some(src) = data_url {
-                                        img { class: "detail-image", src: src, alt: "Clipboard image" }
-                                    } else {
-                                        div { class: "detail-image-missing", "Image data not available." }
-                                    }
-                                }
-                                div { class: "detail-footer",
-                                    span { "Path: {path}" }
-                                    span { "Hash: {hash}" }
-                                }
-                                div { class: "detail-actions",
-                                    {
-                                        let source = source.clone();
-                                        let cache = cache.clone();
-                                        let mut entries = entries;
-                                        let mut selected = selected;
-                                        let mut error = error;
-                                        let mut action_status = action_status;
-                                        rsx! {
-                                            button {
-                                                class: "detail-delete-btn",
-                                                onclick: move |_| {
-                                                    let confirmed = MessageDialog::new()
-                                                        .set_level(MessageLevel::Warning)
-                                                        .set_title("Delete clipboard entry?")
-                                                        .set_description(
-                                                            "This will permanently delete the selected clipboard entry.",
-                                                        )
-                                                        .set_buttons(MessageButtons::OkCancel)
-                                                        .show();
-
-                                                    if !matches!(confirmed, MessageDialogResult::Ok) {
-                                                        return;
-                                                    }
-
-                                                    match delete_entry(&source, id) {
-                                                        Ok(_) => {
-                                                            if let Ok(mut cache_guard) = cache.lock() {
-                                                                *cache_guard = None;
-                                                            }
-                                                            let mut next_entries = entries();
-                                                            next_entries.retain(|entry| !matches!(entry, ClipboardEntry::Image { id: entry_id, .. } if *entry_id == id));
-                                                            entries.set(next_entries);
-                                                            selected.set(None);
-                                                            error.set(None);
-                                                            action_status.set(Some("Entry deleted".to_string()));
-                                                        }
-                                                        Err(err) => {
-                                                            error.set(Some(err));
-                                                            action_status.set(Some("Delete failed".to_string()));
-                                                        }
-                                                    }
-                                                },
-                                                "Delete"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        None => rsx! {
-                            div { class: "detail detail-empty" }
-                        },
-                    }
-                }
+            DetailPane {
+                detail: detail,
+                copy_status: copy_status(),
+                on_copy_text: handle_copy_text,
+                on_delete: handle_delete,
             }
         }
     }

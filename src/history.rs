@@ -1,127 +1,34 @@
 use base64::{engine::general_purpose, Engine as _};
 use chacha20poly1305::aead::{Aead, KeyInit};
 use chacha20poly1305::{XChaCha20Poly1305, XNonce};
-use chrono::{DateTime, Local, Utc};
 use keyring::Entry;
 use rusqlite::Connection;
-use serde::{Deserialize, Serialize};
-use std::env;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
+
+use crate::entry::{CachedEntries, ClipboardEntry, ClipboardPayload, SourceStamp};
+use crate::source::ClipboardSource;
 
 const KEYRING_SERVICE: &str = "clipboard-manager";
 const KEYRING_ACCOUNT: &str = "default-encryption-key";
 
-#[derive(Clone)]
-pub struct ClipboardSource {
-    kind: SourceKind,
-    error: Option<String>,
-}
-
-#[derive(Clone)]
-enum SourceKind {
-    File(PathBuf),
-    RawJson(String),
-    Empty,
-}
-
-#[derive(Clone, PartialEq, Eq)]
-pub enum SourceStamp {
-    File {
-        path: PathBuf,
-        modified: Option<SystemTime>,
-        size: u64,
-    },
-    RawJson {
-        hash: u64,
-        len: usize,
-    },
-}
-
-#[derive(Clone)]
-pub struct CachedEntries {
-    pub stamp: SourceStamp,
-    pub entries: Vec<ClipboardEntry>,
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq)]
-pub enum ClipboardEntry {
-    Text {
-        id: i64,
-        timestamp: u64,
-        content: String,
-        kind: Option<String>,
-    },
-    Image {
-        id: i64,
-        timestamp: u64,
-        path: String,
-        hash: u64,
-        data_url: Option<String>,
-    },
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq)]
-pub struct ClipboardPayload {
-    pub entries: Vec<ClipboardEntry>,
-    pub error: Option<String>,
-}
-
-impl ClipboardSource {
-    pub fn from_env() -> Self {
-        let mut args = env::args().skip(1);
-        let Some(arg) = args.next() else {
-            return Self {
-                kind: SourceKind::Empty,
-                error: Some("Missing clipboard history argument.".to_string()),
-            };
-        };
-
-        let trimmed = arg.trim();
-        if trimmed.starts_with('[') || trimmed.starts_with('{') {
-            Self {
-                kind: SourceKind::RawJson(trimmed.to_string()),
-                error: None,
-            }
-        } else {
-            Self {
-                kind: SourceKind::File(PathBuf::from(trimmed)),
-                error: None,
-            }
-        }
-    }
-}
-
 pub fn delete_entry(source: &ClipboardSource, id: i64) -> Result<(), String> {
-    let path = source_file_path(source)?;
-    let conn = Connection::open(path)
-        .map_err(|e| format!("Failed to open history database: {e}"))?;
+    let path = source.file_path()?;
+    let conn =
+        Connection::open(path).map_err(|e| format!("Failed to open history database: {e}"))?;
     conn.execute("DELETE FROM entries WHERE id = ?1", [id])
         .map_err(|e| format!("Failed to delete history entry: {e}"))?;
     Ok(())
 }
 
 pub fn clear_history(source: &ClipboardSource) -> Result<(), String> {
-    let path = source_file_path(source)?;
-    let conn = Connection::open(path)
-        .map_err(|e| format!("Failed to open history database: {e}"))?;
+    let path = source.file_path()?;
+    let conn =
+        Connection::open(path).map_err(|e| format!("Failed to open history database: {e}"))?;
     conn.execute("DELETE FROM entries", [])
         .map_err(|e| format!("Failed to clear history: {e}"))?;
     Ok(())
-}
-
-fn source_file_path(source: &ClipboardSource) -> Result<&Path, String> {
-    if let Some(err) = source.error.as_ref() {
-        return Err(err.clone());
-    }
-
-    match &source.kind {
-        SourceKind::File(path) => Ok(path.as_path()),
-        SourceKind::RawJson(_) => Err("History mutations are not supported for raw JSON input.".to_string()),
-        SourceKind::Empty => Err("Missing clipboard history argument.".to_string()),
-    }
 }
 
 pub fn get_clipboard_entries(
@@ -165,85 +72,43 @@ pub fn get_clipboard_entries(
     }
 }
 
-pub fn preview_text(content: &str, limit: usize) -> String {
-    let line = content.lines().next().unwrap_or("");
-    let mut preview: String = line.chars().take(limit).collect();
-    if line.chars().count() > limit {
-        preview.push('…');
-    }
-    preview
-}
-
-pub fn is_image_data_uri(content: &str) -> bool {
-    let trimmed = content.trim();
-    trimmed.starts_with("data:image/") && trimmed.contains(";base64,")
-}
-
-pub fn image_data_uri_summary(content: &str) -> String {
-    let trimmed = content.trim();
-    let media_type = trimmed
-        .strip_prefix("data:")
-        .and_then(|value| value.split(';').next())
-        .unwrap_or("image data");
-    format!("{} hidden for readability ({} chars)", media_type, trimmed.chars().count())
-}
-
-pub fn entry_label(entry: &ClipboardEntry) -> &'static str {
-    match entry {
-        ClipboardEntry::Text { .. } => "Text",
-        ClipboardEntry::Image { .. } => "Image",
-    }
-}
-
-pub fn format_timestamp(timestamp: u64) -> String {
-    if let Some(utc) = DateTime::<Utc>::from_timestamp(timestamp as i64, 0) {
-        utc.with_timezone(&Local)
-            .format("%A, %b %d, %Y %I:%M %p")
-            .to_string()
-    } else {
-        timestamp.to_string()
-    }
-}
-
 fn source_stamp(source: &ClipboardSource) -> Result<SourceStamp, String> {
-    if let Some(err) = source.error.as_ref() {
-        return Err(err.clone());
+    if let Some(err) = source.error() {
+        return Err(err.to_string());
     }
 
-    match &source.kind {
-        SourceKind::File(path) => {
-            let metadata = fs::metadata(path)
-                .map_err(|e| format!("Failed to read history file metadata: {e}"))?;
-            Ok(SourceStamp::File {
-                path: path.clone(),
-                modified: metadata.modified().ok(),
-                size: metadata.len(),
-            })
-        }
-        SourceKind::RawJson(json) => Ok(SourceStamp::RawJson {
+    if let Some(json) = source.raw_json() {
+        return Ok(SourceStamp::RawJson {
             hash: hash_str(json),
             len: json.len(),
-        }),
-        SourceKind::Empty => Err("Missing clipboard history argument.".to_string()),
+        });
     }
+
+    let path = source.file_path()?;
+    let metadata =
+        fs::metadata(path).map_err(|e| format!("Failed to read history file metadata: {e}"))?;
+    Ok(SourceStamp::File {
+        path: path.to_path_buf(),
+        modified: metadata.modified().ok(),
+        size: metadata.len(),
+    })
 }
 
 fn load_entries(source: &ClipboardSource) -> Result<Vec<ClipboardEntry>, String> {
-    if let Some(err) = source.error.as_ref() {
-        return Err(err.clone());
+    if let Some(err) = source.error() {
+        return Err(err.to_string());
     }
 
-    match &source.kind {
-        SourceKind::File(path) => load_entries_from_db(path),
-        SourceKind::RawJson(json) => serde_json::from_str(json)
-            .map_err(|e| format!("Invalid clipboard JSON: {e}")),
-        SourceKind::Empty => Err("Missing clipboard history argument.".to_string()),
+    if let Some(json) = source.raw_json() {
+        return serde_json::from_str(json).map_err(|e| format!("Invalid clipboard JSON: {e}"));
     }
+
+    load_entries_from_db(source.file_path()?)
 }
 
 fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
-    let conn = Connection::open(path)
-        .map_err(|e| format!("Failed to open history database: {e}"))?;
+    let conn =
+        Connection::open(path).map_err(|e| format!("Failed to open history database: {e}"))?;
     let mut stmt = conn
         .prepare(
             "SELECT id, created_at, entry_type, text_kind, text_ciphertext, text_nonce, image_path, image_hash FROM entries ORDER BY id ASC",

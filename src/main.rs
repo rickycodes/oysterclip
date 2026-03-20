@@ -1,5 +1,9 @@
 mod app;
-mod common;
+mod components;
+mod entry;
+mod format;
+mod history;
+mod source;
 
 use app::App;
 use dioxus::desktop::Config as DesktopConfig;
