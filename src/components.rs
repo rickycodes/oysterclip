@@ -46,6 +46,7 @@ pub fn Sidebar(
                     placeholder: "Search history",
                     value: "{query}",
                     oninput: move |event| on_query_input.call(event.value().to_string()),
+                    onkeydown: move |event| event.stop_propagation(),
                 }
             }
             if let Some(err) = error {

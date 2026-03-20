@@ -147,43 +147,91 @@ pub fn App() -> Element {
 
     let source_for_delete = source.clone();
     let cache_for_delete = cache.clone();
-    let handle_delete = move |id: i64| {
-        let confirmed = MessageDialog::new()
-            .set_level(MessageLevel::Warning)
-            .set_title("Delete clipboard entry?")
-            .set_description("This will permanently delete the selected clipboard entry.")
-            .set_buttons(MessageButtons::OkCancel)
-            .show();
-
-        if !matches!(confirmed, MessageDialogResult::Ok) {
-            return;
+    let source_for_delete_keys = source_for_delete.clone();
+    let cache_for_delete_keys = cache_for_delete.clone();
+    let handle_delete = {
+        let delete_entries = entries;
+        let delete_selected_id = selected_id;
+        let delete_error = error;
+        let delete_action_status = action_status;
+        move |id: i64| {
+            confirm_and_delete_entry(
+                source_for_delete.clone(),
+                cache_for_delete.clone(),
+                delete_entries,
+                delete_selected_id,
+                delete_error,
+                delete_action_status,
+                id,
+            );
         }
+    };
 
-        match delete_entry(&source_for_delete, id) {
-            Ok(_) => {
-                if let Ok(mut cache_guard) = cache_for_delete.lock() {
-                    *cache_guard = None;
+    let handle_keydown = {
+        let keyboard_entries = filtered_entries.clone();
+        move |event: KeyboardEvent| {
+            match event.code() {
+                Code::ArrowDown => {
+                    event.prevent_default();
+                    if let Some(id) = adjacent_entry_id(&keyboard_entries, current_selected_id, 1) {
+                        selected_id.set(Some(id));
+                        if copy_status().is_some() {
+                            copy_status.set(None);
+                        }
+                    }
                 }
-                let mut next_entries = entries();
-                next_entries.retain(|entry| match entry {
-                    ClipboardEntry::Text { id: entry_id, .. }
-                    | ClipboardEntry::Image { id: entry_id, .. } => *entry_id != id,
-                });
-                entries.set(next_entries);
-                selected_id.set(None);
-                error.set(None);
-                action_status.set(Some("Entry deleted".to_string()));
-            }
-            Err(err) => {
-                error.set(Some(err));
-                action_status.set(Some("Delete failed".to_string()));
+                Code::ArrowUp => {
+                    event.prevent_default();
+                    if let Some(id) = adjacent_entry_id(&keyboard_entries, current_selected_id, -1) {
+                        selected_id.set(Some(id));
+                        if copy_status().is_some() {
+                            copy_status.set(None);
+                        }
+                    }
+                }
+                Code::Home => {
+                    event.prevent_default();
+                    if let Some(id) = keyboard_entries.first().map(entry_id) {
+                        selected_id.set(Some(id));
+                        if copy_status().is_some() {
+                            copy_status.set(None);
+                        }
+                    }
+                }
+                Code::End => {
+                    event.prevent_default();
+                    if let Some(id) = keyboard_entries.last().map(entry_id) {
+                        selected_id.set(Some(id));
+                        if copy_status().is_some() {
+                            copy_status.set(None);
+                        }
+                    }
+                }
+                Code::Delete | Code::Backspace => {
+                    if let Some(id) = current_selected_id {
+                        event.prevent_default();
+                        confirm_and_delete_entry(
+                            source_for_delete_keys.clone(),
+                            cache_for_delete_keys.clone(),
+                            entries,
+                            selected_id,
+                            error,
+                            action_status,
+                            id,
+                        );
+                    }
+                }
+                _ => {}
             }
         }
     };
 
     rsx! {
         style { "{APP_STYLE}" }
-        main { class: "app",
+        main {
+            class: "app",
+            tabindex: 0,
+            onkeydown: handle_keydown,
             Sidebar {
                 entries: filtered_entries.clone(),
                 total_entries: current_entries.len(),
@@ -229,6 +277,66 @@ fn matches_query(entry: &ClipboardEntry, query: &str) -> bool {
         }
         ClipboardEntry::Image { path, .. } => {
             path.to_lowercase().contains(&query) || "image".contains(&query)
+        }
+    }
+}
+
+
+fn adjacent_entry_id(entries: &[ClipboardEntry], selected_id: Option<i64>, direction: isize) -> Option<i64> {
+    if entries.is_empty() {
+        return None;
+    }
+
+    let current_index = selected_id.and_then(|id| entries.iter().position(|entry| entry_id(entry) == id));
+    let next_index = match (current_index, direction) {
+        (Some(index), step) if step > 0 => (index + 1).min(entries.len() - 1),
+        (Some(index), _) => index.saturating_sub(1),
+        (None, step) if step > 0 => 0,
+        (None, _) => entries.len() - 1,
+    };
+
+    entries.get(next_index).map(entry_id)
+}
+
+
+fn confirm_and_delete_entry(
+    source: Arc<ClipboardSource>,
+    cache: Arc<Mutex<Option<CachedEntries>>>,
+    mut entries: Signal<Vec<ClipboardEntry>>,
+    mut selected_id: Signal<Option<i64>>,
+    mut error: Signal<Option<String>>,
+    mut action_status: Signal<Option<String>>,
+    id: i64,
+) {
+    let confirmed = MessageDialog::new()
+        .set_level(MessageLevel::Warning)
+        .set_title("Delete clipboard entry?")
+        .set_description("This will permanently delete the selected clipboard entry.")
+        .set_buttons(MessageButtons::OkCancel)
+        .show();
+
+    if !matches!(confirmed, MessageDialogResult::Ok) {
+        return;
+    }
+
+    match delete_entry(&source, id) {
+        Ok(_) => {
+            if let Ok(mut cache_guard) = cache.lock() {
+                *cache_guard = None;
+            }
+            let mut next_entries = entries();
+            next_entries.retain(|entry| match entry {
+                ClipboardEntry::Text { id: entry_id, .. }
+                | ClipboardEntry::Image { id: entry_id, .. } => *entry_id != id,
+            });
+            entries.set(next_entries);
+            selected_id.set(None);
+            error.set(None);
+            action_status.set(Some("Entry deleted".to_string()));
+        }
+        Err(err) => {
+            error.set(Some(err));
+            action_status.set(Some("Delete failed".to_string()));
         }
     }
 }
