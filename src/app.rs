@@ -10,6 +10,8 @@ use crate::history::{clear_history, delete_entry, get_clipboard_entries};
 use crate::source::ClipboardSource;
 
 const APP_STYLE: &str = include_str!("../styles.css");
+const STATUS_TIMEOUT_SECS: u64 = 3;
+const STATUS_TIMEOUT: Duration = Duration::from_secs(STATUS_TIMEOUT_SECS);
 
 #[component]
 pub fn App() -> Element {
@@ -20,7 +22,7 @@ pub fn App() -> Element {
     let mut query = use_signal(String::new);
     let mut error = use_signal(|| None::<String>);
     let mut copy_status = use_signal(|| None::<String>);
-    let mut action_status = use_signal(|| None::<String>);
+    let action_status = use_signal(|| None::<String>);
 
     let polling_source = source.clone();
     let polling_cache = cache.clone();
@@ -128,11 +130,11 @@ pub fn App() -> Element {
                 entries.set(Vec::new());
                 selected_id.set(None);
                 error.set(None);
-                action_status.set(Some("History cleared".to_string()));
+                set_temporary_status(action_status, "History cleared");
             }
             Err(err) => {
                 error.set(Some(err));
-                action_status.set(Some("Clear failed".to_string()));
+                set_temporary_status(action_status, "Clear failed");
             }
         }
     };
@@ -140,8 +142,8 @@ pub fn App() -> Element {
     let handle_copy_text = move |text: String| {
         let result = Clipboard::new().and_then(|mut cb| cb.set_text(text));
         match result {
-            Ok(_) => copy_status.set(Some("Copied".to_string())),
-            Err(_) => copy_status.set(Some("Copy failed".to_string())),
+            Ok(_) => set_temporary_status(copy_status, "Copied"),
+            Err(_) => set_temporary_status(copy_status, "Copy failed"),
         }
     };
 
@@ -305,7 +307,7 @@ fn confirm_and_delete_entry(
     mut entries: Signal<Vec<ClipboardEntry>>,
     mut selected_id: Signal<Option<i64>>,
     mut error: Signal<Option<String>>,
-    mut action_status: Signal<Option<String>>,
+    action_status: Signal<Option<String>>,
     id: i64,
 ) {
     let confirmed = MessageDialog::new()
@@ -332,11 +334,28 @@ fn confirm_and_delete_entry(
             entries.set(next_entries);
             selected_id.set(None);
             error.set(None);
-            action_status.set(Some("Entry deleted".to_string()));
+            set_temporary_status(action_status, "Entry deleted");
         }
         Err(err) => {
             error.set(Some(err));
-            action_status.set(Some("Delete failed".to_string()));
+            set_temporary_status(action_status, "Delete failed");
         }
     }
+}
+
+
+fn set_temporary_status(mut status: Signal<Option<String>>, message: impl Into<String>) {
+    let message = message.into();
+    status.set(Some(message.clone()));
+
+    spawn({
+        let message = message.clone();
+        async move {
+            tokio::time::sleep(STATUS_TIMEOUT).await;
+
+            if status() == Some(message.clone()) {
+                status.set(None);
+            }
+        }
+    });
 }
