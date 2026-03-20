@@ -3,3 +3,4 @@
 .clipboard_history.db
 .clipboard_history.json.gpg
 .clipboard-watcher.toml
+notes.txt
