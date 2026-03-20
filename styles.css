@@ -134,6 +134,7 @@ body {
   color: var(--ink-soft);
   padding: 16px 14px;
   font-size: 14px;
+  line-height: 1.5;
 }
 
 .entry-card {
@@ -228,9 +229,42 @@ body {
 
 .detail-empty {
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
   min-height: 60vh;
   gap: 10px;
+}
+
+.detail-message-card {
+  padding: 24px;
+  border: 1px solid var(--border);
+  background: var(--panel-strong);
+}
+
+.detail-error-card {
+  border-color: rgba(255, 100, 100, 0.28);
+  background: rgba(255, 80, 80, 0.08);
+}
+
+.detail-empty-kicker {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-muted);
+}
+
+.detail-empty-title {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.detail-empty-body {
+  margin: 0;
+  max-width: 42ch;
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: 1.6;
 }
 
 .detail-meta {

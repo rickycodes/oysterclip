@@ -5,9 +5,19 @@ use crate::format::{
     entry_label, format_timestamp, image_data_uri_summary, is_image_data_uri, preview_text,
 };
 
+#[derive(Clone, PartialEq)]
+pub enum DetailState {
+    Error(String),
+    EmptyHistory,
+    EmptySearch(String),
+    Unselected,
+    Entry(ClipboardEntry),
+}
+
 #[component]
 pub fn Sidebar(
     entries: Vec<ClipboardEntry>,
+    total_entries: usize,
     selected_id: Option<i64>,
     query: String,
     error: Option<String>,
@@ -21,7 +31,7 @@ pub fn Sidebar(
             div { class: "sidebar-header",
                 h1 { "Clipboard" }
                 div { class: "sidebar-header-actions",
-                    span { class: "sidebar-count", "{entries.len()} entries" }
+                    span { class: "sidebar-count", "{total_entries} entries" }
                     button {
                         class: "sidebar-clear-btn",
                         onclick: move |_| on_clear.call(()),
@@ -39,7 +49,10 @@ pub fn Sidebar(
                 }
             }
             if let Some(err) = error {
-                div { class: "sidebar-error", "{err}" }
+                div { class: "sidebar-error",
+                    strong { "Load issue" }
+                    div { "{err}" }
+                }
             }
             if let Some(status) = action_status {
                 div { class: "sidebar-status", "{status}" }
@@ -48,9 +61,9 @@ pub fn Sidebar(
                 if entries.is_empty() {
                     div { class: "sidebar-empty",
                         if query.is_empty() {
-                            "No history yet."
+                            "Clipboard history will appear here once new entries are captured."
                         } else {
-                            "No matching entries."
+                            "Try a different search term."
                         }
                     }
                 }
@@ -87,7 +100,7 @@ pub fn Sidebar(
 
 #[component]
 pub fn DetailPane(
-    detail: Option<ClipboardEntry>,
+    state: DetailState,
     copy_status: Option<String>,
     on_copy_text: EventHandler<String>,
     on_delete: EventHandler<i64>,
@@ -95,8 +108,8 @@ pub fn DetailPane(
     rsx! {
         section { class: "content",
             {
-                match detail {
-                    Some(ClipboardEntry::Text { id, timestamp, content, .. }) => {
+                match state {
+                    DetailState::Entry(ClipboardEntry::Text { id, timestamp, content, .. }) => {
                         let text = content.clone();
                         let is_data_uri = is_image_data_uri(&content);
                         let summary = if is_data_uri {
@@ -136,8 +149,8 @@ pub fn DetailPane(
                                 }
                             }
                         }
-                    }
-                    Some(ClipboardEntry::Image {
+                    },
+                    DetailState::Entry(ClipboardEntry::Image {
                         id,
                         timestamp,
                         path,
@@ -169,8 +182,52 @@ pub fn DetailPane(
                             }
                         }
                     },
-                    None => rsx! {
-                        div { class: "detail detail-empty" }
+                    detail_state @ (DetailState::Error(_)
+                    | DetailState::EmptyHistory
+                    | DetailState::EmptySearch(_)
+                    | DetailState::Unselected) => {
+                        let (kicker, title, body, is_error) = match detail_state {
+                            DetailState::Error(message) => (
+                                "Load issue",
+                                "Clipboard history couldn't be loaded",
+                                message,
+                                true,
+                            ),
+                            DetailState::EmptyHistory => (
+                                "Waiting",
+                                "No clipboard history yet",
+                                "Copy some text or an image and it will show up here automatically.".to_string(),
+                                false,
+                            ),
+                            DetailState::EmptySearch(query) => (
+                                "No matches",
+                                "Nothing matched your search",
+                                format!(
+                                    "No history entries matched \"{query}\". Try a shorter term or a different keyword."
+                                ),
+                                false,
+                            ),
+                            DetailState::Unselected => (
+                                "Ready",
+                                "Select an entry to inspect it",
+                                "Choose an item from the left to view its contents, copy it again, or delete it.".to_string(),
+                                false,
+                            ),
+                            _ => unreachable!(),
+                        };
+                        let class = if is_error {
+                            "detail detail-empty detail-message-card detail-error-card"
+                        } else {
+                            "detail detail-empty detail-message-card"
+                        };
+
+                        rsx! {
+                            div { class: class,
+                                span { class: "detail-empty-kicker", "{kicker}" }
+                                h2 { class: "detail-empty-title", "{title}" }
+                                p { class: "detail-empty-body", "{body}" }
+                            }
+                        }
                     },
                 }
             }

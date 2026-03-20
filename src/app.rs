@@ -4,7 +4,7 @@ use rfd::{MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use crate::components::{DetailPane, Sidebar};
+use crate::components::{DetailPane, DetailState, Sidebar};
 use crate::entry::{CachedEntries, ClipboardEntry, ClipboardPayload};
 use crate::history::{clear_history, delete_entry, get_clipboard_entries};
 use crate::source::ClipboardSource;
@@ -83,6 +83,17 @@ pub fn App() -> Element {
             .find(|entry| entry_id(entry) == id)
             .cloned()
     });
+    let detail_state = if let Some(message) = error() {
+        DetailState::Error(message)
+    } else if current_entries.is_empty() {
+        DetailState::EmptyHistory
+    } else if filtered_entries.is_empty() {
+        DetailState::EmptySearch(current_query.clone())
+    } else if let Some(entry) = detail {
+        DetailState::Entry(entry)
+    } else {
+        DetailState::Unselected
+    };
 
     let handle_select = move |id: i64| {
         selected_id.set(Some(id));
@@ -175,6 +186,7 @@ pub fn App() -> Element {
         main { class: "app",
             Sidebar {
                 entries: filtered_entries.clone(),
+                total_entries: current_entries.len(),
                 selected_id: current_selected_id,
                 query: current_query,
                 error: error(),
@@ -184,7 +196,7 @@ pub fn App() -> Element {
                 on_clear: handle_clear,
             }
             DetailPane {
-                detail: detail,
+                state: detail_state,
                 copy_status: copy_status(),
                 on_copy_text: handle_copy_text,
                 on_delete: handle_delete,
