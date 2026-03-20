@@ -11,24 +11,11 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-use crate::constants::{KEYRING_ACCOUNT, KEYRING_SERVICE};
+use crate::constants::{
+    CREATE_ENTRIES_TABLE_SQL, INSERT_IMAGE_ENTRY_SQL, INSERT_TEXT_ENTRY_SQL, KEYRING_ACCOUNT,
+    KEYRING_SERVICE, SELECT_EXISTING_TEXT_ENTRY_SQL,
+};
 use crate::entry::PasteEntry;
-
-const CREATE_ENTRIES_TABLE_SQL: &str = "\
-CREATE TABLE IF NOT EXISTS entries (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    created_at INTEGER NOT NULL,
-    entry_type TEXT NOT NULL CHECK (entry_type IN ('text', 'image')),
-    text_kind TEXT,
-    text_ciphertext BLOB,
-    text_nonce BLOB,
-    image_path TEXT,
-    image_hash INTEGER,
-    content_hash TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_entries_created_at ON entries(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_entries_content_hash ON entries(content_hash);
-";
 
 pub(crate) struct HistoryStore {
     db_path: PathBuf,
@@ -83,7 +70,7 @@ impl HistoryStore {
         let content_hash = text_content_hash(content);
         let existing: Option<i64> = conn
             .query_row(
-                "SELECT id FROM entries WHERE entry_type = 'text' AND content_hash = ?1 LIMIT 1",
+                SELECT_EXISTING_TEXT_ENTRY_SQL,
                 params![content_hash],
                 |row| row.get(0),
             )
@@ -96,14 +83,7 @@ impl HistoryStore {
 
         let encrypted = encrypt_text(content, &self.encryption_key)?;
         conn.execute(
-            "INSERT INTO entries (
-                created_at,
-                entry_type,
-                text_kind,
-                text_ciphertext,
-                text_nonce,
-                content_hash
-            ) VALUES (?1, 'text', ?2, ?3, ?4, ?5)",
+            INSERT_TEXT_ENTRY_SQL,
             params![
                 timestamp as i64,
                 kind,
@@ -125,12 +105,7 @@ impl HistoryStore {
         hash: u64,
     ) -> io::Result<()> {
         conn.execute(
-            "INSERT INTO entries (
-                created_at,
-                entry_type,
-                image_path,
-                image_hash
-            ) VALUES (?1, 'image', ?2, ?3)",
+            INSERT_IMAGE_ENTRY_SQL,
             params![timestamp as i64, path, hash as i64],
         )
         .map_err(|err| io_error(format!("failed to insert image history entry: {err}")))?;

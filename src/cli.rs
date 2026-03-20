@@ -1,3 +1,7 @@
+use crate::constants::{
+    HELP_FLAG_LONG, HELP_FLAG_SHORT, HISTORY_FILE, VERSION_FLAG_LONG, VERSION_FLAG_SHORT,
+};
+
 pub(crate) fn print_help() {
     println!(
         "\
@@ -7,14 +11,19 @@ Usage:
   {name} [OPTIONS]
 
 Options:
-  -h, --help       Show this help message and exit
-  -V, --version    Show version information and exit
+  {help_short}, {help_long}       Show this help message and exit
+  {version_short}, {version_long}    Show version information and exit
 
 Storage:
-  Writes clipboard history to .clipboard_history.db and encrypts text content using the OS keychain.
+  Writes clipboard history to {history_file} and encrypts text content using the OS keychain.
 ",
         name = env!("CARGO_PKG_NAME"),
         version = env!("CARGO_PKG_VERSION"),
+        help_short = HELP_FLAG_SHORT,
+        help_long = HELP_FLAG_LONG,
+        version_short = VERSION_FLAG_SHORT,
+        version_long = VERSION_FLAG_LONG,
+        history_file = HISTORY_FILE,
     );
 }
 
