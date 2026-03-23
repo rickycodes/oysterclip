@@ -426,3 +426,20 @@ body {
     top: auto;
   }
 }
+
+/* Clickable text links */
+.text-link {
+    color: #0066cc;
+    text-decoration: underline;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.text-link:hover {
+    color: #004499;
+}
+
+.linkable-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}

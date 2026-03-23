@@ -8,8 +8,8 @@ mod history;
 mod source;
 
 use app::App;
-use dioxus::desktop::Config as DesktopConfig;
 use dioxus::desktop::tao::window::WindowBuilder;
+use dioxus::desktop::Config as DesktopConfig;
 use dioxus::prelude::LaunchBuilder;
 
 fn main() {

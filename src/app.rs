@@ -1,8 +1,7 @@
 use dioxus::prelude::*;
 
 use crate::app_actions::{
-    adjacent_entry_id, confirm_and_clear_history, confirm_and_delete_entry,
-    copy_text_to_clipboard,
+    adjacent_entry_id, confirm_and_clear_history, confirm_and_delete_entry, copy_text_to_clipboard,
 };
 use crate::app_state::use_app_state;
 use crate::components::{DetailPane, Sidebar};

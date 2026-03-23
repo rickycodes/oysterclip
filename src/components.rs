@@ -1,9 +1,37 @@
 use dioxus::prelude::*;
 
+use crate::app_actions::open_url;
 use crate::entry::ClipboardEntry;
 use crate::format::{
-    entry_label, format_timestamp, image_data_uri_summary, is_image_data_uri, preview_text,
+    entry_label, format_timestamp, has_urls, image_data_uri_summary, is_image_data_uri,
+    preview_text, split_text_with_urls, TextSegment,
 };
+
+#[component]
+pub fn LinkableText(text: String) -> Element {
+    rsx! {
+        span {
+            class: "linkable-text",
+            for (idx, segment) in split_text_with_urls(&text).into_iter().enumerate() {
+                match segment {
+                    TextSegment::Plain(t) => rsx! { span { key: "{idx}", "{t}" } },
+                    TextSegment::Url(url) => {
+                        let url_clone = url.clone();
+                        rsx! {
+                            a {
+                                key: "{idx}",
+                                class: "text-link",
+                                onclick: move |_| open_url(&url_clone),
+                                href: "#",
+                                "{url}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 #[derive(Clone, PartialEq)]
 pub enum DetailState {
@@ -132,7 +160,15 @@ pub fn DetailPane(
                                 if let Some(summary) = summary {
                                     div { class: "detail-note", "{summary}. Copy still uses the full value." }
                                 }
-                                pre { class: if is_data_uri { "detail-text detail-text-truncated" } else { "detail-text" }, "{display_text}" }
+                                if is_data_uri {
+                                    pre { class: "detail-text detail-text-truncated", "{display_text}" }
+                                } else if has_urls(&content) {
+                                    div { class: "detail-text",
+                                        LinkableText { text: content.clone() }
+                                    }
+                                } else {
+                                    pre { class: "detail-text", "{content}" }
+                                }
                                 div { class: "detail-actions",
                                     button {
                                         class: "detail-copy-btn",
