@@ -1,6 +1,7 @@
 mod app;
 mod app_actions;
 mod app_state;
+mod auth;
 mod components;
 mod entry;
 mod format;

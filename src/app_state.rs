@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::app_actions::{entry_id, matches_query};
+use crate::auth::AuthCache;
 use crate::components::DetailState;
 use crate::entry::{CachedEntries, ClipboardEntry, ClipboardPayload};
 use crate::history::get_clipboard_entries;
@@ -18,6 +19,7 @@ pub struct AppState {
     pub copy_status: Signal<Option<String>>,
     pub action_status: Signal<Option<String>>,
     pub show_password: Signal<bool>,
+    pub auth_cache: Signal<Arc<Mutex<AuthCache>>>,
     pub filtered_entries: Vec<ClipboardEntry>,
     pub current_selected_id: Option<i64>,
     pub current_query: String,
@@ -36,6 +38,7 @@ pub fn use_app_state() -> AppState {
     let copy_status = use_signal(|| None::<String>);
     let action_status = use_signal(|| None::<String>);
     let show_password = use_signal(|| false);
+    let auth_cache = use_signal(|| Arc::new(Mutex::new(AuthCache::new(5))));
 
     let polling_source = source.clone();
     let polling_cache = cache.clone();
@@ -130,6 +133,7 @@ pub fn use_app_state() -> AppState {
         copy_status,
         action_status,
         show_password,
+        auth_cache,
         filtered_entries,
         current_selected_id,
         current_query,

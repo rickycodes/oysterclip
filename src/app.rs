@@ -20,6 +20,7 @@ pub fn App() -> Element {
     let mut copy_status = state.copy_status;
     let action_status = state.action_status;
     let mut show_password = state.show_password;
+    let auth_cache = state.auth_cache.clone();
     let filtered_entries = state.filtered_entries;
     let current_selected_id = state.current_selected_id;
     let current_query = state.current_query;
@@ -158,13 +159,10 @@ pub fn App() -> Element {
 
     rsx! {
         style { "{APP_STYLE}" }
-        main {
-            class: "app",
-            tabindex: 0,
-            onkeydown: handle_keydown,
+        main { class: "app", tabindex: 0, onkeydown: handle_keydown,
             Sidebar {
                 entries: filtered_entries.clone(),
-                total_entries: total_entries,
+                total_entries,
                 selected_id: current_selected_id,
                 query: current_query,
                 error: error(),
@@ -176,7 +174,8 @@ pub fn App() -> Element {
             DetailPane {
                 state: detail_state,
                 copy_status: copy_status(),
-                show_password: show_password,
+                show_password,
+                auth_cache,
                 on_copy_text: handle_copy_text,
                 on_delete: handle_delete,
             }

@@ -92,7 +92,7 @@ pub fn split_text_with_urls(text: &str) -> Vec<TextSegment> {
     segments
 }
 
-const PASSWORD_LEN:usize = 25;
+const PASSWORD_LEN: usize = 25;
 
 pub fn is_password(text: &str) -> bool {
     text.len() == PASSWORD_LEN

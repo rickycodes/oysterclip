@@ -1,6 +1,8 @@
 use dioxus::prelude::*;
+use std::sync::{Arc, Mutex};
 
 use crate::app_actions::open_url;
+use crate::auth::{authenticate_admin_action, AuthCache};
 use crate::entry::ClipboardEntry;
 use crate::format::{
     entry_label, format_timestamp, has_urls, image_data_uri_summary, is_image_data_uri,
@@ -10,11 +12,12 @@ use crate::format::{
 #[component]
 pub fn LinkableText(text: String) -> Element {
     rsx! {
-        span {
-            class: "linkable-text",
-            for (idx, segment) in split_text_with_urls(&text).into_iter().enumerate() {
+        span { class: "linkable-text",
+            for (idx , segment) in split_text_with_urls(&text).into_iter().enumerate() {
                 match segment {
-                    TextSegment::Plain(t) => rsx! { span { key: "{idx}", "{t}" } },
+                    TextSegment::Plain(t) => rsx! {
+                        span { key: "{idx}", "{t}" }
+                    },
                     TextSegment::Url(url) => {
                         let url_clone = url.clone();
                         rsx! {
@@ -112,9 +115,7 @@ pub fn Sidebar(
                             ClipboardEntry::Image { timestamp, .. } => *timestamp,
                         };
                         rsx! {
-                            button {
-                                class: "{class}",
-                                onclick: move |_| on_select.call(entry_id),
+                            button { class: "{class}", onclick: move |_| on_select.call(entry_id),
                                 div { class: "entry-title", "{entry_label(entry)}" }
                                 div { class: "entry-preview", "{preview}" }
                                 div { class: "entry-ts", "{format_timestamp(timestamp)}" }
@@ -132,6 +133,7 @@ pub fn DetailPane(
     state: DetailState,
     copy_status: Option<String>,
     show_password: Signal<bool>,
+    auth_cache: Signal<Arc<Mutex<AuthCache>>>,
     on_copy_text: EventHandler<String>,
     on_delete: EventHandler<i64>,
 ) -> Element {
@@ -157,7 +159,11 @@ pub fn DetailPane(
                             div { class: "detail",
                                 div { class: "detail-meta",
                                     span { class: "detail-type",
-                                        if is_password_text { "Password" } else { "Text" }
+                                        if is_password_text {
+                                            "Password"
+                                        } else {
+                                            "Text"
+                                        }
                                     }
                                     span { class: "detail-ts", "Timestamp: {format_timestamp(timestamp)}" }
                                 }
@@ -190,29 +196,41 @@ pub fn DetailPane(
                                     if is_password_text {
                                         button {
                                             class: "detail-password-btn",
-                                            onclick: move |_| show_password.set(!show_password()),
-                                            if show_password() { "Hide" } else { "Show" }
+                                            onclick: move |_| {
+                                                if show_password() {
+                                                    show_password.set(false);
+                                                } else {
+                                                    if let Ok(mut cache_guard) = auth_cache().lock() {
+                                                        if cache_guard.is_authenticated() {
+                                                            show_password.set(true);
+                                                        } else {
+                                                            let auth_result = authenticate_admin_action();
+                                                            if auth_result.success {
+                                                                cache_guard.set_authenticated(true);
+                                                                show_password.set(true);
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            if show_password() {
+                                                "Hide"
+                                            } else {
+                                                "Show"
+                                            }
                                         }
                                     }
-                                    button {
-                                        class: "detail-delete-btn",
-                                        onclick: move |_| on_delete.call(id),
-                                        "Delete"
-                                    }
+                                    button { class: "detail-delete-btn", onclick: move |_| on_delete.call(id), "Delete" }
                                     if let Some(status) = copy_status.clone() {
                                         span { class: "detail-copy-status", "{status}" }
                                     }
                                 }
                             }
                         }
-                    },
-                    DetailState::Entry(ClipboardEntry::Image {
-                        id,
-                        timestamp,
-                        path,
-                        hash,
-                        data_url,
-                    }) => rsx! {
+                    }
+                    DetailState::Entry(
+                        ClipboardEntry::Image { id, timestamp, path, hash, data_url },
+                    ) => rsx! {
                         div { class: "detail",
                             div { class: "detail-meta",
                                 span { class: "detail-type", "Image" }
@@ -220,7 +238,7 @@ pub fn DetailPane(
                             }
                             div { class: "detail-image-wrap",
                                 if let Some(src) = data_url {
-                                    img { class: "detail-image", src: src, alt: "Clipboard image" }
+                                    img { class: "detail-image", src, alt: "Clipboard image" }
                                 } else {
                                     div { class: "detail-image-missing", "Image data not available." }
                                 }
@@ -230,11 +248,7 @@ pub fn DetailPane(
                                 span { "Hash: {hash}" }
                             }
                             div { class: "detail-actions",
-                                button {
-                                    class: "detail-delete-btn",
-                                    onclick: move |_| on_delete.call(id),
-                                    "Delete"
-                                }
+                                button { class: "detail-delete-btn", onclick: move |_| on_delete.call(id), "Delete" }
                             }
                         }
                     },
@@ -243,32 +257,42 @@ pub fn DetailPane(
                     | DetailState::EmptySearch(_)
                     | DetailState::Unselected) => {
                         let (kicker, title, body, is_error) = match detail_state {
-                            DetailState::Error(message) => (
-                                "Load issue",
-                                "Clipboard history couldn't be loaded",
-                                message,
-                                true,
-                            ),
-                            DetailState::EmptyHistory => (
-                                "Waiting",
-                                "No clipboard history yet",
-                                "Copy some text or an image and it will show up here automatically.".to_string(),
-                                false,
-                            ),
-                            DetailState::EmptySearch(query) => (
-                                "No matches",
-                                "Nothing matched your search",
-                                format!(
-                                    "No history entries matched \"{query}\". Try a shorter term or a different keyword."
-                                ),
-                                false,
-                            ),
-                            DetailState::Unselected => (
-                                "Ready",
-                                "Select an entry to inspect it",
-                                "Choose an item from the left to view its contents, copy it again, or delete it.".to_string(),
-                                false,
-                            ),
+                            DetailState::Error(message) => {
+                                (
+                                    "Load issue",
+                                    "Clipboard history couldn't be loaded",
+                                    message,
+                                    true,
+                                )
+                            }
+                            DetailState::EmptyHistory => {
+                                (
+                                    "Waiting",
+                                    "No clipboard history yet",
+                                    "Copy some text or an image and it will show up here automatically."
+                                        .to_string(),
+                                    false,
+                                )
+                            }
+                            DetailState::EmptySearch(query) => {
+                                (
+                                    "No matches",
+                                    "Nothing matched your search",
+                                    format!(
+                                        "No history entries matched \"{query}\". Try a shorter term or a different keyword.",
+                                    ),
+                                    false,
+                                )
+                            }
+                            DetailState::Unselected => {
+                                (
+                                    "Ready",
+                                    "Select an entry to inspect it",
+                                    "Choose an item from the left to view its contents, copy it again, or delete it."
+                                        .to_string(),
+                                    false,
+                                )
+                            }
                             _ => unreachable!(),
                         };
                         let class = if is_error {
@@ -276,15 +300,14 @@ pub fn DetailPane(
                         } else {
                             "detail detail-empty detail-message-card"
                         };
-
                         rsx! {
-                            div { class: class,
+                            div { class,
                                 span { class: "detail-empty-kicker", "{kicker}" }
                                 h2 { class: "detail-empty-title", "{title}" }
                                 p { class: "detail-empty-body", "{body}" }
                             }
                         }
-                    },
+                    }
                 }
             }
         }
