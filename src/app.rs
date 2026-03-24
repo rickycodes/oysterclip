@@ -19,6 +19,7 @@ pub fn App() -> Element {
     let error = state.error;
     let mut copy_status = state.copy_status;
     let action_status = state.action_status;
+    let mut show_password = state.show_password;
     let filtered_entries = state.filtered_entries;
     let current_selected_id = state.current_selected_id;
     let current_query = state.current_query;
@@ -28,6 +29,7 @@ pub fn App() -> Element {
 
     let handle_select = move |id: i64| {
         selected_id.set(Some(id));
+        show_password.set(false);
         if copy_status().is_some() {
             copy_status.set(None);
         }
@@ -88,6 +90,7 @@ pub fn App() -> Element {
                 event.prevent_default();
                 if let Some(id) = adjacent_entry_id(&keyboard_entries, current_selected_id, 1) {
                     selected_id.set(Some(id));
+                    show_password.set(false);
                     if copy_status().is_some() {
                         copy_status.set(None);
                     }
@@ -97,6 +100,7 @@ pub fn App() -> Element {
                 event.prevent_default();
                 if let Some(id) = adjacent_entry_id(&keyboard_entries, current_selected_id, -1) {
                     selected_id.set(Some(id));
+                    show_password.set(false);
                     if copy_status().is_some() {
                         copy_status.set(None);
                     }
@@ -109,6 +113,7 @@ pub fn App() -> Element {
                     | crate::entry::ClipboardEntry::Image { id, .. } => *id,
                 }) {
                     selected_id.set(Some(id));
+                    show_password.set(false);
                     if copy_status().is_some() {
                         copy_status.set(None);
                     }
@@ -121,6 +126,7 @@ pub fn App() -> Element {
                     | crate::entry::ClipboardEntry::Image { id, .. } => *id,
                 }) {
                     selected_id.set(Some(id));
+                    show_password.set(false);
                     if copy_status().is_some() {
                         copy_status.set(None);
                     }
@@ -170,6 +176,7 @@ pub fn App() -> Element {
             DetailPane {
                 state: detail_state,
                 copy_status: copy_status(),
+                show_password: show_password,
                 on_copy_text: handle_copy_text,
                 on_delete: handle_delete,
             }

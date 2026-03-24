@@ -17,6 +17,7 @@ pub struct AppState {
     pub error: Signal<Option<String>>,
     pub copy_status: Signal<Option<String>>,
     pub action_status: Signal<Option<String>>,
+    pub show_password: Signal<bool>,
     pub filtered_entries: Vec<ClipboardEntry>,
     pub current_selected_id: Option<i64>,
     pub current_query: String,
@@ -34,6 +35,7 @@ pub fn use_app_state() -> AppState {
     let mut error = use_signal(|| None::<String>);
     let copy_status = use_signal(|| None::<String>);
     let action_status = use_signal(|| None::<String>);
+    let show_password = use_signal(|| false);
 
     let polling_source = source.clone();
     let polling_cache = cache.clone();
@@ -127,6 +129,7 @@ pub fn use_app_state() -> AppState {
         error,
         copy_status,
         action_status,
+        show_password,
         filtered_entries,
         current_selected_id,
         current_query,

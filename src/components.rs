@@ -4,7 +4,7 @@ use crate::app_actions::open_url;
 use crate::entry::ClipboardEntry;
 use crate::format::{
     entry_label, format_timestamp, has_urls, image_data_uri_summary, is_image_data_uri,
-    preview_text, split_text_with_urls, TextSegment,
+    is_password, mask_password, preview_text, split_text_with_urls, TextSegment,
 };
 
 #[component]
@@ -131,6 +131,7 @@ pub fn Sidebar(
 pub fn DetailPane(
     state: DetailState,
     copy_status: Option<String>,
+    show_password: Signal<bool>,
     on_copy_text: EventHandler<String>,
     on_delete: EventHandler<i64>,
 ) -> Element {
@@ -141,6 +142,7 @@ pub fn DetailPane(
                     DetailState::Entry(ClipboardEntry::Text { id, timestamp, content, .. }) => {
                         let text = content.clone();
                         let is_data_uri = is_image_data_uri(&content);
+                        let is_password_text = is_password(&content);
                         let summary = if is_data_uri {
                             Some(image_data_uri_summary(&content))
                         } else {
@@ -154,13 +156,23 @@ pub fn DetailPane(
                         rsx! {
                             div { class: "detail",
                                 div { class: "detail-meta",
-                                    span { class: "detail-type", "Text" }
+                                    span { class: "detail-type",
+                                        if is_password_text { "Password" } else { "Text" }
+                                    }
                                     span { class: "detail-ts", "Timestamp: {format_timestamp(timestamp)}" }
                                 }
                                 if let Some(summary) = summary {
                                     div { class: "detail-note", "{summary}. Copy still uses the full value." }
                                 }
-                                if is_data_uri {
+                                if is_password_text {
+                                    div { class: "detail-password-area",
+                                        if show_password() {
+                                            pre { class: "detail-text", "{content}" }
+                                        } else {
+                                            pre { class: "detail-text detail-password-masked", "{mask_password(&content)}" }
+                                        }
+                                    }
+                                } else if is_data_uri {
                                     pre { class: "detail-text detail-text-truncated", "{display_text}" }
                                 } else if has_urls(&content) {
                                     div { class: "detail-text",
@@ -174,6 +186,13 @@ pub fn DetailPane(
                                         class: "detail-copy-btn",
                                         onclick: move |_| on_copy_text.call(text.clone()),
                                         "Copy"
+                                    }
+                                    if is_password_text {
+                                        button {
+                                            class: "detail-password-btn",
+                                            onclick: move |_| show_password.set(!show_password()),
+                                            if show_password() { "Hide" } else { "Show" }
+                                        }
                                     }
                                     button {
                                         class: "detail-delete-btn",

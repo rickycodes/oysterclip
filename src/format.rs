@@ -87,3 +87,15 @@ pub fn split_text_with_urls(text: &str) -> Vec<TextSegment> {
 
     segments
 }
+
+pub fn is_password(text: &str) -> bool {
+    text.len() == 25
+        && !text.contains(' ')
+        && !text.contains("\n")
+        && !text.contains("\t")
+        && !has_urls(text)
+}
+
+pub fn mask_password(_text: &str) -> String {
+    "•".repeat(8)
+}

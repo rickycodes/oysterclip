@@ -443,3 +443,20 @@ body {
     white-space: pre-wrap;
     word-wrap: break-word;
 }
+
+.detail-password-btn {
+    border: 1px solid var(--border-strong);
+    background: var(--panel-strong);
+    color: var(--accent);
+    padding: 5px 10px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    align-self: center;
+}
+
+.detail-password-btn:hover {
+    border-color: rgba(255, 255, 255, 0.38);
+    background: #171a26;
+}
