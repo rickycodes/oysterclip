@@ -8,7 +8,7 @@ use crate::entry::{CachedEntries, ClipboardEntry};
 use crate::history::{clear_history, delete_entry};
 use crate::source::ClipboardSource;
 
-const STATUS_TIMEOUT_SECS: u64 = 3;
+const STATUS_TIMEOUT_SECS: u64 = 5;
 const STATUS_TIMEOUT: Duration = Duration::from_secs(STATUS_TIMEOUT_SECS);
 
 pub fn entry_id(entry: &ClipboardEntry) -> i64 {
@@ -87,11 +87,11 @@ pub fn confirm_and_clear_history(
             entries.set(Vec::new());
             selected_id.set(None);
             error.set(None);
-            set_temporary_status(action_status, "History cleared");
+            set_status(action_status, "History cleared");
         }
         Err(err) => {
             error.set(Some(err));
-            set_temporary_status(action_status, "Clear failed");
+            set_status(action_status, "Clear failed");
         }
     }
 }
@@ -129,11 +129,11 @@ pub fn confirm_and_delete_entry(
             entries.set(next_entries);
             selected_id.set(None);
             error.set(None);
-            set_temporary_status(action_status, "Entry deleted");
+            set_status(action_status, "Entry deleted");
         }
         Err(err) => {
             error.set(Some(err));
-            set_temporary_status(action_status, "Delete failed");
+            set_status(action_status, "Delete failed");
         }
     }
 }
@@ -141,12 +141,12 @@ pub fn confirm_and_delete_entry(
 pub fn copy_text_to_clipboard(copy_status: Signal<Option<String>>, text: String) {
     let result = Clipboard::new().and_then(|mut cb| cb.set_text(text));
     match result {
-        Ok(_) => set_temporary_status(copy_status, "Copied"),
-        Err(_) => set_temporary_status(copy_status, "Copy failed"),
+        Ok(_) => set_status(copy_status, "Copied"),
+        Err(_) => set_status(copy_status, "Copy failed"),
     }
 }
 
-pub fn set_temporary_status(mut status: Signal<Option<String>>, message: impl Into<String>) {
+pub fn set_status(mut status: Signal<Option<String>>, message: impl Into<String>) {
     let message = message.into();
     status.set(Some(message.clone()));
 

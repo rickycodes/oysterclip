@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use std::sync::{Arc, Mutex};
 
-use crate::app_actions::open_url;
+use crate::app_actions::{open_url, set_status};
 use crate::auth::{authenticate_admin_action, AuthCache};
 use crate::entry::ClipboardEntry;
 use crate::format::{
@@ -134,6 +134,7 @@ pub fn DetailPane(
     copy_status: Option<String>,
     show_password: Signal<bool>,
     auth_cache: Signal<Arc<Mutex<AuthCache>>>,
+    action_status: Signal<Option<String>>,
     on_copy_text: EventHandler<String>,
     on_delete: EventHandler<i64>,
 ) -> Element {
@@ -208,6 +209,8 @@ pub fn DetailPane(
                                                             if auth_result.success {
                                                                 cache_guard.set_authenticated(true);
                                                                 show_password.set(true);
+                                                            } else {
+                                                                set_status(action_status, "Authentication failed");
                                                             }
                                                         }
                                                     }

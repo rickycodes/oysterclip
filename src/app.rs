@@ -176,6 +176,7 @@ pub fn App() -> Element {
                 copy_status: copy_status(),
                 show_password,
                 auth_cache,
+                action_status,
                 on_copy_text: handle_copy_text,
                 on_delete: handle_delete,
             }
