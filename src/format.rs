@@ -3,12 +3,16 @@ use chrono::{DateTime, Local, Utc};
 use crate::entry::ClipboardEntry;
 
 pub fn preview_text(content: &str, limit: usize) -> String {
-    let line = content.lines().next().unwrap_or("");
-    let mut preview: String = line.chars().take(limit).collect();
-    if line.chars().count() > limit {
-        preview.push('…');
+    if is_password(content) {
+        mask_password(content)
+    } else {
+        let line = content.lines().next().unwrap_or("");
+        let mut preview: String = line.chars().take(limit).collect();
+        if line.chars().count() > limit {
+            preview.push('…');
+        }
+        preview
     }
-    preview
 }
 
 pub fn is_image_data_uri(content: &str) -> bool {
@@ -88,8 +92,10 @@ pub fn split_text_with_urls(text: &str) -> Vec<TextSegment> {
     segments
 }
 
+const PASSWORD_LEN:usize = 25;
+
 pub fn is_password(text: &str) -> bool {
-    text.len() == 25
+    text.len() == PASSWORD_LEN
         && !text.contains(' ')
         && !text.contains("\n")
         && !text.contains("\t")
@@ -97,5 +103,5 @@ pub fn is_password(text: &str) -> bool {
 }
 
 pub fn mask_password(_text: &str) -> String {
-    "•".repeat(8)
+    "•".repeat(PASSWORD_LEN)
 }
