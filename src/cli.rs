@@ -1,32 +1,71 @@
-use crate::constants::{
-    HELP_FLAG_LONG, HELP_FLAG_SHORT, HISTORY_FILE, VERSION_FLAG_LONG, VERSION_FLAG_SHORT,
-};
+use clap::{Parser, Subcommand};
 
-pub(crate) fn print_help() {
-    println!(
-        "\
-{name} {version}
-
-Usage:
-  {name} [OPTIONS]
-
-Options:
-  {help_short}, {help_long}       Show this help message and exit
-  {version_short}, {version_long}    Show version information and exit
+#[derive(Parser)]
+#[command(
+    name = "clipboard-watcher",
+    about = "Monitor clipboard activity and store history",
+    long_about = "A clipboard monitoring tool that automatically captures and stores text and image clipboard entries to a local SQLite database.
 
 Storage:
-  Writes clipboard history to {history_file} and encrypts text content using the OS keychain.
-",
-        name = env!("CARGO_PKG_NAME"),
-        version = env!("CARGO_PKG_VERSION"),
-        help_short = HELP_FLAG_SHORT,
-        help_long = HELP_FLAG_LONG,
-        version_short = VERSION_FLAG_SHORT,
-        version_long = VERSION_FLAG_LONG,
-        history_file = HISTORY_FILE,
-    );
+  • Text history: Stored in ~/.clipboard_history.db
+    • Text content is encrypted using the OS keychain
+  • Image history: Saved to clipboard_images/ directory
+  • Configuration: ~/.clipboard-watcher.toml (TOML format)
+
+Default behavior:
+  When run without any subcommand, clipboard-watcher will start monitoring your clipboard and storing new entries.
+
+Examples:
+  • Start watching (default): clipboard-watcher
+  • Show version: clipboard-watcher version
+  • Show version (flag): clipboard-watcher --version",
+    version
+)]
+pub struct Cli {
+    #[command(subcommand)]
+    pub command: Option<Commands>,
 }
 
-pub(crate) fn print_version() {
-    println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+#[derive(Subcommand)]
+pub enum Commands {
+    #[command(
+        about = "Start watching the clipboard for changes",
+        long_about = "Continuously monitors the system clipboard and saves new text and image entries to history.
+
+This is the default behavior when no subcommand is provided.
+
+History storage:
+  • Maximum 500 entries by default (configurable via config file)
+  • Older entries are automatically pruned when limit is reached
+  • Text entries are encrypted using ChaCha20-Poly1305 with a key stored in your OS keychain
+
+What gets captured:
+  • Plain text: Any text copied to clipboard (URLs, code, notes, etc.)
+  • Images: Screenshots or images copied to clipboard
+  • Text types are automatically detected: URLs, JSON, multiline text, etc.
+
+What gets skipped:
+  • Empty text selections
+  • Image data URIs (text representations of images)
+
+Examples:
+  clipboard-watcher watch
+  clipboard-watcher        # Same as above"
+    )]
+    Watch,
+
+    #[command(
+        about = "Display version information",
+        long_about = "Shows the current version of clipboard-watcher.
+
+Alternative methods:
+  • --version flag
+  • -V short flag
+
+Example:
+  clipboard-watcher version
+  clipboard-watcher --version
+  clipboard-watcher -V"
+    )]
+    Version,
 }
