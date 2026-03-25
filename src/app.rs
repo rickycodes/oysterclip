@@ -246,30 +246,34 @@ pub fn App() -> Element {
                 class: if image_overlay_open() { "image-overlay is-open" } else { "image-overlay" },
                 onclick: move |_| image_overlay_open.set(false),
                 aria_hidden: if image_overlay_open() { "false" } else { "true" },
-                div {
-                    class: "image-overlay-dialog",
-                    onclick: move |event| event.stop_propagation(),
-                    button {
-                        class: "image-overlay-close",
-                        onclick: move |_| image_overlay_open.set(false),
-                        aria_label: "Close image overlay",
-                        tabindex: if image_overlay_open() { "0" } else { "-1" },
-                        svg {
-                            xmlns: "http://www.w3.org/2000/svg",
+                button {
+                    class: "image-overlay-close",
+                    onclick: move |_| image_overlay_open.set(false),
+                    aria_label: "Close image overlay",
+                    tabindex: if image_overlay_open() { "0" } else { "-1" },
+                    svg {
+                        xmlns: "http://www.w3.org/2000/svg",
+                        fill: "none",
+                        width: "24",
+                        height: "24",
+                        view_box: "0 0 300 300",
+                        path {
+                            d: "m60 60 180 180m0-180-180 180",
                             fill: "none",
-                            width: "24",
-                            height: "24",
-                            view_box: "0 0 300 300",
-                            path {
-                                d: "m60 60 180 180m0-180-180 180",
-                                fill: "none",
-                                stroke: "#fff",
-                                stroke_linejoin: "round",
-                                stroke_width: "27",
-                            }
+                            stroke: "#fff",
+                            stroke_linejoin: "round",
+                            stroke_width: "27",
                         }
                     }
-                    img { class: "image-overlay-image", src, alt: "Clipboard image expanded" }
+                }
+                div {
+                    class: "image-overlay-dialog",
+                    img {
+                        class: "image-overlay-image",
+                        src,
+                        alt: "Clipboard image expanded",
+                        onclick: move |event| event.stop_propagation(),
+                    }
                 }
             }
         }
