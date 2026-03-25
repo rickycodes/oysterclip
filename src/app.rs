@@ -24,6 +24,7 @@ pub fn App() -> Element {
     let mut show_password = state.show_password;
     let mut image_overlay_open = use_signal(|| false);
     let auth_cache = state.auth_cache;
+    let link_previews = state.link_previews;
     let mut watcher_status = state.watcher_status;
     let filtered_entries = state.filtered_entries;
     let current_selected_id = state.current_selected_id;
@@ -236,6 +237,7 @@ pub fn App() -> Element {
                 show_password,
                 auth_cache,
                 action_status,
+                link_previews,
                 on_copy_text: handle_copy_text,
                 on_delete: handle_delete,
                 on_open_image: handle_open_image,

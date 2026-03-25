@@ -37,12 +37,12 @@ pub fn entry_label(entry: &ClipboardEntry) -> &'static str {
     match entry {
         ClipboardEntry::Text { content, .. } => {
             if is_password(content) {
-                "Pass"
+                "🔒 Pass"
             } else {
-                "Text"
+                "📝 Text"
             }
         }
-        ClipboardEntry::Image { .. } => "Image",
+        ClipboardEntry::Image { .. } => "🖼️ Image",
     }
 }
 
@@ -71,6 +71,21 @@ pub fn extract_urls(text: &str) -> Vec<(usize, usize)> {
 
 pub fn has_urls(text: &str) -> bool {
     !extract_urls(text).is_empty()
+}
+
+pub fn extract_single_url(text: &str) -> Option<&str> {
+    let trimmed = text.trim();
+    let urls = extract_urls(trimmed);
+    if urls.len() != 1 {
+        return None;
+    }
+
+    let (start, end) = urls[0];
+    if start == 0 && end == trimmed.len() {
+        Some(&trimmed[start..end])
+    } else {
+        None
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -349,6 +349,74 @@ body {
   line-height: 1.5;
 }
 
+.link-preview-card {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  border: 1px solid var(--border);
+  background: var(--panel-strong);
+  padding: 14px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.link-preview-card:hover {
+  border-color: var(--border-strong);
+  background: #161925;
+}
+
+.link-preview-copy {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.link-preview-site {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-muted);
+}
+
+.link-preview-site-name {
+  color: var(--accent-soft);
+  font-weight: 600;
+}
+
+.link-preview-display-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.link-preview-title {
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.link-preview-description {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.link-preview-image {
+  width: 140px;
+  height: 104px;
+  border: 1px solid var(--border);
+  object-fit: cover;
+  background: var(--bg-soft);
+}
+
 .detail-text {
   margin: 0;
   max-width: 100%;

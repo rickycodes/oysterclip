@@ -1,13 +1,16 @@
 use dioxus::prelude::*;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use crate::app_actions::{open_url, set_status};
 use crate::auth::{authenticate_admin_action, AuthCache};
 use crate::entry::ClipboardEntry;
 use crate::format::{
-    entry_label, format_timestamp, has_urls, image_data_uri_summary, is_image_data_uri,
-    is_password, mask_password, preview_text, split_text_with_urls, TextSegment,
+    entry_label, extract_single_url, format_timestamp, has_urls, image_data_uri_summary,
+    is_image_data_uri, is_password, mask_password, preview_text, split_text_with_urls,
+    TextSegment,
 };
+use crate::link_preview::LinkPreviewState;
 use crate::watcher_control::WatcherStatus;
 
 #[component]
@@ -204,6 +207,7 @@ pub fn DetailPane(
     show_password: Signal<bool>,
     auth_cache: Signal<Arc<Mutex<AuthCache>>>,
     action_status: Signal<Option<String>>,
+    link_previews: Signal<HashMap<String, LinkPreviewState>>,
     on_copy_text: EventHandler<String>,
     on_delete: EventHandler<i64>,
     on_open_image: EventHandler<()>,
@@ -214,6 +218,10 @@ pub fn DetailPane(
                 match state {
                     DetailState::Entry(ClipboardEntry::Text { id, timestamp, content, .. }) => {
                         let text = content.clone();
+                        let exact_url = extract_single_url(&content).map(str::to_string);
+                        let preview_state = exact_url
+                            .as_ref()
+                            .and_then(|url| link_previews().get(url).cloned());
                         let is_data_uri = is_image_data_uri(&content);
                         let is_password_text = is_password(&content);
                         let summary = if is_data_uri {
@@ -237,6 +245,36 @@ pub fn DetailPane(
                                         }
                                     }
                                     span { class: "detail-ts", "Timestamp: {format_timestamp(timestamp)}" }
+                                }
+                                if let Some(LinkPreviewState::Ready(preview)) = preview_state {
+                                    {
+                                        let open_target = preview.url.clone();
+                                        rsx! {
+                                            button {
+                                                class: "link-preview-card",
+                                                onclick: move |_| open_url(&open_target),
+                                                div { class: "link-preview-copy",
+                                                    div { class: "link-preview-site",
+                                                        if let Some(site_name) = preview.site_name.as_ref() {
+                                                            span { class: "link-preview-site-name", "{site_name}" }
+                                                        }
+                                                        span { class: "link-preview-display-url", "{preview.display_url}" }
+                                                    }
+                                                    div { class: "link-preview-title", "{preview.title}" }
+                                                    if let Some(description) = preview.description.as_ref() {
+                                                        div { class: "link-preview-description", "{description}" }
+                                                    }
+                                                }
+                                                if let Some(image_url) = preview.image_url.as_ref() {
+                                                    img {
+                                                        class: "link-preview-image",
+                                                        src: "{image_url}",
+                                                        alt: "Link preview image"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                                 if let Some(summary) = summary {
                                     div { class: "detail-note", "{summary}. Copy still uses the full value." }

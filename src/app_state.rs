@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -6,9 +7,15 @@ use crate::app_actions::{entry_id, matches_query};
 use crate::auth::AuthCache;
 use crate::components::DetailState;
 use crate::entry::{CachedEntries, ClipboardEntry, ClipboardPayload};
+use crate::format::extract_single_url;
 use crate::history::get_clipboard_entries;
+use crate::link_preview::{fetch_link_preview, LinkPreviewState};
 use crate::source::ClipboardSource;
 use crate::watcher_control::{self, WatcherStatus};
+
+const PREFETCH_URL_LIMIT: usize = 16;
+const PREFETCH_IDLE_MS: u64 = 800;
+const PREFETCH_STEP_MS: u64 = 75;
 
 pub struct AppState {
     pub source: Arc<ClipboardSource>,
@@ -22,6 +29,7 @@ pub struct AppState {
     pub show_password: Signal<bool>,
     pub auth_cache: Signal<Arc<Mutex<AuthCache>>>,
     pub watcher_status: Signal<WatcherStatus>,
+    pub link_previews: Signal<HashMap<String, LinkPreviewState>>,
     pub filtered_entries: Vec<ClipboardEntry>,
     pub current_selected_id: Option<i64>,
     pub current_query: String,
@@ -44,6 +52,7 @@ pub fn use_app_state() -> AppState {
     let auth_cache = use_signal(|| Arc::new(Mutex::new(AuthCache::new(5))));
     let mut watcher_status =
         use_signal(|| WatcherStatus::unavailable("Waiting for watcher status."));
+    let mut link_previews = use_signal(HashMap::<String, LinkPreviewState>::new);
 
     let polling_source = source.clone();
     let polling_cache = cache.clone();
@@ -103,6 +112,49 @@ pub fn use_app_state() -> AppState {
         }
     });
 
+    let preview_entries = entries;
+    let preview_query = query;
+    use_future(move || async move {
+        loop {
+            let eligible_urls: Vec<String> = preview_entries()
+                .iter()
+                .filter(|entry| matches_query(entry, &preview_query()))
+                .filter_map(|entry| match entry {
+                    ClipboardEntry::Text { content, .. } => {
+                        extract_single_url(content).map(str::to_string)
+                    }
+                    ClipboardEntry::Image { .. } => None,
+                })
+                .take(PREFETCH_URL_LIMIT)
+                .collect();
+
+            let next_url = {
+                let cache = link_previews();
+                eligible_urls
+                    .into_iter()
+                    .find(|url| !cache.contains_key(url))
+            };
+
+            if let Some(url) = next_url {
+                let mut cache = link_previews();
+                cache.insert(url.clone(), LinkPreviewState::Loading);
+                link_previews.set(cache);
+
+                let next_state = fetch_link_preview(&url)
+                    .await
+                    .map(LinkPreviewState::Ready)
+                    .unwrap_or(LinkPreviewState::Failed);
+                let mut cache = link_previews();
+                cache.insert(url, next_state);
+                link_previews.set(cache);
+
+                tokio::time::sleep(Duration::from_millis(PREFETCH_STEP_MS)).await;
+            } else {
+                tokio::time::sleep(Duration::from_millis(PREFETCH_IDLE_MS)).await;
+            }
+        }
+    });
+
     let current_entries = entries();
     let current_query = query();
     let filtered_entries: Vec<ClipboardEntry> = current_entries
@@ -151,6 +203,7 @@ pub fn use_app_state() -> AppState {
         show_password,
         auth_cache,
         watcher_status,
+        link_previews,
         filtered_entries,
         current_selected_id,
         current_query,
