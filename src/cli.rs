@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(
@@ -7,18 +7,21 @@ use clap::{Parser, Subcommand};
     long_about = "A clipboard monitoring tool that automatically captures and stores text and image clipboard entries to a local SQLite database.
 
 Storage:
-  • Text history: Stored in ~/.clipboard_history.db
-    • Text content is encrypted using the OS keychain
-  • Image history: Saved to clipboard_images/ directory
-  • Configuration: ~/.clipboard-watcher.toml (TOML format)
+  - Text history: stored in ./.clipboard_history.db by default
+    - Text content is encrypted using the OS keychain
+  - Image history: saved to clipboard_images/ directory
+  - Configuration: ./.clipboard-watcher.toml (TOML format)
+  - Unix control socket: ./.clipboard-watcher.sock on unix targets
 
 Default behavior:
   When run without any subcommand, clipboard-watcher will start monitoring your clipboard and storing new entries.
 
 Examples:
-  • Start watching (default): clipboard-watcher
-  • Show version: clipboard-watcher version
-  • Show version (flag): clipboard-watcher --version",
+  - Start watching (default): clipboard-watcher
+  - Start paused: clipboard-watcher watch --paused
+  - Pause a running watcher: clipboard-watcher control pause
+  - Check watcher status: clipboard-watcher control status
+  - Show version: clipboard-watcher version",
     version
 )]
 pub struct Cli {
@@ -35,32 +38,37 @@ pub enum Commands {
 This is the default behavior when no subcommand is provided.
 
 History storage:
-  • Maximum 500 entries by default (configurable via config file)
-  • Older entries are automatically pruned when limit is reached
-  • Text entries are encrypted using ChaCha20-Poly1305 with a key stored in your OS keychain
+  - Maximum 500 entries by default (configurable via config file)
+  - Older entries are automatically pruned when limit is reached
+  - Text entries are encrypted using XChaCha20-Poly1305 with a key stored in your OS keychain
+  - On unix targets, the running watcher also exposes a local control socket for pause/resume/status commands
 
 What gets captured:
-  • Plain text: Any text copied to clipboard (URLs, code, notes, etc.)
-  • Images: Screenshots or images copied to clipboard
-  • Text types are automatically detected: URLs, JSON, multiline text, etc.
+  - Plain text: any text copied to clipboard (URLs, code, notes, etc.)
+  - Images: screenshots or images copied to clipboard
+  - Text types are automatically detected: URLs, JSON, multiline text, etc.
 
 What gets skipped:
-  • Empty text selections
-  • Image data URIs (text representations of images)
+  - Empty text selections
+  - Image data URIs (text representations of images)
 
 Examples:
   clipboard-watcher watch
+  clipboard-watcher watch --paused
   clipboard-watcher        # Same as above"
     )]
-    Watch,
+    Watch(WatchArgs),
+
+    #[command(about = "Control a running watcher via the local control socket")]
+    Control(ControlCommand),
 
     #[command(
         about = "Display version information",
         long_about = "Shows the current version of clipboard-watcher.
 
 Alternative methods:
-  • --version flag
-  • -V short flag
+  - --version flag
+  - -V short flag
 
 Example:
   clipboard-watcher version
@@ -68,4 +76,26 @@ Example:
   clipboard-watcher -V"
     )]
     Version,
+}
+
+#[derive(Args)]
+pub struct WatchArgs {
+    #[arg(long, help = "Start the watcher with capture paused")]
+    pub paused: bool,
+}
+
+#[derive(Subcommand)]
+pub enum ControlAction {
+    #[command(about = "Pause a running watcher")]
+    Pause,
+    #[command(about = "Resume a running watcher")]
+    Resume,
+    #[command(about = "Show running watcher status")]
+    Status,
+}
+
+#[derive(Args)]
+pub struct ControlCommand {
+    #[command(subcommand)]
+    pub action: ControlAction,
 }

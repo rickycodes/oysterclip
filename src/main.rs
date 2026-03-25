@@ -1,5 +1,6 @@
 use arboard::Clipboard;
 use clap::Parser;
+use std::path::Path;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -9,9 +10,10 @@ mod constants;
 mod entry;
 mod history;
 mod image_store;
+mod ipc;
 mod text;
 
-use crate::cli::{Cli, Commands};
+use crate::cli::{Cli, Commands, ControlAction};
 use crate::config::load_max_history_entries;
 use crate::constants::{
     APPEND_IMAGE_HISTORY_FAILED, APPEND_TEXT_HISTORY_FAILED, CLIPBOARD_NOT_AVAILABLE, HISTORY_FILE,
@@ -21,27 +23,53 @@ use crate::constants::{
 use crate::entry::PasteEntry;
 use crate::history::{current_timestamp, HistoryStore};
 use crate::image_store::{save_image, simple_image_hash};
+use crate::ipc::{
+    new_control_state, print_control_response, send_control_command, start_control_server,
+    SharedControlState,
+};
 use crate::text::detect_text_kind;
-use std::path::Path;
 
 fn main() {
     let cli = Cli::parse();
+    let db_path = Path::new(HISTORY_FILE);
+    let mut start_paused = false;
 
     match cli.command {
         Some(Commands::Version) => {
             println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
             return;
         }
-        Some(Commands::Watch) | None => {
-            // Fall through to the main watch logic
+        Some(Commands::Control(control)) => {
+            let cmd = match control.action {
+                ControlAction::Pause => "pause",
+                ControlAction::Resume => "resume",
+                ControlAction::Status => "status",
+            };
+            run_control_command(db_path, cmd);
+            return;
         }
+        Some(Commands::Watch(args)) => {
+            start_paused = args.paused;
+        }
+        None => {}
     }
 
-    println!("{STARTUP_MESSAGE} — interval: {INTERVAL_MS}ms");
+    println!("{STARTUP_MESSAGE} - interval: {INTERVAL_MS}ms");
     let max_history_entries = load_max_history_entries();
-    let history_store = HistoryStore::open(Path::new(HISTORY_FILE), max_history_entries)
-        .unwrap_or_else(|err| {
-            eprintln!("{OPEN_HISTORY_STORE_FAILED}: {err}");
+    let history_store = HistoryStore::open(db_path, max_history_entries).unwrap_or_else(|err| {
+        eprintln!("{OPEN_HISTORY_STORE_FAILED}: {err}");
+        std::process::exit(1);
+    });
+
+    let control_state = new_control_state(db_path, Path::new(IMAGE_DIR), current_timestamp());
+    if start_paused {
+        if let Ok(mut guard) = control_state.lock() {
+            guard.paused = true;
+        }
+    }
+    let _control_guard =
+        start_control_server(control_state.clone(), db_path).unwrap_or_else(|err| {
+            eprintln!("Failed to start watcher control socket: {err}");
             std::process::exit(1);
         });
 
@@ -50,6 +78,11 @@ fn main() {
     let mut last_image_hash: Option<u64> = None;
 
     loop {
+        if is_paused(&control_state) {
+            sleep(Duration::from_millis(INTERVAL_MS));
+            continue;
+        }
+
         if let Ok(text) = clipboard.get_text() {
             if Some(&text) != last_text.as_ref() {
                 let kind = detect_text_kind(&text);
@@ -61,16 +94,20 @@ fn main() {
                         text.chars().count()
                     );
                 } else {
-                    println!(
-                        "(text:{kind}) {TEXT_CAPTURED} {} chars",
-                        text.chars().count()
-                    );
-                    if let Err(err) = history_store.append_entry(&PasteEntry::Text {
+                    println!("(text:{kind}) {TEXT_CAPTURED} {} chars", text.chars().count());
+                    match history_store.append_entry(&PasteEntry::Text {
                         timestamp: current_timestamp(),
                         content: text.clone(),
                         kind: Some(kind.to_string()),
                     }) {
-                        eprintln!("{APPEND_TEXT_HISTORY_FAILED}: {err}");
+                        Ok(_) => mark_capture_success(&control_state),
+                        Err(err) => {
+                            eprintln!("{APPEND_TEXT_HISTORY_FAILED}: {err}");
+                            set_last_error(
+                                &control_state,
+                                format!("{APPEND_TEXT_HISTORY_FAILED}: {err}"),
+                            );
+                        }
                     }
                 }
                 last_text = Some(text);
@@ -82,16 +119,26 @@ fn main() {
             let hash = simple_image_hash(&bytes);
 
             if Some(hash) != last_image_hash {
-                if let Ok(path) =
-                    save_image(&bytes, img.width, img.height, hash, Path::new(IMAGE_DIR))
-                {
-                    println!("{IMAGE_SAVED}: {path}");
-                    if let Err(err) = history_store.append_entry(&PasteEntry::Image {
-                        timestamp: current_timestamp(),
-                        path,
-                        hash,
-                    }) {
-                        eprintln!("{APPEND_IMAGE_HISTORY_FAILED}: {err}");
+                match save_image(&bytes, img.width, img.height, hash, Path::new(IMAGE_DIR)) {
+                    Ok(path) => {
+                        println!("{IMAGE_SAVED}: {path}");
+                        match history_store.append_entry(&PasteEntry::Image {
+                            timestamp: current_timestamp(),
+                            path,
+                            hash,
+                        }) {
+                            Ok(_) => mark_capture_success(&control_state),
+                            Err(err) => {
+                                eprintln!("{APPEND_IMAGE_HISTORY_FAILED}: {err}");
+                                set_last_error(
+                                    &control_state,
+                                    format!("{APPEND_IMAGE_HISTORY_FAILED}: {err}"),
+                                );
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        set_last_error(&control_state, format!("Failed to save image: {err}"));
                     }
                 }
                 last_image_hash = Some(hash);
@@ -99,5 +146,32 @@ fn main() {
         }
 
         sleep(Duration::from_millis(INTERVAL_MS));
+    }
+}
+
+fn run_control_command(db_path: &Path, cmd: &str) {
+    match send_control_command(db_path, cmd) {
+        Ok(response) => print_control_response(&response),
+        Err(err) => {
+            eprintln!("Failed to send `{cmd}` command: {err}");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn is_paused(state: &SharedControlState) -> bool {
+    state.lock().map(|guard| guard.paused).unwrap_or(false)
+}
+
+fn mark_capture_success(state: &SharedControlState) {
+    if let Ok(mut guard) = state.lock() {
+        guard.last_capture_at = Some(current_timestamp());
+        guard.last_error = None;
+    }
+}
+
+fn set_last_error(state: &SharedControlState, message: String) {
+    if let Ok(mut guard) = state.lock() {
+        guard.last_error = Some(message);
     }
 }
