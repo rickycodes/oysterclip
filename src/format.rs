@@ -38,6 +38,8 @@ pub fn entry_label(entry: &ClipboardEntry) -> &'static str {
         ClipboardEntry::Text { content, .. } => {
             if is_password(content) {
                 "🔒 Pass"
+            } else if extract_single_url(content).is_some() {
+                "🔗 Link"
             } else {
                 "📝 Text"
             }
