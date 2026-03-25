@@ -213,6 +213,9 @@ pub fn App() -> Element {
 
     rsx! {
         style { "{APP_STYLE}" }
+        if image_overlay_open() {
+            style { "body {{ overflow: hidden; }}" }
+        }
         main { class: "app", tabindex: 0, onkeydown: handle_keydown,
             Sidebar {
                 entries: filtered_entries.clone(),

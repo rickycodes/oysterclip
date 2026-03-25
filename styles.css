@@ -418,9 +418,11 @@ body {
   inset: 0;
   z-index: 1000;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 24px;
+  overflow: auto;
+  overscroll-behavior: contain;
   background: rgba(3, 4, 8, 0.74);
   backdrop-filter: blur(10px);
   opacity: 0;
@@ -436,7 +438,7 @@ body {
 .image-overlay-dialog {
   position: relative;
   width: min(96vw, 1400px);
-  max-height: calc(100vh - 48px);
+  margin: auto;
   padding: 20px 0 0;
   transform: scale(0.985);
   transition: transform 120ms ease;
@@ -473,11 +475,11 @@ body {
 }
 
 .image-overlay-image {
-  width: 100%;
+  width: min(80vw, 100%);
+  height: auto;
   display: block;
+  margin: 0 auto;
   max-width: 100%;
-  max-height: calc(100vh - 88px);
-  object-fit: contain;
 }
 
 .detail-footer {
