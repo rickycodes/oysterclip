@@ -14,15 +14,15 @@ mod ipc;
 mod text;
 
 use crate::cli::{Cli, Commands, ControlAction};
-use crate::config::load_max_history_entries;
+use crate::config::load_config;
 use crate::constants::{
     APPEND_IMAGE_HISTORY_FAILED, APPEND_TEXT_HISTORY_FAILED, CLIPBOARD_NOT_AVAILABLE, HISTORY_FILE,
-    IMAGE_DIR, IMAGE_SAVED, INTERVAL_MS, OPEN_HISTORY_STORE_FAILED, STARTUP_MESSAGE, TEXT_CAPTURED,
+    IMAGE_SAVED, INTERVAL_MS, OPEN_HISTORY_STORE_FAILED, STARTUP_MESSAGE, TEXT_CAPTURED,
     TEXT_EMPTY_SKIPPED, TEXT_IMAGE_DATA_URI_SKIPPED, TEXT_KIND_EMPTY, TEXT_KIND_IMAGE_DATA_URI,
 };
 use crate::entry::PasteEntry;
 use crate::history::{current_timestamp, HistoryStore};
-use crate::image_store::{save_image, simple_image_hash};
+use crate::image_store::{encode_png, save_png, simple_image_hash};
 use crate::ipc::{
     new_control_state, print_control_response, send_control_command, start_control_server,
     SharedControlState,
@@ -55,13 +55,15 @@ fn main() {
     }
 
     println!("{STARTUP_MESSAGE} - interval: {INTERVAL_MS}ms");
-    let max_history_entries = load_max_history_entries();
-    let history_store = HistoryStore::open(db_path, max_history_entries).unwrap_or_else(|err| {
-        eprintln!("{OPEN_HISTORY_STORE_FAILED}: {err}");
-        std::process::exit(1);
-    });
+    let config = load_config();
+    let image_export_dir = Path::new(&config.image_export_dir);
+    let history_store =
+        HistoryStore::open(db_path, config.max_history_entries).unwrap_or_else(|err| {
+            eprintln!("{OPEN_HISTORY_STORE_FAILED}: {err}");
+            std::process::exit(1);
+        });
 
-    let control_state = new_control_state(db_path, Path::new(IMAGE_DIR), current_timestamp());
+    let control_state = new_control_state(db_path, image_export_dir, current_timestamp());
     if start_paused {
         if let Ok(mut guard) = control_state.lock() {
             guard.paused = true;
@@ -94,7 +96,10 @@ fn main() {
                         text.chars().count()
                     );
                 } else {
-                    println!("(text:{kind}) {TEXT_CAPTURED} {} chars", text.chars().count());
+                    println!(
+                        "(text:{kind}) {TEXT_CAPTURED} {} chars",
+                        text.chars().count()
+                    );
                     match history_store.append_entry(&PasteEntry::Text {
                         timestamp: current_timestamp(),
                         content: text.clone(),
@@ -119,12 +124,29 @@ fn main() {
             let hash = simple_image_hash(&bytes);
 
             if Some(hash) != last_image_hash {
-                match save_image(&bytes, img.width, img.height, hash, Path::new(IMAGE_DIR)) {
-                    Ok(path) => {
-                        println!("{IMAGE_SAVED}: {path}");
+                match encode_png(&bytes, img.width, img.height) {
+                    Ok(png_bytes) => {
+                        let exported_path = if config.save_images_to_disk {
+                            match save_png(&png_bytes, hash, image_export_dir) {
+                                Ok(path) => {
+                                    println!("{IMAGE_SAVED}: {path}");
+                                    Some(path)
+                                }
+                                Err(err) => {
+                                    let message = format!("Failed to export image: {err}");
+                                    eprintln!("{message}");
+                                    set_last_error(&control_state, message);
+                                    None
+                                }
+                            }
+                        } else {
+                            None
+                        };
+
                         match history_store.append_entry(&PasteEntry::Image {
                             timestamp: current_timestamp(),
-                            path,
+                            png_bytes,
+                            path: exported_path,
                             hash,
                         }) {
                             Ok(_) => mark_capture_success(&control_state),
@@ -138,7 +160,7 @@ fn main() {
                         }
                     }
                     Err(err) => {
-                        set_last_error(&control_state, format!("Failed to save image: {err}"));
+                        set_last_error(&control_state, format!("Failed to encode image: {err}"));
                     }
                 }
                 last_image_hash = Some(hash);

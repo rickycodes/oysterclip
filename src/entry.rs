@@ -10,7 +10,8 @@ pub(crate) enum PasteEntry {
     },
     Image {
         timestamp: u64,
-        path: String,
+        png_bytes: Vec<u8>,
+        path: Option<String>,
         hash: u64,
     },
 }

@@ -2,7 +2,6 @@ pub(crate) const INTERVAL_MS: u64 = 500;
 pub(crate) const MAX_HISTORY_ENTRIES: usize = 500;
 pub(crate) const HISTORY_FILE: &str = ".clipboard_history.db";
 pub(crate) const CONFIG_FILE: &str = ".clipboard-watcher.toml";
-pub(crate) const IMAGE_DIR: &str = "clipboard_images";
 pub(crate) const CONTROL_SOCKET_FILE: &str = ".clipboard-watcher.sock";
 pub(crate) const CLIPBOARD_NOT_AVAILABLE: &str = "Clipboard not available";
 pub(crate) const FAILED_IMAGE_BUFFER: &str = "Failed to create image buffer";
@@ -31,6 +30,7 @@ CREATE TABLE IF NOT EXISTS entries (
     text_ciphertext BLOB,
     text_nonce BLOB,
     image_path TEXT,
+    image_png BLOB,
     image_hash INTEGER,
     content_hash TEXT
 );
@@ -53,8 +53,9 @@ INSERT INTO entries (
     created_at,
     entry_type,
     image_path,
+    image_png,
     image_hash
-) VALUES (?1, 'image', ?2, ?3)";
+) VALUES (?1, 'image', ?2, ?3, ?4)";
 pub(crate) const DELETE_PRUNABLE_ENTRIES_SQL: &str = "\
 DELETE FROM entries
 WHERE id IN (

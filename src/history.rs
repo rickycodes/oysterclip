@@ -37,6 +37,7 @@ impl HistoryStore {
         let conn = store.connection()?;
         conn.execute_batch(CREATE_ENTRIES_TABLE_SQL)
             .map_err(|err| io_error(format!("failed to initialize history database: {err}")))?;
+        ensure_image_blob_column(&conn)?;
         Ok(store)
     }
 
@@ -51,9 +52,10 @@ impl HistoryStore {
             } => self.insert_text_entry(&conn, *timestamp, content, kind.as_deref())?,
             PasteEntry::Image {
                 timestamp,
+                png_bytes,
                 path,
                 hash,
-            } => self.insert_image_entry(&conn, *timestamp, path, *hash)?,
+            } => self.insert_image_entry(&conn, *timestamp, path.as_deref(), png_bytes, *hash)?,
         };
 
         prune_history(&conn, &self.db_path, self.max_history_entries)
@@ -105,17 +107,43 @@ impl HistoryStore {
         &self,
         conn: &Connection,
         timestamp: u64,
-        path: &str,
+        path: Option<&str>,
+        png_bytes: &[u8],
         hash: u64,
     ) -> io::Result<()> {
         conn.execute(
             INSERT_IMAGE_ENTRY_SQL,
-            params![timestamp as i64, path, hash as i64],
+            params![timestamp as i64, path, png_bytes, hash as i64],
         )
         .map_err(|err| io_error(format!("failed to insert image history entry: {err}")))?;
 
         Ok(())
     }
+}
+
+fn ensure_image_blob_column(conn: &Connection) -> io::Result<()> {
+    let mut stmt = conn
+        .prepare("PRAGMA table_info(entries)")
+        .map_err(|err| io_error(format!("failed to inspect history schema: {err}")))?;
+    let mut rows = stmt
+        .query([])
+        .map_err(|err| io_error(format!("failed to query history schema: {err}")))?;
+
+    while let Some(row) = rows
+        .next()
+        .map_err(|err| io_error(format!("failed to iterate history schema: {err}")))?
+    {
+        let name: String = row
+            .get(1)
+            .map_err(|err| io_error(format!("failed to read history schema column: {err}")))?;
+        if name == "image_png" {
+            return Ok(());
+        }
+    }
+
+    conn.execute("ALTER TABLE entries ADD COLUMN image_png BLOB", [])
+        .map_err(|err| io_error(format!("failed to add image blob column: {err}")))?;
+    Ok(())
 }
 
 fn prune_history(conn: &Connection, _db_path: &Path, max_entries: usize) -> io::Result<()> {
@@ -209,7 +237,10 @@ pub(crate) fn current_timestamp() -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use super::{current_timestamp, decrypt_text, encrypt_text, prune_history, text_content_hash};
+    use super::{
+        current_timestamp, decrypt_text, encrypt_text, ensure_image_blob_column, prune_history,
+        text_content_hash,
+    };
     use rusqlite::{params, Connection};
     use std::path::Path;
     use std::time::SystemTime;
@@ -265,18 +296,20 @@ mod tests {
         let db_path = temp_dir.join(".clipboard_history.db");
         let conn = Connection::open(&db_path).unwrap();
         conn.execute_batch(CREATE_ENTRIES_TABLE_SQL).unwrap();
+        ensure_image_blob_column(&conn).unwrap();
 
         let old_path = "clipboard_images/old.png";
         let kept_path = "clipboard_images/kept.png";
+        let png_bytes = vec![1u8, 2, 3];
 
         conn.execute(
-            "INSERT INTO entries (created_at, entry_type, image_path, image_hash) VALUES (1, 'image', ?1, 1)",
-            params![old_path],
+            "INSERT INTO entries (created_at, entry_type, image_path, image_png, image_hash) VALUES (1, 'image', ?1, ?2, 1)",
+            params![old_path, png_bytes.clone()],
         )
         .unwrap();
         conn.execute(
-            "INSERT INTO entries (created_at, entry_type, image_path, image_hash) VALUES (2, 'image', ?1, 2)",
-            params![kept_path],
+            "INSERT INTO entries (created_at, entry_type, image_path, image_png, image_hash) VALUES (2, 'image', ?1, ?2, 2)",
+            params![kept_path, png_bytes],
         )
         .unwrap();
         conn.execute(

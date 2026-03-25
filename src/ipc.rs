@@ -50,7 +50,11 @@ impl Drop for ControlSocketGuard {
     }
 }
 
-pub(crate) fn new_control_state(db_path: &Path, image_dir: &Path, started_at: u64) -> SharedControlState {
+pub(crate) fn new_control_state(
+    db_path: &Path,
+    image_dir: &Path,
+    started_at: u64,
+) -> SharedControlState {
     Arc::new(Mutex::new(ControlState {
         paused: false,
         started_at,
@@ -62,7 +66,10 @@ pub(crate) fn new_control_state(db_path: &Path, image_dir: &Path, started_at: u6
 }
 
 #[cfg(unix)]
-pub(crate) fn start_control_server(state: SharedControlState, db_path: &Path) -> io::Result<ControlSocketGuard> {
+pub(crate) fn start_control_server(
+    state: SharedControlState,
+    db_path: &Path,
+) -> io::Result<ControlSocketGuard> {
     let socket_path = control_socket_path(db_path)?;
 
     if socket_path.exists() {
@@ -70,10 +77,7 @@ pub(crate) fn start_control_server(state: SharedControlState, db_path: &Path) ->
             Ok(_) => {
                 return Err(io::Error::new(
                     io::ErrorKind::AddrInUse,
-                    format!(
-                        "control socket already active at {}",
-                        socket_path.display()
-                    ),
+                    format!("control socket already active at {}", socket_path.display()),
                 ));
             }
             Err(_) => {
@@ -234,7 +238,10 @@ fn control_socket_path(db_path: &Path) -> io::Result<PathBuf> {
     let parent = absolute_db_path.parent().ok_or_else(|| {
         io::Error::new(
             io::ErrorKind::InvalidInput,
-            format!("database path has no parent: {}", absolute_db_path.display()),
+            format!(
+                "database path has no parent: {}",
+                absolute_db_path.display()
+            ),
         )
     })?;
 
