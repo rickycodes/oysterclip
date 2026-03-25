@@ -35,7 +35,13 @@ pub fn image_data_uri_summary(content: &str) -> String {
 
 pub fn entry_label(entry: &ClipboardEntry) -> &'static str {
     match entry {
-        ClipboardEntry::Text { .. } => "Text",
+        ClipboardEntry::Text { content, .. } => {
+            if is_password(content) {
+                "Pass"
+            } else {
+                "Text"
+            }
+        }
         ClipboardEntry::Image { .. } => "Image",
     }
 }
