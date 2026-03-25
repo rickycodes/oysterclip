@@ -8,18 +8,21 @@ A small Rust daemon that monitors your system clipboard and persists unique clip
 - Encrypts text entries before storing them.
 - Stores image entries in the database and can optionally export PNG files to disk.
 - Supports unix watcher control commands for pause, resume, and status.
+- Uses a canonical per-user app-data directory for its default database, config, image export, and socket paths.
 - Lightweight, single binary.
 
 **How It Works**
 - Polls the clipboard every `INTERVAL_MS` (see `src/constants.rs`).
 - Text entries are deduplicated by content before being appended and encrypted before being stored.
 - Image entries are hashed and stored as PNG blobs in SQLite.
-- Optional image export to disk is controlled by `save_images_to_disk` in `./.clipboard-watcher.toml`.
+- Optional image export to disk is controlled by `.clipboard-watcher.toml` in the app-data directory.
 
-**Files Created**
-- `.clipboard_history.db` in the working directory.
-- `.clipboard-watcher.sock` in the working directory while the watcher is running on unix.
-- `clipboard_images/` in the working directory when image export is enabled.
+**Default Storage Location**
+- Base directory: the per-user app-data directory for `clipboard-manager`
+- History database: `.clipboard_history.db`
+- Config file: `.clipboard-watcher.toml`
+- Unix control socket: `.clipboard-watcher.sock`
+- Image export directory: `clipboard_images/`
 
 **Build**
 ```bash
@@ -53,4 +56,5 @@ cargo test
 - `src/image_store.rs` image hashing and PNG persistence.
 - `src/text.rs` clipboard text classification.
 - `src/ipc.rs` unix control socket handling.
+- `src/paths.rs` canonical app-data path resolution.
 - `src/constants.rs` shared constants and SQL statements.

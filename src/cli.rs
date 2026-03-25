@@ -7,11 +7,12 @@ use clap::{Args, Parser, Subcommand};
     long_about = "A clipboard monitoring tool that automatically captures and stores text and image clipboard entries to a local SQLite database.
 
 Storage:
-  - Text history: stored in ./.clipboard_history.db by default
+  - Default base directory: the per-user app data directory for clipboard-manager
+  - Text history: stored in .clipboard_history.db
     - Text content is encrypted using the OS keychain
-  - Image history: saved to clipboard_images/ directory
-  - Configuration: ./.clipboard-watcher.toml (TOML format)
-  - Unix control socket: ./.clipboard-watcher.sock on unix targets
+  - Image history: optionally exported to clipboard_images/
+  - Configuration: .clipboard-watcher.toml
+  - Unix control socket: .clipboard-watcher.sock on unix targets
 
 Default behavior:
   When run without any subcommand, clipboard-watcher will start monitoring your clipboard and storing new entries.
