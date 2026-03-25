@@ -39,10 +39,6 @@ impl AuthCache {
         };
     }
 
-    pub fn clear(&mut self) {
-        self.authenticated = false;
-        self.auth_time = None;
-    }
 }
 
 pub fn authenticate_admin_action() -> AuthResult {
@@ -184,10 +180,10 @@ mod tests {
     }
 
     #[test]
-    fn test_auth_cache_clear() {
+    fn test_auth_cache_reset() {
         let mut cache = AuthCache::new(5);
         cache.set_authenticated(true);
-        cache.clear();
+        cache.set_authenticated(false);
         assert!(!cache.is_authenticated());
     }
 

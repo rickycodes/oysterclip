@@ -22,7 +22,7 @@ pub fn App() -> Element {
     let mut copy_status = state.copy_status;
     let action_status = state.action_status;
     let mut show_password = state.show_password;
-    let auth_cache = state.auth_cache.clone();
+    let auth_cache = state.auth_cache;
     let mut watcher_status = state.watcher_status;
     let filtered_entries = state.filtered_entries;
     let current_selected_id = state.current_selected_id;
