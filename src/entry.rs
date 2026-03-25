@@ -32,7 +32,7 @@ pub enum ClipboardEntry {
     Image {
         id: i64,
         timestamp: u64,
-        path: String,
+        path: Option<String>,
         hash: u64,
         data_url: Option<String>,
     },

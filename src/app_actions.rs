@@ -34,7 +34,10 @@ pub fn matches_query(entry: &ClipboardEntry, query: &str) -> bool {
                 || "text".contains(&query)
         }
         ClipboardEntry::Image { path, .. } => {
-            path.to_lowercase().contains(&query) || "image".contains(&query)
+            path.as_deref()
+                .map(|value| value.to_lowercase().contains(&query))
+                .unwrap_or(false)
+                || "image".contains(&query)
         }
     }
 }

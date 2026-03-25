@@ -155,7 +155,12 @@ pub fn Sidebar(
                         let class = if is_active { "entry-card active" } else { "entry-card" };
                         let preview = match entry {
                             ClipboardEntry::Text { content, .. } => preview_text(content, 56),
-                            ClipboardEntry::Image { path, .. } => preview_text(path, 56),
+                            ClipboardEntry::Image { path, hash, .. } => {
+                                let preview_source = path
+                                    .clone()
+                                    .unwrap_or_else(|| hash.to_string());
+                                preview_text(&preview_source, 56)
+                            }
                         };
                         let timestamp = match entry {
                             ClipboardEntry::Text { timestamp, .. } => *timestamp,
@@ -294,8 +299,12 @@ pub fn DetailPane(
                                 }
                             }
                             div { class: "detail-footer",
-                                span { "Path: {path}" }
-                                span { "Hash: {hash}" }
+                                if let Some(path) = path {
+                                    span { "Export path: {path}" }
+                                    span { "Hash is: {hash}" }
+                                } else {
+                                    span { "Hash is: {hash}" }
+                                }
                             }
                             div { class: "detail-actions",
                                 button { class: "detail-delete-btn", onclick: move |_| on_delete.call(id), "Delete" }

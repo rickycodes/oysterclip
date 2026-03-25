@@ -5,7 +5,7 @@ use keyring::Entry;
 use rusqlite::Connection;
 use std::fs;
 use std::hash::{Hash, Hasher};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::entry::{CachedEntries, ClipboardEntry, ClipboardPayload, SourceStamp};
 use crate::source::ClipboardSource;
@@ -109,9 +109,14 @@ fn load_entries(source: &ClipboardSource) -> Result<Vec<ClipboardEntry>, String>
 fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
     let conn =
         Connection::open(path).map_err(|e| format!("Failed to open history database: {e}"))?;
+    let has_image_blob = has_column(&conn, "entries", "image_png")?;
     let mut stmt = conn
         .prepare(
-            "SELECT id, created_at, entry_type, text_kind, text_ciphertext, text_nonce, image_path, image_hash FROM entries ORDER BY id ASC",
+            if has_image_blob {
+                "SELECT id, created_at, entry_type, text_kind, text_ciphertext, text_nonce, image_path, image_png, image_hash FROM entries ORDER BY id ASC"
+            } else {
+                "SELECT id, created_at, entry_type, text_kind, text_ciphertext, text_nonce, image_path, image_hash FROM entries ORDER BY id ASC"
+            },
         )
         .map_err(|e| format!("Failed to prepare history query: {e}"))?;
     let mut rows = stmt
@@ -119,7 +124,6 @@ fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
         .map_err(|e| format!("Failed to query history database: {e}"))?;
 
     let key = load_encryption_key()?;
-    let base_dir = path.parent();
     let mut entries = Vec::new();
 
     while let Some(row) = rows
@@ -168,25 +172,24 @@ fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
                 let image_path: Option<String> = row
                     .get(6)
                     .map_err(|e| format!("Failed to read image path: {e}"))?;
+                let image_png: Option<Vec<u8>> = if has_image_blob {
+                    row.get(7)
+                        .map_err(|e| format!("Failed to read image blob: {e}"))?
+                } else {
+                    None
+                };
                 let image_hash: Option<i64> = row
-                    .get(7)
+                    .get(if has_image_blob { 8 } else { 7 })
                     .map_err(|e| format!("Failed to read image hash: {e}"))?;
-                let path = image_path.ok_or_else(|| "Missing image path.".to_string())?;
                 let hash = image_hash.ok_or_else(|| "Missing image hash.".to_string())? as u64;
-                let resolved = resolve_image_path(base_dir, &path);
-                let data_url = resolved.and_then(|resolved_path| {
-                    fs::read(resolved_path).ok().map(|bytes| {
-                        format!(
-                            "data:image/png;base64,{}",
-                            general_purpose::STANDARD.encode(bytes)
-                        )
-                    })
-                });
+                let data_url = image_png
+                    .map(data_url_from_png)
+                    .or_else(|| load_image_data_url_from_path(path.parent(), image_path.as_deref()));
 
                 entries.push(ClipboardEntry::Image {
                     id,
                     timestamp: timestamp as u64,
-                    path,
+                    path: image_path,
                     hash,
                     data_url,
                 });
@@ -237,12 +240,46 @@ fn decrypt_text(ciphertext: &[u8], nonce: &[u8], key: &[u8; 32]) -> Result<Strin
         .map_err(|e| format!("Failed to decode decrypted clipboard text: {e}"))
 }
 
-fn resolve_image_path(base_dir: Option<&Path>, path_str: &str) -> Option<PathBuf> {
-    let path = Path::new(path_str);
-    if path.is_absolute() {
-        return Some(path.to_path_buf());
+fn has_column(conn: &Connection, table_name: &str, column_name: &str) -> Result<bool, String> {
+    let mut stmt = conn
+        .prepare(&format!("PRAGMA table_info({table_name})"))
+        .map_err(|e| format!("Failed to inspect history schema: {e}"))?;
+    let mut rows = stmt
+        .query([])
+        .map_err(|e| format!("Failed to query history schema: {e}"))?;
+
+    while let Some(row) = rows
+        .next()
+        .map_err(|e| format!("Failed to iterate history schema: {e}"))?
+    {
+        let name: String = row
+            .get(1)
+            .map_err(|e| format!("Failed to read history schema column: {e}"))?;
+        if name == column_name {
+            return Ok(true);
+        }
     }
-    base_dir.map(|base| base.join(path))
+
+    Ok(false)
+}
+
+fn data_url_from_png(bytes: Vec<u8>) -> String {
+    format!(
+        "data:image/png;base64,{}",
+        general_purpose::STANDARD.encode(bytes)
+    )
+}
+
+fn load_image_data_url_from_path(base_dir: Option<&Path>, path_str: Option<&str>) -> Option<String> {
+    let path_str = path_str?;
+    let path = Path::new(path_str);
+    let resolved = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        base_dir?.join(path)
+    };
+
+    fs::read(resolved).ok().map(data_url_from_png)
 }
 
 fn hash_str(value: &str) -> u64 {
