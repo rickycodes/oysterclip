@@ -4,13 +4,20 @@ A Dioxus Desktop app for browsing the shared clipboard history written by `clipb
 
 ## Run
 
-Pass the clipboard history database path as the first argument:
+The viewer resolves its history source in this order:
+- first positional argument
+- `CLIPBOARD_HISTORY_DB`
+- the canonical per-user app-data history path for `clipboard-manager`
+
+Examples:
 
 ```bash
 cargo run -- /path/to/.clipboard_history.db
+CLIPBOARD_HISTORY_DB=/path/to/.clipboard_history.db cargo run
+cargo run
 ```
 
-The viewer currently requires that positional database path. Raw JSON input is also supported for read-only inspection.
+Raw JSON input is also supported as the first argument for read-only inspection.
 
 ## Hot Reload (Desktop)
 

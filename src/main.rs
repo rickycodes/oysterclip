@@ -6,6 +6,7 @@ mod components;
 mod entry;
 mod format;
 mod history;
+mod paths;
 mod source;
 mod watcher_control;
 
