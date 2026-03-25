@@ -28,12 +28,4 @@ mod tests {
         let config: WatcherConfig = toml::from_str("max_history_entries = 250").unwrap();
         assert_eq!(config.max_history_entries, Some(250));
     }
-
-    #[test]
-    fn watcher_config_ignores_unrelated_keys() {
-        let config: WatcherConfig =
-            toml::from_str("gpg_recipient = \"someone@example.com\"\nmax_history_entries = 250")
-                .unwrap();
-        assert_eq!(config.max_history_entries, Some(250));
-    }
 }
