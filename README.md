@@ -1,21 +1,25 @@
 # Clipboard Watcher
 
-A small Rust daemon that monitors your system clipboard and persists unique clipboard entries to disk. It records both text and images, and avoids storing duplicate text content.
+A small Rust daemon that monitors your system clipboard and persists unique clipboard entries to a local SQLite history. It records both text and images, encrypts text at rest, and avoids storing duplicate text content.
 
 **Features**
 - Watches the clipboard on a fixed interval.
 - Persists clipboard history to a local SQLite database.
-- Saves image clipboard entries as PNG files.
+- Encrypts text entries before storing them.
+- Stores image entries in the database and can optionally export PNG files to disk.
+- Supports unix watcher control commands for pause, resume, and status.
 - Lightweight, single binary.
 
 **How It Works**
-- Polls the clipboard every `INTERVAL_MS` (see `src/common.rs`).
+- Polls the clipboard every `INTERVAL_MS` (see `src/constants.rs`).
 - Text entries are deduplicated by content before being appended and encrypted before being stored.
-- Image entries are hashed and saved as PNGs under a local image directory.
+- Image entries are hashed and stored as PNG blobs in SQLite.
+- Optional image export to disk is controlled by `save_images_to_disk` in `./.clipboard-watcher.toml`.
 
 **Files Created**
 - `.clipboard_history.db` in the working directory.
-- `clipboard_images/` in the working directory, containing `img_<hash>.png`.
+- `.clipboard-watcher.sock` in the working directory while the watcher is running on unix.
+- `clipboard_images/` in the working directory when image export is enabled.
 
 **Build**
 ```bash
@@ -31,6 +35,9 @@ cargo run
 ```bash
 cargo run -- --help
 cargo run -- --version
+cargo run -- control status
+cargo run -- control pause
+cargo run -- control resume
 ```
 
 The watcher creates and loads its text encryption key from the OS keychain.
@@ -45,4 +52,5 @@ cargo test
 - `src/history.rs` SQLite-backed history persistence, encryption, and timestamps.
 - `src/image_store.rs` image hashing and PNG persistence.
 - `src/text.rs` clipboard text classification.
-- `src/common.rs` shared constants and types.
+- `src/ipc.rs` unix control socket handling.
+- `src/constants.rs` shared constants and SQL statements.
