@@ -541,3 +541,41 @@ body {
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+.watcher-detail {
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.watcher-subtle-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.watcher-subtle-label {
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.watcher-subtle-value {
+  color: var(--ink-soft);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.watcher-warning {
+  border: 1px solid rgba(255, 120, 120, 0.24);
+  background: rgba(140, 30, 30, 0.16);
+  color: #ffd4d4;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+}

@@ -12,6 +12,8 @@ pub struct WatcherStatus {
     pub paused: bool,
     pub label: String,
     pub detail: String,
+    pub last_capture_at: Option<u64>,
+    pub last_error: Option<String>,
 }
 
 impl WatcherStatus {
@@ -21,6 +23,8 @@ impl WatcherStatus {
             paused: false,
             label: "Watcher offline".to_string(),
             detail: detail.into(),
+            last_capture_at: None,
+            last_error: None,
         }
     }
 }
@@ -68,18 +72,13 @@ fn from_response(response: ControlResponse) -> WatcherStatus {
         "Watcher running"
     };
 
-    let detail = match response.last_error {
-        Some(last_error) if !last_error.is_empty() => {
-            format!("{} | last error: {}", response.message, last_error)
-        }
-        _ => response.message,
-    };
-
     WatcherStatus {
         available: response.ok,
         paused: response.paused,
         label: label.to_string(),
-        detail,
+        detail: response.message,
+        last_capture_at: response.last_capture_at,
+        last_error: response.last_error,
     }
 }
 

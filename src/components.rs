@@ -126,6 +126,23 @@ pub fn Sidebar(
                         }
                     }
                 }
+                div { class: "watcher-detail", "{watcher_status.detail}" }
+                div { class: "watcher-subtle-row",
+                    if let Some(last_capture_at) = watcher_status.last_capture_at {
+                        span { class: "watcher-subtle-label", "Last capture" }
+                        span { class: "watcher-subtle-value", "{format_timestamp(last_capture_at)}" }
+                    } else if watcher_status.available {
+                        span { class: "watcher-subtle-label", "Last capture" }
+                        span { class: "watcher-subtle-value", "No captures yet" }
+                    } else {
+                        span { class: "watcher-subtle-value", "Waiting for watcher status" }
+                    }
+                }
+                if let Some(last_error) = watcher_status.last_error.as_ref() {
+                    if !last_error.is_empty() {
+                        div { class: "watcher-warning", "Last error: {last_error}" }
+                    }
+                }
             }
             if let Some(err) = error {
                 div { class: "sidebar-error",
