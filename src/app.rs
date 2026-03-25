@@ -22,6 +22,7 @@ pub fn App() -> Element {
     let mut copy_status = state.copy_status;
     let action_status = state.action_status;
     let mut show_password = state.show_password;
+    let mut image_overlay_open = use_signal(|| false);
     let auth_cache = state.auth_cache;
     let mut watcher_status = state.watcher_status;
     let filtered_entries = state.filtered_entries;
@@ -31,10 +32,18 @@ pub fn App() -> Element {
     let selected_text = state.selected_text;
     let total_entries = state.total_entries;
     let current_watcher_status = state.current_watcher_status;
+    let overlay_image_src = match &detail_state {
+        crate::components::DetailState::Entry(crate::entry::ClipboardEntry::Image {
+            data_url: Some(src),
+            ..
+        }) => Some(src.clone()),
+        _ => None,
+    };
 
     let handle_select = move |id: i64| {
         selected_id.set(Some(id));
         show_password.set(false);
+        image_overlay_open.set(false);
         if copy_status().is_some() {
             copy_status.set(None);
         }
@@ -42,6 +51,7 @@ pub fn App() -> Element {
 
     let handle_query_input = move |value: String| {
         query.set(value);
+        image_overlay_open.set(false);
     };
 
     let source_for_clear = source.clone();
@@ -64,6 +74,10 @@ pub fn App() -> Element {
         }
     };
 
+    let handle_open_image = move |_| {
+        image_overlay_open.set(true);
+    };
+
     let source_for_delete = source.clone();
     let cache_for_delete = cache.clone();
     let source_for_delete_keys = source_for_delete.clone();
@@ -74,6 +88,7 @@ pub fn App() -> Element {
         let delete_error = error;
         let delete_action_status = action_status;
         move |id: i64| {
+            image_overlay_open.set(false);
             confirm_and_delete_entry(
                 source_for_delete.clone(),
                 cache_for_delete.clone(),
@@ -121,6 +136,7 @@ pub fn App() -> Element {
                 if let Some(id) = adjacent_entry_id(&keyboard_entries, current_selected_id, 1) {
                     selected_id.set(Some(id));
                     show_password.set(false);
+                    image_overlay_open.set(false);
                     if copy_status().is_some() {
                         copy_status.set(None);
                     }
@@ -131,6 +147,7 @@ pub fn App() -> Element {
                 if let Some(id) = adjacent_entry_id(&keyboard_entries, current_selected_id, -1) {
                     selected_id.set(Some(id));
                     show_password.set(false);
+                    image_overlay_open.set(false);
                     if copy_status().is_some() {
                         copy_status.set(None);
                     }
@@ -144,6 +161,7 @@ pub fn App() -> Element {
                 }) {
                     selected_id.set(Some(id));
                     show_password.set(false);
+                    image_overlay_open.set(false);
                     if copy_status().is_some() {
                         copy_status.set(None);
                     }
@@ -157,6 +175,7 @@ pub fn App() -> Element {
                 }) {
                     selected_id.set(Some(id));
                     show_password.set(false);
+                    image_overlay_open.set(false);
                     if copy_status().is_some() {
                         copy_status.set(None);
                     }
@@ -171,6 +190,7 @@ pub fn App() -> Element {
             Code::Delete | Code::Backspace => {
                 if let Some(id) = current_selected_id {
                     event.prevent_default();
+                    image_overlay_open.set(false);
                     confirm_and_delete_entry(
                         source_for_delete_keys.clone(),
                         cache_for_delete_keys.clone(),
@@ -180,6 +200,11 @@ pub fn App() -> Element {
                         action_status,
                         id,
                     );
+                }
+            }
+            Code::Escape => {
+                if image_overlay_open() {
+                    image_overlay_open.set(false);
                 }
             }
             _ => {}
@@ -210,6 +235,39 @@ pub fn App() -> Element {
                 action_status,
                 on_copy_text: handle_copy_text,
                 on_delete: handle_delete,
+                on_open_image: handle_open_image,
+            }
+        }
+        if let Some(src) = overlay_image_src {
+            div {
+                class: if image_overlay_open() { "image-overlay is-open" } else { "image-overlay" },
+                onclick: move |_| image_overlay_open.set(false),
+                aria_hidden: if image_overlay_open() { "false" } else { "true" },
+                div {
+                    class: "image-overlay-dialog",
+                    onclick: move |event| event.stop_propagation(),
+                    button {
+                        class: "image-overlay-close",
+                        onclick: move |_| image_overlay_open.set(false),
+                        aria_label: "Close image overlay",
+                        tabindex: if image_overlay_open() { "0" } else { "-1" },
+                        svg {
+                            xmlns: "http://www.w3.org/2000/svg",
+                            fill: "none",
+                            width: "24",
+                            height: "24",
+                            view_box: "0 0 300 300",
+                            path {
+                                d: "m60 60 180 180m0-180-180 180",
+                                fill: "none",
+                                stroke: "#fff",
+                                stroke_linejoin: "round",
+                                stroke_width: "27",
+                            }
+                        }
+                    }
+                    img { class: "image-overlay-image", src, alt: "Clipboard image expanded" }
+                }
             }
         }
     }

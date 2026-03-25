@@ -206,6 +206,7 @@ pub fn DetailPane(
     action_status: Signal<Option<String>>,
     on_copy_text: EventHandler<String>,
     on_delete: EventHandler<i64>,
+    on_open_image: EventHandler<()>,
 ) -> Element {
     rsx! {
         section { class: "content",
@@ -310,11 +311,21 @@ pub fn DetailPane(
                             }
                             div { class: "detail-image-wrap",
                                 if let Some(src) = data_url {
-                                    img { class: "detail-image", src, alt: "Clipboard image" }
+                                    {
+                                        rsx! {
+                                            button {
+                                                class: "detail-image-button",
+                                                onclick: move |_| on_open_image.call(()),
+                                                aria_label: "Open clipboard image in overlay",
+                                                img { class: "detail-image", src, alt: "Clipboard image" }
+                                            }
+                                        }
+                                    }
                                 } else {
                                     div { class: "detail-image-missing", "Image data not available." }
                                 }
                             }
+                            div { class: "detail-image-hint", "Click image to open a larger view." }
                             div { class: "detail-footer",
                                 if let Some(path) = path {
                                     span { "Export path: {path}" }
