@@ -8,6 +8,7 @@ use crate::format::{
     entry_label, format_timestamp, has_urls, image_data_uri_summary, is_image_data_uri,
     is_password, mask_password, preview_text, split_text_with_urls, TextSegment,
 };
+use crate::watcher_control::WatcherStatus;
 
 #[component]
 pub fn LinkableText(text: String) -> Element {
@@ -53,10 +54,32 @@ pub fn Sidebar(
     query: String,
     error: Option<String>,
     action_status: Option<String>,
+    watcher_status: WatcherStatus,
     on_select: EventHandler<i64>,
     on_query_input: EventHandler<String>,
     on_clear: EventHandler<()>,
+    on_toggle_watcher: EventHandler<()>,
 ) -> Element {
+    let watcher_state_class = if watcher_status.available {
+        if watcher_status.paused {
+            "watcher-pill paused"
+        } else {
+            "watcher-pill running"
+        }
+    } else {
+        "watcher-pill offline"
+    };
+
+    let watcher_button_class = if watcher_status.available {
+        if watcher_status.paused {
+            "watcher-toggle-btn resume"
+        } else {
+            "watcher-toggle-btn pause"
+        }
+    } else {
+        "watcher-toggle-btn disabled"
+    };
+
     rsx! {
         aside { class: "sidebar",
             div { class: "sidebar-header",
@@ -78,6 +101,30 @@ pub fn Sidebar(
                     value: "{query}",
                     oninput: move |event| on_query_input.call(event.value().to_string()),
                     onkeydown: move |event| event.stop_propagation(),
+                }
+            }
+            div { class: "watcher-card",
+                div { class: "watcher-card-top",
+                    div {
+                        span { class: "watcher-eyebrow", "Watcher" }
+                        div { class: "watcher-title-row",
+                            span { class: "{watcher_state_class}", "{watcher_status.label}" }
+                        }
+                    }
+                    button {
+                        class: "{watcher_button_class}",
+                        disabled: !watcher_status.available,
+                        onclick: move |_| on_toggle_watcher.call(()),
+                        if watcher_status.available {
+                            if watcher_status.paused {
+                                "Resume"
+                            } else {
+                                "Pause"
+                            }
+                        } else {
+                            "Unavailable"
+                        }
+                    }
                 }
             }
             if let Some(err) = error {
@@ -263,7 +310,7 @@ pub fn DetailPane(
                             DetailState::Error(message) => {
                                 (
                                     "Load issue",
-                                    "Clipboard history couldn't be loaded",
+                                    "Clipboard history could not be loaded",
                                     message,
                                     true,
                                 )

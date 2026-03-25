@@ -8,6 +8,7 @@ use crate::components::DetailState;
 use crate::entry::{CachedEntries, ClipboardEntry, ClipboardPayload};
 use crate::history::get_clipboard_entries;
 use crate::source::ClipboardSource;
+use crate::watcher_control::{self, WatcherStatus};
 
 pub struct AppState {
     pub source: Arc<ClipboardSource>,
@@ -20,12 +21,14 @@ pub struct AppState {
     pub action_status: Signal<Option<String>>,
     pub show_password: Signal<bool>,
     pub auth_cache: Signal<Arc<Mutex<AuthCache>>>,
+    pub watcher_status: Signal<WatcherStatus>,
     pub filtered_entries: Vec<ClipboardEntry>,
     pub current_selected_id: Option<i64>,
     pub current_query: String,
     pub total_entries: usize,
     pub detail_state: DetailState,
     pub selected_text: Option<String>,
+    pub current_watcher_status: WatcherStatus,
 }
 
 pub fn use_app_state() -> AppState {
@@ -39,6 +42,8 @@ pub fn use_app_state() -> AppState {
     let action_status = use_signal(|| None::<String>);
     let show_password = use_signal(|| false);
     let auth_cache = use_signal(|| Arc::new(Mutex::new(AuthCache::new(5))));
+    let mut watcher_status =
+        use_signal(|| WatcherStatus::unavailable("Waiting for watcher status."));
 
     let polling_source = source.clone();
     let polling_cache = cache.clone();
@@ -83,6 +88,17 @@ pub fn use_app_state() -> AppState {
                 }
 
                 tokio::time::sleep(Duration::from_millis(500)).await;
+            }
+        }
+    });
+
+    let watcher_source = source.clone();
+    use_future(move || {
+        let source = watcher_source.clone();
+        async move {
+            loop {
+                watcher_status.set(watcher_control::get_status(&source));
+                tokio::time::sleep(Duration::from_millis(1000)).await;
             }
         }
     });
@@ -134,11 +150,13 @@ pub fn use_app_state() -> AppState {
         action_status,
         show_password,
         auth_cache,
+        watcher_status,
         filtered_entries,
         current_selected_id,
         current_query,
         total_entries: current_entries.len(),
         detail_state,
         selected_text,
+        current_watcher_status: watcher_status(),
     }
 }

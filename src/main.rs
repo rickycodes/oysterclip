@@ -7,6 +7,7 @@ mod entry;
 mod format;
 mod history;
 mod source;
+mod watcher_control;
 
 use app::App;
 use dioxus::desktop::tao::window::WindowBuilder;

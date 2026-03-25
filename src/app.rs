@@ -2,9 +2,11 @@ use dioxus::prelude::*;
 
 use crate::app_actions::{
     adjacent_entry_id, confirm_and_clear_history, confirm_and_delete_entry, copy_text_to_clipboard,
+    set_status,
 };
 use crate::app_state::use_app_state;
 use crate::components::{DetailPane, Sidebar};
+use crate::watcher_control;
 
 const APP_STYLE: &str = include_str!("../styles.css");
 
@@ -21,12 +23,14 @@ pub fn App() -> Element {
     let action_status = state.action_status;
     let mut show_password = state.show_password;
     let auth_cache = state.auth_cache.clone();
+    let mut watcher_status = state.watcher_status;
     let filtered_entries = state.filtered_entries;
     let current_selected_id = state.current_selected_id;
     let current_query = state.current_query;
     let detail_state = state.detail_state;
     let selected_text = state.selected_text;
     let total_entries = state.total_entries;
+    let current_watcher_status = state.current_watcher_status;
 
     let handle_select = move |id: i64| {
         selected_id.set(Some(id));
@@ -79,6 +83,31 @@ pub fn App() -> Element {
                 delete_action_status,
                 id,
             );
+        }
+    };
+
+    let source_for_watcher = source.clone();
+    let handle_toggle_watcher = move |_| {
+        let result = if current_watcher_status.paused {
+            watcher_control::resume(&source_for_watcher)
+        } else {
+            watcher_control::pause(&source_for_watcher)
+        };
+
+        match result {
+            Ok(next_status) => {
+                let message = if next_status.paused {
+                    "Watcher paused"
+                } else {
+                    "Watcher resumed"
+                };
+                watcher_status.set(next_status);
+                set_status(action_status, message);
+            }
+            Err(err) => {
+                watcher_status.set(crate::watcher_control::WatcherStatus::unavailable(err));
+                set_status(action_status, "Watcher control failed");
+            }
         }
     };
 
@@ -167,9 +196,11 @@ pub fn App() -> Element {
                 query: current_query,
                 error: error(),
                 action_status: action_status(),
+                watcher_status: current_watcher_status,
                 on_select: handle_select,
                 on_query_input: handle_query_input,
                 on_clear: handle_clear,
+                on_toggle_watcher: handle_toggle_watcher,
             }
             DetailPane {
                 state: detail_state,
