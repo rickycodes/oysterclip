@@ -1,7 +1,6 @@
-# Clipboard Viewer (Dioxus Desktop MVP)
+# Clipboard Viewer
 
-This branch ports the UI/runtime path to pure Dioxus Desktop.
-Legacy Tauri sources are archived at `archive/src-tauri-legacy`.
+A Dioxus Desktop app for browsing the shared clipboard history written by `clipboard-watcher`.
 
 ## Run
 
@@ -10,6 +9,8 @@ Pass the clipboard history database path as the first argument:
 ```bash
 cargo run -- /path/to/.clipboard_history.db
 ```
+
+The viewer currently requires that positional database path. Raw JSON input is also supported for read-only inspection.
 
 ## Hot Reload (Desktop)
 
@@ -25,15 +26,11 @@ Run with hot reload:
 dx serve --platform desktop --args /path/to/.clipboard_history.db
 ```
 
-Or use the helper script, which also starts `clipboard-watcher`:
-
-```bash
-./init.sh /path/to/.clipboard_history.db
-```
-
 ## Notes
 
-- The app polls for changes every 500ms and updates in place.
+- The app polls for history changes every 500ms and watcher status every 1000ms.
 - Text entries are decrypted from the shared SQLite history database using the OS keychain.
 - Text entries can be copied back to the system clipboard.
-- Image entries load local image files and render as data URLs.
+- Image entries render from stored PNG blobs when available and fall back to local image paths.
+- The UI supports search, keyboard navigation, delete, clear, clickable URLs, and watcher pause/resume on unix targets.
+- Password-like text entries are masked by default in the detail pane and can be temporarily revealed after local authentication.
