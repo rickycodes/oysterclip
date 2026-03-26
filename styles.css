@@ -12,6 +12,8 @@
   --accent-soft: #c8ceda;
   --border: rgba(255, 255, 255, 0.11);
   --border-strong: rgba(255, 255, 255, 0.2);
+  --mono-font: "IBM Plex Mono", "JetBrains Mono", monospace;
+  --mono-label: #a8afc0;
   font-family: "Satoshi", "General Sans", "Avenir Next", sans-serif;
   font-size: 16px;
   line-height: 1.45;
@@ -81,6 +83,8 @@ body {
   font-size: 24px;
   font-weight: 600;
   letter-spacing: -0.02em;
+  font-family: var(--mono-font);
+  color: var(--mono-label);
 }
 
 .sidebar-search {
@@ -109,7 +113,8 @@ body {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--ink-muted);
+  color: var(--mono-label);
+  font-family: var(--mono-font);
 }
 
 .sidebar-error {
@@ -180,11 +185,12 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--accent-soft);
+  color: var(--mono-label);
   font-weight: 600;
+  font-family: var(--mono-font);
 }
 
 .entry-preview {
@@ -257,7 +263,8 @@ body {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: var(--ink-muted);
+  color: var(--mono-label);
+  font-family: var(--mono-font);
 }
 
 .detail-empty-title {
@@ -265,6 +272,8 @@ body {
   font-size: 28px;
   line-height: 1.1;
   letter-spacing: -0.03em;
+  font-family: var(--mono-font);
+  color: var(--mono-label);
 }
 
 .detail-empty-body {
@@ -282,7 +291,8 @@ body {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--ink-soft);
+  color: var(--mono-label);
+  font-family: var(--mono-font);
 }
 
 .detail-actions {
@@ -335,9 +345,10 @@ body {
 .detail-type {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  color: var(--accent);
+  color: var(--mono-label);
   padding: 5px 8px;
   font-weight: 600;
+  font-family: var(--mono-font);
 }
 
 .detail-note {
@@ -382,12 +393,14 @@ body {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--ink-muted);
+  color: var(--mono-label);
+  font-family: var(--mono-font);
 }
 
 .link-preview-site-name {
-  color: var(--accent-soft);
+  color: var(--mono-label);
   font-weight: 600;
+  font-family: var(--mono-font);
 }
 
 .link-preview-display-url {
@@ -423,7 +436,7 @@ body {
   padding: 14px;
   background: var(--panel-strong);
   border: 1px solid var(--border);
-  font-family: "IBM Plex Mono", "JetBrains Mono", monospace;
+  font-family: var(--mono-font);
   font-size: 14px;
   color: var(--ink);
   white-space: pre-wrap;
@@ -639,8 +652,9 @@ body {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--ink-muted);
+  color: var(--mono-label);
   margin-bottom: 6px;
+  font-family: var(--mono-font);
 }
 
 .watcher-title-row {
@@ -657,6 +671,8 @@ body {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  font-family: var(--mono-font);
+  color: var(--mono-label);
 }
 
 .watcher-pill.running {
@@ -715,10 +731,11 @@ body {
 }
 
 .watcher-subtle-label {
-  color: var(--ink-muted);
+  color: var(--mono-label);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   white-space: nowrap;
+  font-family: var(--mono-font);
 }
 
 .watcher-subtle-value {
