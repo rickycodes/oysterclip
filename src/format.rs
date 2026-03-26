@@ -141,11 +141,6 @@ pub fn is_password(text: &str) -> bool {
         && !has_urls(text)
 }
 
-
-pub fn mask_password(_text: &str) -> String {
-    "•".repeat(PASSWORD_LEN)
-}
-
-fn mask_password_preview() -> String {
+pub fn mask_password_preview() -> String {
     "•".repeat(PASSWORD_PREVIEW_MASK_LEN)
 }

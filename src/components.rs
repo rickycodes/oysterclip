@@ -7,7 +7,7 @@ use crate::auth::{authenticate_admin_action, AuthCache};
 use crate::entry::ClipboardEntry;
 use crate::format::{
     entry_label, entry_icon_name, extract_single_url, format_timestamp, has_urls, image_data_uri_summary,
-    is_image_data_uri, is_password, mask_password, preview_text, split_text_with_urls,
+    is_image_data_uri, is_password, mask_password_preview, preview_text, split_text_with_urls,
     TextSegment,
 };
 use crate::link_preview::LinkPreviewState;
@@ -316,7 +316,7 @@ pub fn DetailPane(
                                         if show_password() {
                                             pre { class: "detail-text", "{content}" }
                                         } else {
-                                            pre { class: "detail-text detail-password-masked", "{mask_password(&content)}" }
+                                            pre { class: "detail-text detail-password-masked", "{mask_password_preview()}" }
                                         }
                                     }
                                 } else if is_data_uri {

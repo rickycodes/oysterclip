@@ -516,6 +516,10 @@ body {
   background: var(--bg-soft);
 }
 
+.detail-text.detail-password-masked {
+  font-size: 20px;
+}
+
 .detail-text {
   border-radius: var(--radius-md);
   margin: 0;
