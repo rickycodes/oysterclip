@@ -1,15 +1,18 @@
 # Clipboard Watcher
 
-A small Rust daemon that monitors your system clipboard and persists unique clipboard entries to a local SQLite history. It records both text and images, encrypts text at rest, and avoids storing duplicate text content.
+A lightweight Rust daemon that monitors your system clipboard and persists unique clipboard entries to a local SQLite database. It captures both text and images, encrypts text at rest with XChaCha20Poly1305, and automatically deduplicates text content.
 
-**Features**
-- Watches the clipboard on a fixed interval.
-- Persists clipboard history to a local SQLite database.
-- Encrypts text entries before storing them.
-- Stores image entries in the database and can optionally export PNG files to disk.
-- Supports unix watcher control commands for pause, resume, and status.
-- Uses a canonical per-user app-data directory for its default database, config, image export, and socket paths.
-- Lightweight, single binary.
+**Core Features**
+- Clipboard polling on fixed 500ms interval
+- Text encryption at rest (XChaCha20Poly1305)
+- Image storage as PNG blobs in SQLite
+- Automatic text deduplication by content hash
+- Configurable max-entry retention (default 500)
+- Unix socket control API (pause/resume/status)
+- Optional PNG image export to disk
+- OS keychain integration for encryption key storage
+- Canonical per-user app-data directory for all storage
+- Lightweight single binary, no external dependencies
 
 **How It Works**
 - Polls the clipboard every `INTERVAL_MS` (see `src/constants.rs`).
@@ -17,12 +20,23 @@ A small Rust daemon that monitors your system clipboard and persists unique clip
 - Image entries are hashed and stored as PNG blobs in SQLite.
 - Optional image export to disk is controlled by `.clipboard-watcher.toml` in the app-data directory.
 
-**Default Storage Location**
-- Base directory: the per-user app-data directory for `clipboard-manager`
-- History database: `.clipboard_history.db`
-- Config file: `.clipboard-watcher.toml`
-- Unix control socket: `.clipboard-watcher.sock`
-- Image export directory: `clipboard_images/`
+## Storage Layout
+
+All files stored in canonical per-user app-data directory for `clipboard-manager`:
+
+| File | Purpose |
+|------|---------|
+| `.clipboard_history.db` | SQLite history database (text encrypted, images as PNG blobs) |
+| `.clipboard-watcher.toml` | Config file (retention settings, image export options) |
+| `.clipboard-watcher.sock` | Unix socket for control commands (pause/resume/status) |
+| `clipboard_images/` | Optional PNG image export directory |
+
+**Database Schema** (`entries` table):
+- `id`, `created_at`, `entry_type`
+- `text_kind` (plain, url, json, multiline)
+- `text_ciphertext`, `text_nonce` (encrypted text entries)
+- `image_path`, `image_png`, `image_hash` (image storage)
+- `content_hash` (for deduplication)
 
 **Build**
 ```bash
@@ -51,10 +65,16 @@ cargo test
 ```
 
 **Project Layout**
-- `src/main.rs` main loop and clipboard polling.
-- `src/history.rs` SQLite-backed history persistence, encryption, and timestamps.
-- `src/image_store.rs` image hashing and PNG persistence.
-- `src/text.rs` clipboard text classification.
-- `src/ipc.rs` unix control socket handling.
-- `src/paths.rs` canonical app-data path resolution.
-- `src/constants.rs` shared constants and SQL statements.
+
+| File | LOC | Purpose |
+|------|-----|---------|
+| `src/main.rs` | 7.6K | Main clipboard polling loop |
+| `src/history.rs` | 11K | SQLite operations (insert, dedupe, encrypt, retention) |
+| `src/ipc.rs` | 7.4K | Unix socket control server |
+| `src/config.rs` | 3.7K | TOML config loading |
+| `src/image_store.rs` | 2.3K | Image hashing & PNG storage |
+| `src/text.rs` | 1.6K | Text classification (plain, url, json, multiline) |
+| `src/paths.rs` | 951B | Canonical app-data path resolution |
+| `src/constants.rs` | 2.7K | SQL schema & keyring IDs |
+| `src/cli.rs` | 3.2K | Argument parsing |
+| `src/entry.rs` | 350B | Entry struct definitions |
