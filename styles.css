@@ -322,9 +322,11 @@ body {
   justify-content: flex-start;
   min-height: 60vh;
   gap: 10px;
+}
 
-  border: none !important;
-  background: none !important;
+.detail-message-card.detail-empty {
+  border: none;
+  background: none;
 }
 
 .detail-message-card {
