@@ -76,6 +76,10 @@ pub fn HelpModal(is_open: bool, on_close: EventHandler<()>, current_theme: Theme
                                 span { "Show only JSON" }
                             }
                             div { class: "help-row",
+                                code { "since:1h" }
+                                span { "Last hour (also: 24h, 7d, 30d, today, yesterday)" }
+                            }
+                            div { class: "help-row",
                                 span { class: "help-tip", "Combine filters with free-text search" }
                             }
                         }

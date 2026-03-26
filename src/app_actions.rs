@@ -1,4 +1,5 @@
 use arboard::Clipboard;
+use chrono::{Datelike, Local, TimeZone, Utc};
 use dioxus::prelude::*;
 use rfd::{MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};
 use std::sync::{Arc, Mutex};
@@ -68,7 +69,7 @@ fn parse_query_filters(query: &str) -> (Vec<QueryFilter>, String) {
 
     for part in query.split_whitespace() {
         if let Some((key, value)) = part.split_once(':') {
-            if matches!(key, "type" | "kind") && !value.is_empty() {
+            if matches!(key, "type" | "kind" | "since") && !value.is_empty() {
                 filters.push(QueryFilter {
                     key: key.to_lowercase(),
                     value: value.to_lowercase(),
@@ -116,10 +117,55 @@ fn apply_filters(entry: &ClipboardEntry, filters: &[QueryFilter]) -> bool {
                     return false;
                 }
             }
+            "since" => {
+                if let Some(cutoff) = parse_since_cutoff(&filter.value) {
+                    let ts = match entry {
+                        ClipboardEntry::Text { timestamp, .. }
+                        | ClipboardEntry::Image { timestamp, .. } => *timestamp,
+                    };
+                    if ts < cutoff {
+                        return false;
+                    }
+                }
+            }
             _ => {}
         }
     }
     true
+}
+
+/// Parse a `since:` value into a UTC unix timestamp cutoff.
+/// Supported: `1h`, `Nh` (N hours), `Nd` (N days), `today`, `yesterday`.
+fn parse_since_cutoff(value: &str) -> Option<u64> {
+    let now = Utc::now();
+
+    if value == "today" {
+        let local = Local::now();
+        let start = Local
+            .with_ymd_and_hms(local.year(), local.month(), local.day(), 0, 0, 0)
+            .single()?;
+        return Some(start.with_timezone(&Utc).timestamp() as u64);
+    }
+
+    if value == "yesterday" {
+        let local = Local::now() - chrono::Duration::days(1);
+        let start = Local
+            .with_ymd_and_hms(local.year(), local.month(), local.day(), 0, 0, 0)
+            .single()?;
+        return Some(start.with_timezone(&Utc).timestamp() as u64);
+    }
+
+    if let Some(n) = value.strip_suffix('h') {
+        let hours: i64 = n.parse().ok()?;
+        return Some((now - chrono::Duration::hours(hours)).timestamp() as u64);
+    }
+
+    if let Some(n) = value.strip_suffix('d') {
+        let days: i64 = n.parse().ok()?;
+        return Some((now - chrono::Duration::days(days)).timestamp() as u64);
+    }
+
+    None
 }
 
 fn is_password(content: &str) -> bool {
