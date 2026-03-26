@@ -220,10 +220,12 @@ pub fn App() -> Element {
                 // Focus search: /
                 // Show help: ? (Shift+/)
                 Code::Slash => {
-                    event.prevent_default();
-                    if event.modifiers().shift() {
+                    // '/' focuses search; '?' (Shift+/) opens help
+                    if event.key() == Key::Character("?".to_string()) {
+                        event.prevent_default();
                         help_open.toggle();
-                    } else {
+                    } else if event.key() == Key::Character("/".to_string()) {
+                        event.prevent_default();
                         focus_search.set(focus_search() + 1);
                     }
                 }
