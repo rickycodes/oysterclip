@@ -96,7 +96,7 @@ pub fn Sidebar(
     rsx! {
         aside { class: "sidebar",
             div { class: "sidebar-header",
-                h1 { "Clipboard" }
+                h1 { "OysterClip" }
                 div { class: "sidebar-header-actions",
                     span { class: "sidebar-count", "{total_entries} entries" }
                     button {
