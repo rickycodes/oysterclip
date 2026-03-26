@@ -246,7 +246,10 @@ pub fn App() -> Element {
             class: format!("app {}", theme().class_name()),
             tabindex: 0,
             onkeydown: handle_keydown,
-            oncontextmenu: move |event| event.prevent_default(),
+            oncontextmenu: move |_event| {
+                #[cfg(not(debug_assertions))]
+                _event.prevent_default();
+            },
             Sidebar {
                 entries: filtered_entries.clone(),
                 total_entries,
