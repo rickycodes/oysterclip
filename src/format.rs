@@ -4,7 +4,7 @@ use crate::entry::ClipboardEntry;
 
 pub fn preview_text(content: &str, limit: usize) -> String {
     if is_password(content) {
-        mask_password(content)
+        mask_password_preview()
     } else {
         let line = content.lines().next().unwrap_or("");
         let mut preview: String = line.chars().take(limit).collect();
@@ -131,6 +131,7 @@ pub fn split_text_with_urls(text: &str) -> Vec<TextSegment> {
 }
 
 const PASSWORD_LEN: usize = 25;
+const PASSWORD_PREVIEW_MASK_LEN: usize = 8;
 
 pub fn is_password(text: &str) -> bool {
     text.len() == PASSWORD_LEN
@@ -140,6 +141,11 @@ pub fn is_password(text: &str) -> bool {
         && !has_urls(text)
 }
 
+
 pub fn mask_password(_text: &str) -> String {
     "•".repeat(PASSWORD_LEN)
+}
+
+fn mask_password_preview() -> String {
+    "•".repeat(PASSWORD_PREVIEW_MASK_LEN)
 }

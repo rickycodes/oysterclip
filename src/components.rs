@@ -186,7 +186,11 @@ pub fn Sidebar(
                             ClipboardEntry::Text { id, .. } | ClipboardEntry::Image { id, .. } => *id,
                         };
                         let is_active = Some(entry_id) == selected_id;
-                        let class = if is_active { "entry-card active" } else { "entry-card" };
+                        let is_password_entry = matches!(entry, ClipboardEntry::Text { content, .. } if is_password(content));
+                        let mut class = if is_active { "entry-card active".to_string() } else { "entry-card".to_string() };
+                        if is_password_entry {
+                            class.push_str(" entry-card-pass");
+                        }
                         let preview = match entry {
                             ClipboardEntry::Text { content, .. } => preview_text(content, 56),
                             ClipboardEntry::Image { path, hash, .. } => {

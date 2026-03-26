@@ -277,6 +277,10 @@ body {
   text-overflow: ellipsis;
 }
 
+.entry-card-pass .entry-preview {
+  font-size: 20px;
+}
+
 .entry-ts {
   display: block;
   max-width: 100%;
