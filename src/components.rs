@@ -251,6 +251,13 @@ pub fn DetailPane(
                             .and_then(|url| link_previews().get(url).cloned());
                         let is_data_uri = is_image_data_uri(&content);
                         let is_password_text = is_password(&content);
+                        let detail_label = if is_password_text {
+                            "Password"
+                        } else if exact_url.is_some() {
+                            "Link"
+                        } else {
+                            "Text"
+                        };
                         let summary = if is_data_uri {
                             Some(image_data_uri_summary(&content))
                         } else {
@@ -264,13 +271,7 @@ pub fn DetailPane(
                         rsx! {
                             div { class: "detail",
                                 div { class: "detail-meta",
-                                    span { class: "detail-type",
-                                        if is_password_text {
-                                            "Password"
-                                        } else {
-                                            "Text"
-                                        }
-                                    }
+                                    span { class: "detail-type", "{detail_label}" }
                                     span { class: "detail-ts", "Timestamp: {format_timestamp(timestamp)}" }
                                 }
                                 if let Some(LinkPreviewState::Ready(preview)) = preview_state {
