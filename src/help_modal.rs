@@ -56,6 +56,10 @@ pub fn HelpModal(is_open: bool, on_close: EventHandler<()>, current_theme: Theme
                         div { class: "help-section",
                             h3 { "Search" }
                             div { class: "help-row",
+                                code { "/ or Ctrl+F" }
+                                span { "Focus search" }
+                            }
+                            div { class: "help-row",
                                 code { "type:image" }
                                 span { "Show only images" }
                             }

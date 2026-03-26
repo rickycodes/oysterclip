@@ -27,6 +27,7 @@ pub fn App() -> Element {
     let mut image_overlay_open = use_signal(|| false);
     let mut help_open = use_signal(|| false);
     let mut theme = use_signal(|| load_theme());
+    let mut focus_search = use_signal(|| 0u32);
     let auth_cache = state.auth_cache;
     let link_previews = state.link_previews;
     let mut watcher_status = state.watcher_status;
@@ -216,10 +217,22 @@ pub fn App() -> Element {
                         );
                     }
                 }
-                // Show help: ? (requires shift+/)
+                // Focus search: /
+                // Show help: ? (Shift+/)
                 Code::Slash => {
                     event.prevent_default();
-                    help_open.toggle();
+                    if event.modifiers().shift() {
+                        help_open.toggle();
+                    } else {
+                        focus_search.set(focus_search() + 1);
+                    }
+                }
+                // Focus search: Ctrl+F
+                Code::KeyF => {
+                    if event.modifiers().ctrl() {
+                        event.prevent_default();
+                        focus_search.set(focus_search() + 1);
+                    }
                 }
                 // Clear search: Escape clears search or closes overlay/help
                 Code::Escape => {
@@ -258,6 +271,7 @@ pub fn App() -> Element {
                 error: error(),
                 action_status: action_status(),
                 watcher_status: current_watcher_status,
+                focus_search,
                 on_select: handle_select,
                 on_query_input: handle_query_input,
                 on_clear: handle_clear,

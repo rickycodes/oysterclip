@@ -1,5 +1,6 @@
 use dioxus::prelude::*;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use crate::app_actions::{open_url, set_status};
@@ -68,11 +69,25 @@ pub fn Sidebar(
     error: Option<String>,
     action_status: Option<String>,
     watcher_status: WatcherStatus,
+    focus_search: ReadSignal<u32>,
     on_select: EventHandler<i64>,
     on_query_input: EventHandler<String>,
     on_clear: EventHandler<()>,
     on_toggle_watcher: EventHandler<()>,
 ) -> Element {
+    let mut search_input: Signal<Option<Rc<MountedData>>> = use_signal(|| None);
+
+    use_effect(move || {
+        let count = focus_search();
+        if count > 0 {
+            let el = search_input();
+            if let Some(el) = el {
+                spawn(async move {
+                    let _ = el.set_focus(true).await;
+                });
+            }
+        }
+    });
     let watcher_state_class = if watcher_status.available {
         if watcher_status.paused {
             "watcher-pill paused"
@@ -112,9 +127,19 @@ pub fn Sidebar(
                     r#type: "search",
                     placeholder: "Search history",
                     value: "{query}",
+                    onmounted: move |e| search_input.set(Some(e.data())),
                     oninput: move |event| on_query_input.call(event.value().to_string()),
                     onkeydown: move |event| {
-                        // Stop propagation of non-Escape keys to prevent app-level shortcuts
+                        if event.code() == Code::Escape {
+                            on_query_input.call(String::new());
+                            let el = search_input();
+                            if let Some(el) = el {
+                                spawn(async move {
+                                    let _ = el.set_focus(false).await;
+                                });
+                            }
+                        }
+                        // Stop propagation to prevent app-level shortcuts
                         // while the search input is focused
                         event.stop_propagation();
                     },
