@@ -37,14 +37,29 @@ pub fn entry_label(entry: &ClipboardEntry) -> &'static str {
     match entry {
         ClipboardEntry::Text { content, .. } => {
             if is_password(content) {
-                "🔒 Pass"
+                "Pass"
             } else if extract_single_url(content).is_some() {
-                "🔗 Link"
+                "Link"
             } else {
-                "📝 Text"
+                "Text"
             }
         }
-        ClipboardEntry::Image { .. } => "🖼️ Image",
+        ClipboardEntry::Image { .. } => "Image",
+    }
+}
+
+pub fn entry_icon_name(entry: &ClipboardEntry) -> &'static str {
+    match entry {
+        ClipboardEntry::Text { content, .. } => {
+            if is_password(content) {
+                "lock"
+            } else if extract_single_url(content).is_some() {
+                "link"
+            } else {
+                "file-text"
+            }
+        }
+        ClipboardEntry::Image { .. } => "image",
     }
 }
 
