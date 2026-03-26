@@ -89,6 +89,10 @@ pub fn HelpModal(
                                 span { "Close overlay / clear selection / clear search" }
                             }
                             div { class: "help-row",
+                                code { "p" }
+                                span { "Pause / resume watcher" }
+                            }
+                            div { class: "help-row",
                                 code { "?" }
                                 span { "Show this help" }
                             }
@@ -151,6 +155,7 @@ pub fn HelpModal(
                                         "Unavailable"
                                     }
                                 }
+                                code { class: "help-key-aside", "p" }
                             }
                             div { class: "watcher-detail", "{watcher_status.detail}" }
                             div { class: "watcher-subtle-row",

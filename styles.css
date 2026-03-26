@@ -827,6 +827,17 @@ body {
   gap: 12px;
 }
 
+.help-key-aside {
+  margin-left: auto;
+  font-size: 12px;
+  background: var(--help-key-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: var(--ink-soft);
+  font-family: var(--mono-font);
+}
+
 .help-content {
   display: flex;
   flex-direction: column;

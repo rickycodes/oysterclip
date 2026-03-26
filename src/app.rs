@@ -134,6 +134,7 @@ pub fn App() -> Element {
     };
 
     let source_for_watcher = source.clone();
+    let source_for_watcher_key = source.clone();
     let handle_toggle_watcher = move |_| {
         let result = if current_watcher_status.paused {
             watcher_control::resume(&source_for_watcher)
@@ -254,6 +255,26 @@ pub fn App() -> Element {
                     if let Some(text) = selected_text_for_enter.clone() {
                         event.prevent_default();
                         copy_text_to_clipboard(copy_status_for_enter, text);
+                    }
+                }
+                // Toggle watcher pause/resume: p
+                Code::KeyP => {
+                    event.prevent_default();
+                    let result = if current_watcher_status.paused {
+                        watcher_control::resume(&source_for_watcher_key)
+                    } else {
+                        watcher_control::pause(&source_for_watcher_key)
+                    };
+                    match result {
+                        Ok(next_status) => {
+                            let message = if next_status.paused { "Watcher paused" } else { "Watcher resumed" };
+                            watcher_status.set(next_status);
+                            set_status(action_status, message);
+                        }
+                        Err(err) => {
+                            watcher_status.set(crate::watcher_control::WatcherStatus::unavailable(err));
+                            set_status(action_status, "Watcher control failed");
+                        }
                     }
                 }
                 // Delete: Delete, Backspace, d — bulk if selection active, else single
