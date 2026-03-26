@@ -67,11 +67,13 @@ pub fn image_data_uri_summary(content: &str) -> String {
 
 pub fn entry_label(entry: &ClipboardEntry) -> &'static str {
     match entry {
-        ClipboardEntry::Text { content, .. } => {
+        ClipboardEntry::Text { content, kind, .. } => {
             if is_password(content) {
                 "Pass"
             } else if extract_single_url(content).is_some() {
                 "Link"
+            } else if kind.as_deref() == Some("json") {
+                "JSON"
             } else {
                 "Text"
             }
@@ -82,11 +84,13 @@ pub fn entry_label(entry: &ClipboardEntry) -> &'static str {
 
 pub fn entry_icon_name(entry: &ClipboardEntry) -> &'static str {
     match entry {
-        ClipboardEntry::Text { content, .. } => {
+        ClipboardEntry::Text { content, kind, .. } => {
             if is_password(content) {
                 "lock"
             } else if extract_single_url(content).is_some() {
                 "link"
+            } else if kind.as_deref() == Some("json") {
+                "braces"
             } else {
                 "file-text"
             }

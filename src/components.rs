@@ -20,6 +20,7 @@ fn get_entry_icon(name: &str) -> &'static str {
         "link" => r#"<path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.658 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>"#,
         "file-text" => r#"<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>"#,
         "image" => r#"<path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>"#,
+        "braces" => r#"<path stroke-linecap="round" stroke-linejoin="round" d="M7 4a2 2 0 00-2 2v3a2 2 0 01-2 2 2 2 0 012 2v3a2 2 0 002 2M17 4a2 2 0 012 2v3a2 2 0 002 2 2 2 0 00-2 2v3a2 2 0 01-2 2"></path>"#,
         _ => r#"<circle cx="12" cy="12" r="10"></circle>"#,
     }
 }
@@ -217,7 +218,15 @@ pub fn Sidebar(
                             class.push_str(" entry-card-pass");
                         }
                         let preview = match entry {
-                            ClipboardEntry::Text { content, .. } => preview_text(content, 56),
+                            ClipboardEntry::Text { content, kind, .. } => {
+                                if kind.as_deref() == Some("json") {
+                                    // Minify JSON to a single line for sidebar preview
+                                    let minified = content.split_whitespace().collect::<Vec<_>>().join(" ");
+                                    preview_text(&minified, 56)
+                                } else {
+                                    preview_text(content, 56)
+                                }
+                            }
                             ClipboardEntry::Image { path, hash, .. } => {
                                 let preview_source = path
                                     .clone()
@@ -272,7 +281,7 @@ pub fn DetailPane(
         section { class: "content",
             {
                 match state {
-                    DetailState::Entry(ClipboardEntry::Text { id, timestamp, content, .. }) => {
+                    DetailState::Entry(ClipboardEntry::Text { id, timestamp, content, kind, .. }) => {
                         let text = content.clone();
                         let exact_url = extract_single_url(&content).map(str::to_string);
                         let preview_state = exact_url
@@ -280,10 +289,20 @@ pub fn DetailPane(
                             .and_then(|url| link_previews().get(url).cloned());
                         let is_data_uri = is_image_data_uri(&content);
                         let is_password_text = is_password(&content);
+                        let is_json = kind.as_deref() == Some("json");
+                        let pretty_json = if is_json {
+                            serde_json::from_str::<serde_json::Value>(&content)
+                                .ok()
+                                .and_then(|v| serde_json::to_string_pretty(&v).ok())
+                        } else {
+                            None
+                        };
                         let detail_label = if is_password_text {
                             "Password"
                         } else if exact_url.is_some() {
                             "Link"
+                        } else if is_json {
+                            "JSON"
                         } else {
                             "Text"
                         };
@@ -310,7 +329,7 @@ pub fn DetailPane(
                                             fill: "none",
                                             stroke_linecap: "round",
                                             stroke_linejoin: "round",
-                                            dangerous_inner_html: get_entry_icon(entry_icon_name(&ClipboardEntry::Text { id, timestamp, content: content.clone(), kind: None }))
+                                            dangerous_inner_html: get_entry_icon(entry_icon_name(&ClipboardEntry::Text { id, timestamp, content: content.clone(), kind: kind.clone() }))
                                         }
                                         span { class: "detail-type", "{detail_label}" }
                                     }
@@ -359,6 +378,10 @@ pub fn DetailPane(
                                     }
                                 } else if is_data_uri {
                                     pre { class: "detail-text detail-text-truncated", "{display_text}" }
+                                } else if is_json {
+                                    pre { class: "detail-text detail-json",
+                                        "{pretty_json.as_deref().unwrap_or(&content)}"
+                                    }
                                 } else if has_urls(&content) {
                                     div { class: "detail-text",
                                         LinkableText { text: content.clone() }

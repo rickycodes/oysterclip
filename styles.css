@@ -561,6 +561,10 @@ body {
   text-overflow: ellipsis;
 }
 
+.detail-text.detail-json {
+  border-left: 3px solid var(--link);
+}
+
 .detail-image-wrap {
   border-radius: var(--radius-md);
   background: var(--panel-strong);
