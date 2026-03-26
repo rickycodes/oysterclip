@@ -6,6 +6,7 @@ use crate::app_actions::{
 };
 use crate::app_state::use_app_state;
 use crate::components::{DetailPane, Sidebar};
+use crate::help_modal::HelpModal;
 use crate::watcher_control;
 
 const APP_STYLE: &str = include_str!("../styles.css");
@@ -23,6 +24,7 @@ pub fn App() -> Element {
     let action_status = state.action_status;
     let mut show_password = state.show_password;
     let mut image_overlay_open = use_signal(|| false);
+    let mut help_open = use_signal(|| false);
     let auth_cache = state.auth_cache;
     let link_previews = state.link_previews;
     let mut watcher_status = state.watcher_status;
@@ -212,10 +214,17 @@ pub fn App() -> Element {
                         );
                     }
                 }
-                // Clear search: Escape clears search or closes overlay
+                // Show help: ? (requires shift+/)
+                Code::Slash => {
+                    event.prevent_default();
+                    help_open.toggle();
+                }
+                // Clear search: Escape clears search or closes overlay/help
                 Code::Escape => {
                     event.prevent_default();
-                    if image_overlay_open() {
+                    if help_open() {
+                        help_open.set(false);
+                    } else if image_overlay_open() {
                         image_overlay_open.set(false);
                     } else if !current_query_for_escape.is_empty() {
                         query.set(String::new());
@@ -228,7 +237,7 @@ pub fn App() -> Element {
 
     rsx! {
         style { "{APP_STYLE}" }
-        if image_overlay_open() {
+        if image_overlay_open() || help_open() {
             style { "body {{ overflow: hidden; }}" }
         }
         main { class: "app", tabindex: 0, onkeydown: handle_keydown,
@@ -292,6 +301,10 @@ pub fn App() -> Element {
                     }
                 }
             }
+        }
+        HelpModal {
+            is_open: help_open(),
+            on_close: move |_| help_open.set(false),
         }
     }
 }

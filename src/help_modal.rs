@@ -1,0 +1,89 @@
+use dioxus::prelude::*;
+
+#[component]
+pub fn HelpModal(is_open: bool, on_close: EventHandler<()>) -> Element {
+    rsx! {
+        if is_open {
+            div {
+                class: "help-overlay is-open",
+                onclick: move |_| on_close.call(()),
+                div {
+                    class: "help-dialog",
+                    onclick: move |event| event.stop_propagation(),
+                    button {
+                        class: "help-close",
+                        onclick: move |_| on_close.call(()),
+                        aria_label: "Close help",
+                        "×"
+                    }
+                    h2 { class: "help-title", "Keyboard Shortcuts" }
+                    div { class: "help-content",
+                        div { class: "help-section",
+                            h3 { "Navigation" }
+                            div { class: "help-row",
+                                code { "↑ / k" }
+                                span { "Previous entry" }
+                            }
+                            div { class: "help-row",
+                                code { "↓ / j" }
+                                span { "Next entry" }
+                            }
+                            div { class: "help-row",
+                                code { "Home" }
+                                span { "First entry" }
+                            }
+                            div { class: "help-row",
+                                code { "End" }
+                                span { "Last entry" }
+                            }
+                        }
+                        div { class: "help-section",
+                            h3 { "Actions" }
+                            div { class: "help-row",
+                                code { "Enter / y" }
+                                span { "Copy to clipboard" }
+                            }
+                            div { class: "help-row",
+                                code { "Delete / Backspace / d" }
+                                span { "Delete entry" }
+                            }
+                            div { class: "help-row",
+                                code { "Escape" }
+                                span { "Close overlay / clear search" }
+                            }
+                        }
+                        div { class: "help-section",
+                            h3 { "Search" }
+                            div { class: "help-row",
+                                code { "type:image" }
+                                span { "Show only images" }
+                            }
+                            div { class: "help-row",
+                                code { "type:password" }
+                                span { "Show only passwords" }
+                            }
+                            div { class: "help-row",
+                                code { "kind:url" }
+                                span { "Show only URLs" }
+                            }
+                            div { class: "help-row",
+                                code { "kind:json" }
+                                span { "Show only JSON" }
+                            }
+                            div { class: "help-row",
+                                span { class: "help-tip", "Combine filters with free-text search" }
+                            }
+                        }
+                        div { class: "help-section",
+                            h3 { "Other" }
+                            div { class: "help-row",
+                                code { "?" }
+                                span { "Show this help" }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

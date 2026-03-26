@@ -5,6 +5,7 @@ mod auth;
 mod components;
 mod entry;
 mod format;
+mod help_modal;
 mod history;
 mod link_preview;
 mod paths;
