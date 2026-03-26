@@ -277,17 +277,17 @@ pub fn App() -> Element {
                     aria_label: "Close image overlay",
                     tabindex: if image_overlay_open() { "0" } else { "-1" },
                     svg {
-                        xmlns: "http://www.w3.org/2000/svg",
+                        class: "image-overlay-close-icon",
+                        view_box: "0 0 24 24",
+                        width: "44",
+                        height: "44",
+                        stroke_width: "2",
+                        stroke: "currentColor",
                         fill: "none",
-                        width: "24",
-                        height: "24",
-                        view_box: "0 0 300 300",
+                        stroke_linecap: "round",
+                        stroke_linejoin: "round",
                         path {
-                            d: "m60 60 180 180m0-180-180 180",
-                            fill: "none",
-                            stroke: "#fff",
-                            stroke_linejoin: "round",
-                            stroke_width: "27",
+                            d: "M18 6L6 18M6 6l12 12",
                         }
                     }
                 }

@@ -544,24 +544,24 @@ body {
   z-index: 2;
   width: 42px;
   height: 42px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--ink);
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: color 0.2s ease;
 }
 
-.image-overlay-close svg {
+.image-overlay-close-icon {
   display: block;
+  color: inherit;
 }
 
 .image-overlay-close:hover {
-  border-color: rgba(255, 255, 255, 0.38);
-  background: #171a26;
+  color: var(--ink);
 }
 
 .image-overlay-image {
