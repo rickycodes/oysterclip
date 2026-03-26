@@ -10,6 +10,7 @@ mod history;
 mod link_preview;
 mod paths;
 mod source;
+mod theme;
 mod watcher_control;
 
 use app::App;

@@ -1,11 +1,12 @@
 use dioxus::prelude::*;
+use crate::theme::Theme;
 
 #[component]
-pub fn HelpModal(is_open: bool, on_close: EventHandler<()>) -> Element {
+pub fn HelpModal(is_open: bool, on_close: EventHandler<()>, current_theme: Theme, on_theme_toggle: EventHandler<()>) -> Element {
     rsx! {
         if is_open {
             div {
-                class: "help-overlay is-open",
+                class: format!("help-overlay is-open {}", current_theme.class_name()),
                 onclick: move |_| on_close.call(()),
                 div {
                     class: "help-dialog",
@@ -72,6 +73,16 @@ pub fn HelpModal(is_open: bool, on_close: EventHandler<()>) -> Element {
                             }
                             div { class: "help-row",
                                 span { class: "help-tip", "Combine filters with free-text search" }
+                            }
+                        }
+                        div { class: "help-section",
+                            h3 { "Theme" }
+                            div { class: "help-row",
+                                button {
+                                    class: "theme-toggle-btn",
+                                    onclick: move |_| on_theme_toggle.call(()),
+                                    "Switch to {current_theme.toggle().label()} Mode"
+                                }
                             }
                         }
                         div { class: "help-section",

@@ -7,6 +7,7 @@ use crate::app_actions::{
 use crate::app_state::use_app_state;
 use crate::components::{DetailPane, Sidebar};
 use crate::help_modal::HelpModal;
+use crate::theme::{load_theme, save_theme};
 use crate::watcher_control;
 
 const APP_STYLE: &str = include_str!("../styles.css");
@@ -25,6 +26,7 @@ pub fn App() -> Element {
     let mut show_password = state.show_password;
     let mut image_overlay_open = use_signal(|| false);
     let mut help_open = use_signal(|| false);
+    let mut theme = use_signal(|| load_theme());
     let auth_cache = state.auth_cache;
     let link_previews = state.link_previews;
     let mut watcher_status = state.watcher_status;
@@ -240,7 +242,7 @@ pub fn App() -> Element {
         if image_overlay_open() || help_open() {
             style { "body {{ overflow: hidden; }}" }
         }
-        main { class: "app", tabindex: 0, onkeydown: handle_keydown,
+        main { class: format!("app {}", theme().class_name()), tabindex: 0, onkeydown: handle_keydown,
             Sidebar {
                 entries: filtered_entries.clone(),
                 total_entries,
@@ -305,6 +307,12 @@ pub fn App() -> Element {
         HelpModal {
             is_open: help_open(),
             on_close: move |_| help_open.set(false),
+            current_theme: theme(),
+            on_theme_toggle: move |_| {
+                let new_theme = theme().toggle();
+                theme.set(new_theme);
+                save_theme(new_theme);
+            },
         }
     }
 }
