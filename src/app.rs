@@ -28,7 +28,7 @@ pub fn App() -> Element {
     let mut watcher_status = state.watcher_status;
     let filtered_entries = state.filtered_entries;
     let current_selected_id = state.current_selected_id;
-    let current_query = state.current_query;
+    let current_query = state.current_query.clone();
     let detail_state = state.detail_state;
     let selected_text = state.selected_text;
     let total_entries = state.total_entries;
@@ -131,84 +131,98 @@ pub fn App() -> Element {
         let keyboard_entries = filtered_entries.clone();
         let selected_text_for_enter = selected_text.clone();
         let copy_status_for_enter = copy_status;
-        move |event: KeyboardEvent| match event.code() {
-            Code::ArrowDown => {
-                event.prevent_default();
-                if let Some(id) = adjacent_entry_id(&keyboard_entries, current_selected_id, 1) {
-                    selected_id.set(Some(id));
-                    show_password.set(false);
-                    image_overlay_open.set(false);
-                    if copy_status().is_some() {
-                        copy_status.set(None);
-                    }
-                }
-            }
-            Code::ArrowUp => {
-                event.prevent_default();
-                if let Some(id) = adjacent_entry_id(&keyboard_entries, current_selected_id, -1) {
-                    selected_id.set(Some(id));
-                    show_password.set(false);
-                    image_overlay_open.set(false);
-                    if copy_status().is_some() {
-                        copy_status.set(None);
-                    }
-                }
-            }
-            Code::Home => {
-                event.prevent_default();
-                if let Some(id) = keyboard_entries.first().map(|entry| match entry {
-                    crate::entry::ClipboardEntry::Text { id, .. }
-                    | crate::entry::ClipboardEntry::Image { id, .. } => *id,
-                }) {
-                    selected_id.set(Some(id));
-                    show_password.set(false);
-                    image_overlay_open.set(false);
-                    if copy_status().is_some() {
-                        copy_status.set(None);
-                    }
-                }
-            }
-            Code::End => {
-                event.prevent_default();
-                if let Some(id) = keyboard_entries.last().map(|entry| match entry {
-                    crate::entry::ClipboardEntry::Text { id, .. }
-                    | crate::entry::ClipboardEntry::Image { id, .. } => *id,
-                }) {
-                    selected_id.set(Some(id));
-                    show_password.set(false);
-                    image_overlay_open.set(false);
-                    if copy_status().is_some() {
-                        copy_status.set(None);
-                    }
-                }
-            }
-            Code::Enter => {
-                if let Some(text) = selected_text_for_enter.clone() {
+        let current_query_for_escape = current_query.clone();
+        move |event: KeyboardEvent| {
+            let code = event.code();
+            
+            match code {
+                // Navigation: Arrow keys
+                Code::ArrowDown | Code::KeyJ => {
                     event.prevent_default();
-                    copy_text_to_clipboard(copy_status_for_enter, text);
+                    if let Some(id) = adjacent_entry_id(&keyboard_entries, current_selected_id, 1) {
+                        selected_id.set(Some(id));
+                        show_password.set(false);
+                        image_overlay_open.set(false);
+                        if copy_status().is_some() {
+                            copy_status.set(None);
+                        }
+                    }
                 }
-            }
-            Code::Delete | Code::Backspace => {
-                if let Some(id) = current_selected_id {
+                Code::ArrowUp | Code::KeyK => {
                     event.prevent_default();
-                    image_overlay_open.set(false);
-                    confirm_and_delete_entry(
-                        source_for_delete_keys.clone(),
-                        cache_for_delete_keys.clone(),
-                        entries,
-                        selected_id,
-                        error,
-                        action_status,
-                        id,
-                    );
+                    if let Some(id) = adjacent_entry_id(&keyboard_entries, current_selected_id, -1) {
+                        selected_id.set(Some(id));
+                        show_password.set(false);
+                        image_overlay_open.set(false);
+                        if copy_status().is_some() {
+                            copy_status.set(None);
+                        }
+                    }
                 }
-            }
-            Code::Escape => {
-                if image_overlay_open() {
-                    image_overlay_open.set(false);
+                // Jump to first entry: Home, gg (g g)
+                Code::Home => {
+                    event.prevent_default();
+                    if let Some(id) = keyboard_entries.first().map(|entry| match entry {
+                        crate::entry::ClipboardEntry::Text { id, .. }
+                        | crate::entry::ClipboardEntry::Image { id, .. } => *id,
+                    }) {
+                        selected_id.set(Some(id));
+                        show_password.set(false);
+                        image_overlay_open.set(false);
+                        if copy_status().is_some() {
+                            copy_status.set(None);
+                        }
+                    }
                 }
+                // Jump to last entry: End
+                Code::End => {
+                    event.prevent_default();
+                    if let Some(id) = keyboard_entries.last().map(|entry| match entry {
+                        crate::entry::ClipboardEntry::Text { id, .. }
+                        | crate::entry::ClipboardEntry::Image { id, .. } => *id,
+                    }) {
+                        selected_id.set(Some(id));
+                        show_password.set(false);
+                        image_overlay_open.set(false);
+                        if copy_status().is_some() {
+                            copy_status.set(None);
+                        }
+                    }
+                }
+                // Copy to clipboard: Enter, y (yank)
+                Code::Enter | Code::KeyY => {
+                    if let Some(text) = selected_text_for_enter.clone() {
+                        event.prevent_default();
+                        copy_text_to_clipboard(copy_status_for_enter, text);
+                    }
+                }
+                // Delete: Delete, Backspace, d (del)
+                Code::Delete | Code::Backspace | Code::KeyD => {
+                    if let Some(id) = current_selected_id {
+                        event.prevent_default();
+                        image_overlay_open.set(false);
+                        confirm_and_delete_entry(
+                            source_for_delete_keys.clone(),
+                            cache_for_delete_keys.clone(),
+                            entries,
+                            selected_id,
+                            error,
+                            action_status,
+                            id,
+                        );
+                    }
+                }
+                // Clear search: Escape clears search or closes overlay
+                Code::Escape => {
+                    event.prevent_default();
+                    if image_overlay_open() {
+                        image_overlay_open.set(false);
+                    } else if !current_query_for_escape.is_empty() {
+                        query.set(String::new());
+                    }
+                }
+                _ => {}
             }
-            _ => {}
         }
     };
 

@@ -2,6 +2,27 @@
 
 A Dioxus Desktop app for browsing the shared clipboard history written by `clipboard-watcher`.
 
+## Keyboard Shortcuts
+
+### Navigation
+| Key | Action |
+|-----|--------|
+| `↑` / `k` | Previous entry |
+| `↓` / `j` | Next entry |
+| `Home` | Jump to first entry |
+| `End` | Jump to last entry |
+
+### Actions
+| Key | Action |
+|-----|--------|
+| `Enter` / `y` | Copy selected entry to clipboard |
+| `Delete` / `Backspace` / `d` | Delete selected entry |
+| `Escape` | Close image overlay or clear search |
+
+### Search
+- Focus the search input and type to filter entries by content, type, or path
+- `Escape` while in search clears the search and refocuses the list
+
 ## Run
 
 The viewer resolves its history source in this order:

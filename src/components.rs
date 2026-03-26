@@ -103,7 +103,11 @@ pub fn Sidebar(
                     placeholder: "Search history",
                     value: "{query}",
                     oninput: move |event| on_query_input.call(event.value().to_string()),
-                    onkeydown: move |event| event.stop_propagation(),
+                    onkeydown: move |event| {
+                        // Stop propagation of non-Escape keys to prevent app-level shortcuts
+                        // while the search input is focused
+                        event.stop_propagation();
+                    },
                 }
             }
             div { class: "watcher-card",
