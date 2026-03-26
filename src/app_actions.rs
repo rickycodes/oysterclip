@@ -23,23 +23,107 @@ pub fn matches_query(entry: &ClipboardEntry, query: &str) -> bool {
         return true;
     }
 
-    let query = trimmed.to_lowercase();
+    // Parse filters from query (e.g., "type:image kind:url search text")
+    let (filters, search_text) = parse_query_filters(trimmed);
+
+    // Check type and kind filters first
+    if !filters.is_empty() {
+        if !apply_filters(entry, &filters) {
+            return false;
+        }
+    }
+
+    // If no search text remains, we're done (filters alone matched)
+    if search_text.is_empty() {
+        return true;
+    }
+
+    // Apply text search on content and kind
+    let search = search_text.to_lowercase();
     match entry {
         ClipboardEntry::Text { content, kind, .. } => {
-            content.to_lowercase().contains(&query)
+            content.to_lowercase().contains(&search)
                 || kind
                     .as_deref()
-                    .map(|kind| kind.to_lowercase().contains(&query))
+                    .map(|kind| kind.to_lowercase().contains(&search))
                     .unwrap_or(false)
-                || "text".contains(&query)
         }
         ClipboardEntry::Image { path, .. } => {
             path.as_deref()
-                .map(|value| value.to_lowercase().contains(&query))
+                .map(|value| value.to_lowercase().contains(&search))
                 .unwrap_or(false)
-                || "image".contains(&query)
         }
     }
+}
+
+#[derive(Debug, Clone)]
+struct QueryFilter {
+    key: String,
+    value: String,
+}
+
+fn parse_query_filters(query: &str) -> (Vec<QueryFilter>, String) {
+    let mut filters = Vec::new();
+    let mut search_parts = Vec::new();
+
+    for part in query.split_whitespace() {
+        if let Some((key, value)) = part.split_once(':') {
+            if matches!(key, "type" | "kind") && !value.is_empty() {
+                filters.push(QueryFilter {
+                    key: key.to_lowercase(),
+                    value: value.to_lowercase(),
+                });
+            } else {
+                search_parts.push(part);
+            }
+        } else {
+            search_parts.push(part);
+        }
+    }
+
+    (filters, search_parts.join(" "))
+}
+
+fn apply_filters(entry: &ClipboardEntry, filters: &[QueryFilter]) -> bool {
+    for filter in filters {
+        match filter.key.as_str() {
+            "type" => {
+                let type_matches = match entry {
+                    ClipboardEntry::Text { .. } => {
+                        filter.value == "text" || filter.value == "pass" || filter.value == "password"
+                    }
+                    ClipboardEntry::Image { .. } => filter.value == "image",
+                };
+                if !type_matches {
+                    return false;
+                }
+            }
+            "kind" => {
+                let kind_matches = match entry {
+                    ClipboardEntry::Text { kind, content, .. } => {
+                        let entry_kind = if is_password(content) {
+                            "password"
+                        } else if let Some(k) = kind {
+                            k.as_str()
+                        } else {
+                            "text"
+                        };
+                        entry_kind.to_lowercase().contains(&filter.value)
+                    }
+                    ClipboardEntry::Image { .. } => false,
+                };
+                if !kind_matches {
+                    return false;
+                }
+            }
+            _ => {}
+        }
+    }
+    true
+}
+
+fn is_password(content: &str) -> bool {
+    crate::format::is_password(content)
 }
 
 pub fn adjacent_entry_id(
