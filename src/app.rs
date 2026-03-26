@@ -242,7 +242,11 @@ pub fn App() -> Element {
         if image_overlay_open() || help_open() {
             style { "body {{ overflow: hidden; }}" }
         }
-        main { class: format!("app {}", theme().class_name()), tabindex: 0, onkeydown: handle_keydown,
+        main {
+            class: format!("app {}", theme().class_name()),
+            tabindex: 0,
+            onkeydown: handle_keydown,
+            oncontextmenu: move |event| event.prevent_default(),
             Sidebar {
                 entries: filtered_entries.clone(),
                 total_entries,
