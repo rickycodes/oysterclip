@@ -60,6 +60,21 @@ pub fn HelpModal(
                             }
                         }
                         div { class: "help-section",
+                            h3 { "Selection" }
+                            div { class: "help-row",
+                                code { "Space" }
+                                span { "Toggle selection" }
+                            }
+                            div { class: "help-row",
+                                code { "Shift+↑ / Shift+↓" }
+                                span { "Extend selection" }
+                            }
+                            div { class: "help-row",
+                                code { "Escape" }
+                                span { "Clear selection" }
+                            }
+                        }
+                        div { class: "help-section",
                             h3 { "Actions" }
                             div { class: "help-row",
                                 code { "Enter / y" }
@@ -67,11 +82,11 @@ pub fn HelpModal(
                             }
                             div { class: "help-row",
                                 code { "Delete / Backspace / d" }
-                                span { "Delete entry" }
+                                span { "Delete entry (or selection)" }
                             }
                             div { class: "help-row",
                                 code { "Escape" }
-                                span { "Close overlay / clear search" }
+                                span { "Close overlay / clear selection / clear search" }
                             }
                             div { class: "help-row",
                                 code { "?" }

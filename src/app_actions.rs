@@ -2,11 +2,12 @@ use arboard::Clipboard;
 use chrono::{Datelike, Local, TimeZone, Utc};
 use dioxus::prelude::*;
 use rfd::{MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::entry::{CachedEntries, ClipboardEntry};
-use crate::history::{clear_history, delete_entry};
+use crate::history::{clear_history, delete_entries, delete_entry};
 use crate::source::ClipboardSource;
 
 const STATUS_TIMEOUT_SECS: u64 = 5;
@@ -198,6 +199,7 @@ pub fn confirm_and_clear_history(
     cache: Arc<Mutex<Option<CachedEntries>>>,
     mut entries: Signal<Vec<ClipboardEntry>>,
     mut selected_id: Signal<Option<i64>>,
+    mut selected_ids: Signal<HashSet<i64>>,
     mut error: Signal<Option<String>>,
     action_status: Signal<Option<String>>,
 ) {
@@ -219,6 +221,7 @@ pub fn confirm_and_clear_history(
             }
             entries.set(Vec::new());
             selected_id.set(None);
+            selected_ids.set(HashSet::new());
             error.set(None);
             set_status(action_status, "History cleared");
         }
@@ -263,6 +266,52 @@ pub fn confirm_and_delete_entry(
             selected_id.set(None);
             error.set(None);
             set_status(action_status, "Entry deleted");
+        }
+        Err(err) => {
+            error.set(Some(err));
+            set_status(action_status, "Delete failed");
+        }
+    }
+}
+
+pub fn confirm_and_delete_entries(
+    source: Arc<ClipboardSource>,
+    cache: Arc<Mutex<Option<CachedEntries>>>,
+    mut entries: Signal<Vec<ClipboardEntry>>,
+    mut selected_id: Signal<Option<i64>>,
+    mut selected_ids: Signal<HashSet<i64>>,
+    mut error: Signal<Option<String>>,
+    action_status: Signal<Option<String>>,
+    ids: Vec<i64>,
+) {
+    let count = ids.len();
+    let noun = if count == 1 { "entry" } else { "entries" };
+    let confirmed = MessageDialog::new()
+        .set_level(MessageLevel::Warning)
+        .set_title(&format!("Delete {count} {noun}?"))
+        .set_description(&format!(
+            "This will permanently delete {count} selected clipboard {noun}."
+        ))
+        .set_buttons(MessageButtons::OkCancel)
+        .show();
+
+    if !matches!(confirmed, MessageDialogResult::Ok) {
+        return;
+    }
+
+    match delete_entries(&source, &ids) {
+        Ok(_) => {
+            if let Ok(mut cache_guard) = cache.lock() {
+                *cache_guard = None;
+            }
+            let id_set: HashSet<i64> = ids.iter().cloned().collect();
+            let mut next_entries = entries();
+            next_entries.retain(|e| !id_set.contains(&entry_id(e)));
+            entries.set(next_entries);
+            selected_id.set(None);
+            selected_ids.set(HashSet::new());
+            error.set(None);
+            set_status(action_status, format!("{count} {noun} deleted"));
         }
         Err(err) => {
             error.set(Some(err));

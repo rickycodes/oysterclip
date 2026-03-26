@@ -1,8 +1,9 @@
 use dioxus::prelude::*;
+use std::collections::HashSet;
 
 use crate::app_actions::{
-    adjacent_entry_id, confirm_and_clear_history, confirm_and_delete_entry, copy_text_to_clipboard,
-    set_status,
+    adjacent_entry_id, confirm_and_clear_history, confirm_and_delete_entries,
+    confirm_and_delete_entry, copy_text_to_clipboard, set_status,
 };
 use crate::app_state::use_app_state;
 use crate::components::{DetailPane, Sidebar};
@@ -19,6 +20,7 @@ pub fn App() -> Element {
     let cache = state.cache.clone();
     let entries = state.entries;
     let mut selected_id = state.selected_id;
+    let mut selected_ids = state.selected_ids;
     let mut query = state.query;
     let error = state.error;
     let mut copy_status = state.copy_status;
@@ -38,6 +40,7 @@ pub fn App() -> Element {
     let selected_text = state.selected_text;
     let total_entries = state.total_entries;
     let current_watcher_status = state.current_watcher_status;
+    let current_selected_ids: Vec<i64> = selected_ids().into_iter().collect();
     let overlay_image_src = match &detail_state {
         crate::components::DetailState::Entry(crate::entry::ClipboardEntry::Image {
             data_url: Some(src),
@@ -68,6 +71,7 @@ pub fn App() -> Element {
             cache_for_clear.clone(),
             entries,
             selected_id,
+            selected_ids,
             error,
             action_status,
         );
@@ -107,6 +111,28 @@ pub fn App() -> Element {
         }
     };
 
+    let source_for_bulk = source.clone();
+    let cache_for_bulk = cache.clone();
+    let handle_delete_selected = move |_| {
+        let ids: Vec<i64> = selected_ids().into_iter().collect();
+        if !ids.is_empty() {
+            confirm_and_delete_entries(
+                source_for_bulk.clone(),
+                cache_for_bulk.clone(),
+                entries,
+                selected_id,
+                selected_ids,
+                error,
+                action_status,
+                ids,
+            );
+        }
+    };
+
+    let handle_clear_selection = move |_| {
+        selected_ids.set(HashSet::new());
+    };
+
     let source_for_watcher = source.clone();
     let handle_toggle_watcher = move |_| {
         let result = if current_watcher_status.paused {
@@ -141,10 +167,18 @@ pub fn App() -> Element {
             let code = event.code();
             
             match code {
-                // Navigation: Arrow keys
+                // Navigation: Arrow keys (Shift+Arrow extends selection)
                 Code::ArrowDown | Code::KeyJ => {
                     event.prevent_default();
                     if let Some(id) = adjacent_entry_id(&keyboard_entries, current_selected_id, 1) {
+                        if event.modifiers().shift() {
+                            let mut set = selected_ids();
+                            if let Some(cur) = current_selected_id {
+                                set.insert(cur);
+                            }
+                            set.insert(id);
+                            selected_ids.set(set);
+                        }
                         selected_id.set(Some(id));
                         show_password.set(false);
                         image_overlay_open.set(false);
@@ -156,6 +190,14 @@ pub fn App() -> Element {
                 Code::ArrowUp | Code::KeyK => {
                     event.prevent_default();
                     if let Some(id) = adjacent_entry_id(&keyboard_entries, current_selected_id, -1) {
+                        if event.modifiers().shift() {
+                            let mut set = selected_ids();
+                            if let Some(cur) = current_selected_id {
+                                set.insert(cur);
+                            }
+                            set.insert(id);
+                            selected_ids.set(set);
+                        }
                         selected_id.set(Some(id));
                         show_password.set(false);
                         image_overlay_open.set(false);
@@ -164,7 +206,7 @@ pub fn App() -> Element {
                         }
                     }
                 }
-                // Jump to first entry: Home, gg (g g)
+                // Jump to first entry: Home
                 Code::Home => {
                     event.prevent_default();
                     if let Some(id) = keyboard_entries.first().map(|entry| match entry {
@@ -194,6 +236,19 @@ pub fn App() -> Element {
                         }
                     }
                 }
+                // Toggle selection: Space
+                Code::Space => {
+                    if let Some(id) = current_selected_id {
+                        event.prevent_default();
+                        let mut set = selected_ids();
+                        if set.contains(&id) {
+                            set.remove(&id);
+                        } else {
+                            set.insert(id);
+                        }
+                        selected_ids.set(set);
+                    }
+                }
                 // Copy to clipboard: Enter, y (yank)
                 Code::Enter | Code::KeyY => {
                     if let Some(text) = selected_text_for_enter.clone() {
@@ -201,9 +256,23 @@ pub fn App() -> Element {
                         copy_text_to_clipboard(copy_status_for_enter, text);
                     }
                 }
-                // Delete: Delete, Backspace, d (del)
+                // Delete: Delete, Backspace, d — bulk if selection active, else single
                 Code::Delete | Code::Backspace | Code::KeyD => {
-                    if let Some(id) = current_selected_id {
+                    let ids: Vec<i64> = selected_ids().into_iter().collect();
+                    if !ids.is_empty() {
+                        event.prevent_default();
+                        image_overlay_open.set(false);
+                        confirm_and_delete_entries(
+                            source_for_delete_keys.clone(),
+                            cache_for_delete_keys.clone(),
+                            entries,
+                            selected_id,
+                            selected_ids,
+                            error,
+                            action_status,
+                            ids,
+                        );
+                    } else if let Some(id) = current_selected_id {
                         event.prevent_default();
                         image_overlay_open.set(false);
                         confirm_and_delete_entry(
@@ -236,13 +305,15 @@ pub fn App() -> Element {
                         focus_search.set(focus_search() + 1);
                     }
                 }
-                // Clear search: Escape clears search or closes overlay/help
+                // Escape: close help/overlay → clear selection → clear search
                 Code::Escape => {
                     event.prevent_default();
                     if help_open() {
                         help_open.set(false);
                     } else if image_overlay_open() {
                         image_overlay_open.set(false);
+                    } else if !selected_ids().is_empty() {
+                        selected_ids.set(HashSet::new());
                     } else if !current_query_for_escape.is_empty() {
                         query.set(String::new());
                     }
@@ -273,9 +344,12 @@ pub fn App() -> Element {
                 error: error(),
                 action_status: action_status(),
                 focus_search,
+                selected_ids: current_selected_ids,
                 on_select: handle_select,
                 on_query_input: handle_query_input,
                 on_clear: handle_clear,
+                on_delete_selected: handle_delete_selected,
+                on_clear_selection: handle_clear_selection,
             }
             DetailPane {
                 state: detail_state,

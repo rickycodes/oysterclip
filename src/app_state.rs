@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -22,6 +22,7 @@ pub struct AppState {
     pub cache: Arc<Mutex<Option<CachedEntries>>>,
     pub entries: Signal<Vec<ClipboardEntry>>,
     pub selected_id: Signal<Option<i64>>,
+    pub selected_ids: Signal<HashSet<i64>>,
     pub query: Signal<String>,
     pub error: Signal<Option<String>>,
     pub copy_status: Signal<Option<String>>,
@@ -44,6 +45,7 @@ pub fn use_app_state() -> AppState {
     let cache = use_hook(|| Arc::new(Mutex::new(None::<CachedEntries>)));
     let mut entries = use_signal(Vec::<ClipboardEntry>::new);
     let mut selected_id = use_signal(|| None::<i64>);
+    let selected_ids = use_signal(HashSet::<i64>::new);
     let query = use_signal(String::new);
     let mut error = use_signal(|| None::<String>);
     let copy_status = use_signal(|| None::<String>);
@@ -196,6 +198,7 @@ pub fn use_app_state() -> AppState {
         cache,
         entries,
         selected_id,
+        selected_ids,
         query,
         error,
         copy_status,

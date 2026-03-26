@@ -281,6 +281,71 @@ body {
   font-size: 20px;
 }
 
+.entry-card-checked {
+  box-shadow: inset 3px 0 0 var(--link);
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+
+.entry-card.active.entry-card-checked {
+  background: var(--surface-active);
+  box-shadow: inset 3px 0 0 var(--link);
+}
+
+.selection-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--surface-hover);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  margin: 0 2px 4px;
+}
+
+.selection-count {
+  flex: 1;
+  font-size: 13px;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.selection-delete-btn {
+  appearance: none;
+  border: 1px solid var(--danger-border);
+  background: var(--danger-bg);
+  color: var(--danger-ink);
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.selection-delete-btn:hover {
+  background: var(--danger-bg-hover);
+  border-color: var(--danger-border-hover);
+}
+
+.selection-clear-btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.selection-clear-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--ink);
+}
+
 .entry-ts {
   display: block;
   max-width: 100%;

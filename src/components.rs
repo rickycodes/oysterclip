@@ -69,9 +69,12 @@ pub fn Sidebar(
     error: Option<String>,
     action_status: Option<String>,
     focus_search: ReadSignal<u32>,
+    selected_ids: Vec<i64>,
     on_select: EventHandler<i64>,
     on_query_input: EventHandler<String>,
     on_clear: EventHandler<()>,
+    on_delete_selected: EventHandler<()>,
+    on_clear_selection: EventHandler<()>,
 ) -> Element {
     let mut search_input: Signal<Option<Rc<MountedData>>> = use_signal(|| None);
 
@@ -133,6 +136,23 @@ pub fn Sidebar(
             if let Some(status) = action_status {
                 div { class: "sidebar-status", "{status}" }
             }
+            if !selected_ids.is_empty() {
+                div { class: "selection-toolbar",
+                    span { class: "selection-count",
+                        "{selected_ids.len()} selected"
+                    }
+                    button {
+                        class: "selection-delete-btn",
+                        onclick: move |_| on_delete_selected.call(()),
+                        "Delete"
+                    }
+                    button {
+                        class: "selection-clear-btn",
+                        onclick: move |_| on_clear_selection.call(()),
+                        "✕"
+                    }
+                }
+            }
             div { class: "entry-list",
                 if entries.is_empty() {
                     div { class: "sidebar-empty",
@@ -150,9 +170,13 @@ pub fn Sidebar(
                         };
                         let is_active = Some(entry_id) == selected_id;
                         let is_password_entry = matches!(entry, ClipboardEntry::Text { content, .. } if is_password(content));
+                        let is_checked = selected_ids.contains(&entry_id);
                         let mut class = if is_active { "entry-card active".to_string() } else { "entry-card".to_string() };
                         if is_password_entry {
                             class.push_str(" entry-card-pass");
+                        }
+                        if is_checked {
+                            class.push_str(" entry-card-checked");
                         }
                         let preview = match entry {
                             ClipboardEntry::Text { content, kind, .. } => {

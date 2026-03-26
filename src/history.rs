@@ -22,6 +22,20 @@ pub fn delete_entry(source: &ClipboardSource, id: i64) -> Result<(), String> {
     Ok(())
 }
 
+pub fn delete_entries(source: &ClipboardSource, ids: &[i64]) -> Result<(), String> {
+    if ids.is_empty() {
+        return Ok(());
+    }
+    let path = source.file_path()?;
+    let conn =
+        Connection::open(path).map_err(|e| format!("Failed to open history database: {e}"))?;
+    let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+    let sql = format!("DELETE FROM entries WHERE id IN ({placeholders})");
+    conn.execute(&sql, rusqlite::params_from_iter(ids.iter()))
+        .map_err(|e| format!("Failed to bulk delete history entries: {e}"))?;
+    Ok(())
+}
+
 pub fn clear_history(source: &ClipboardSource) -> Result<(), String> {
     let path = source.file_path()?;
     let conn =
