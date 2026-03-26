@@ -275,7 +275,20 @@ pub fn DetailPane(
                         rsx! {
                             div { class: "detail",
                                 div { class: "detail-meta",
-                                    span { class: "detail-type", "{detail_label}" }
+                                    div { class: "detail-type-with-icon",
+                                        svg { class: "detail-icon", 
+                                            view_box: "0 0 24 24",
+                                            width: "1em",
+                                            height: "1em",
+                                            stroke_width: "2",
+                                            stroke: "currentColor",
+                                            fill: "none",
+                                            stroke_linecap: "round",
+                                            stroke_linejoin: "round",
+                                            dangerous_inner_html: get_entry_icon(entry_icon_name(&ClipboardEntry::Text { id, timestamp, content: content.clone(), kind: None }))
+                                        }
+                                        span { class: "detail-type", "{detail_label}" }
+                                    }
                                     span { class: "detail-ts", "Timestamp: {format_timestamp(timestamp)}" }
                                 }
                                 if let Some(LinkPreviewState::Ready(preview)) = preview_state {
@@ -376,7 +389,20 @@ pub fn DetailPane(
                     ) => rsx! {
                         div { class: "detail",
                             div { class: "detail-meta",
-                                span { class: "detail-type", "Image" }
+                                div { class: "detail-type-with-icon",
+                                    svg { class: "detail-icon", 
+                                        view_box: "0 0 24 24",
+                                        width: "1em",
+                                        height: "1em",
+                                        stroke_width: "2",
+                                        stroke: "currentColor",
+                                        fill: "none",
+                                        stroke_linecap: "round",
+                                        stroke_linejoin: "round",
+                                        dangerous_inner_html: get_entry_icon("image")
+                                    }
+                                    span { class: "detail-type", "Image" }
+                                }
                                 span { class: "detail-ts", "Timestamp: {format_timestamp(timestamp)}" }
                             }
                             div { class: "detail-image-wrap",
