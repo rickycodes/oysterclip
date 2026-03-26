@@ -7,7 +7,7 @@ use crate::app_actions::{open_url, set_status};
 use crate::auth::{authenticate_admin_action, AuthCache};
 use crate::entry::ClipboardEntry;
 use crate::format::{
-    entry_label, entry_icon_name, extract_single_url, format_timestamp, has_urls, image_data_uri_summary,
+    entry_label, entry_icon_name, extract_single_url, format_relative_timestamp, format_timestamp, has_urls, image_data_uri_summary,
     is_image_data_uri, is_password, mask_password_preview, preview_text, split_text_with_urls,
     TextSegment,
 };
@@ -246,7 +246,7 @@ pub fn Sidebar(
                                     span { "{entry_label(entry)}" }
                                 }
                                 div { class: "entry-preview", "{preview}" }
-                                div { class: "entry-ts", "{format_timestamp(timestamp)}" }
+                                div { class: "entry-ts", "{format_relative_timestamp(timestamp)}" }
                             }
                         }
                     }
