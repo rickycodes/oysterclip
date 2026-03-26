@@ -2,6 +2,8 @@ mod app;
 mod app_actions;
 mod app_state;
 mod auth;
+mod cli;
+mod config;
 mod components;
 mod entry;
 mod format;
@@ -19,6 +21,7 @@ use dioxus::desktop::Config as DesktopConfig;
 use dioxus::prelude::LaunchBuilder;
 
 fn main() {
+    cli::parse();
     LaunchBuilder::desktop()
         .with_cfg(
             DesktopConfig::new()

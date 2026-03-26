@@ -20,9 +20,8 @@ enum SourceKind {
 
 impl ClipboardSource {
     pub fn from_env() -> Self {
-        let mut args = env::args().skip(1);
-        if let Some(arg) = args.next() {
-            return Self::from_arg(arg);
+        if let Some(arg) = &crate::cli::args().db {
+            return Self::from_arg(arg.clone());
         }
 
         match default_history_path_from_env() {
@@ -88,7 +87,7 @@ fn default_history_path_from_env() -> Result<PathBuf, String> {
 
     default_history_path().map_err(|err| {
         format!(
-            "Failed to resolve default clipboard history path: {err}. Pass a database path as the first argument or set {HISTORY_PATH_ENV}."
+            "Failed to resolve default clipboard history path: {err}. Pass a database path with --db or set {HISTORY_PATH_ENV}."
         )
     })
 }

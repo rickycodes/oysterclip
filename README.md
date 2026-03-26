@@ -26,26 +26,61 @@ A Dioxus Desktop app for browsing, searching, and managing clipboard history cap
 **History Management**
 - Polls clipboard history every 500ms for live updates
 - Polls watcher status every 1000ms
-- Automatically resolves history database location (argument → env var → canonical default)
+- Automatically resolves history database location (`--db` flag → env var → canonical default)
+
+**Theming**
+- Dark and light mode, toggled from the help panel (?)
+- Preference persisted to `config.toml` between sessions (desktop builds)
+- `--theme` flag overrides for a single session without touching the saved preference
 
 ## Running
 
-The viewer automatically discovers your clipboard history database in this order:
-1. First positional argument (path to `.clipboard_history.db`)
+```bash
+cargo run [-- [OPTIONS]]
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--db <PATH>` | Path to the clipboard history database |
+| `--theme <dark\|light>` | Override theme for this session (does not persist) |
+
+The database is resolved in this order:
+1. `--db <PATH>` flag
 2. `CLIPBOARD_HISTORY_DB` environment variable
-3. Canonical per-user app-data path for `clipboard-manager` (default)
+3. Canonical per-user app-data path (default)
 
 **Examples:**
 ```bash
 cargo run
-cargo run -- /path/to/.clipboard_history.db
+cargo run -- --db /path/to/.clipboard_history.db
+cargo run -- --theme light
 CLIPBOARD_HISTORY_DB=/custom/path/.clipboard_history.db cargo run
 ```
 
-Raw JSON input is also supported as the first argument for read-only inspection:
+Raw JSON can be passed to `--db` for read-only inspection:
 ```bash
-cargo run -- '/path/to/export.json'
+cargo run -- --db '[{"id":1,...}]'
 ```
+
+## Configuration
+
+On desktop, persistent preferences are stored in a TOML config file:
+
+| Platform | Path |
+|----------|------|
+| Linux | `~/.config/clipboard-manager/config.toml` |
+| macOS | `~/Library/Application Support/clipboard-manager/config.toml` |
+| Windows | `%APPDATA%\clipboard-manager\config.toml` |
+
+**Example `config.toml`:**
+```toml
+[theme]
+mode = "light"   # "dark" or "light" — toggling in the app updates this automatically
+```
+
+CLI flags take priority over the config file but do not overwrite it.
 
 ## Hot Reload (Development)
 
@@ -57,17 +92,22 @@ dx serve --platform desktop
 
 ## Architecture
 
-| File | LOC | Purpose |
-|------|-----|---------|
-| `src/components.rs` | 24K | UI rendering (DetailPane, Sidebar, entry display) |
-| `src/app.rs` | 12K | Main app structure, layout, keyboard routing |
+| File | Size | Purpose |
+|------|------|---------|
+| `src/components.rs` | 25K | UI rendering (DetailPane, Sidebar, entry display) |
+| `src/app.rs` | 13K | Main app structure, layout, keyboard routing |
 | `src/history.rs` | 9.5K | SQLite history reading & decryption |
+| `src/app_actions.rs` | 9.5K | Copy, delete, clear, watcher control actions |
+| `src/help_modal.rs` | 7.5K | Keyboard shortcuts UI |
 | `src/app_state.rs` | 7.4K | AppState signal management, filtering, search |
-| `src/app_actions.rs` | 7.9K | Copy, delete, clear, watcher control actions |
-| `src/link_preview.rs` | 4.6K | Open Graph metadata fetching |
 | `src/auth.rs` | 5.4K | Local auth flow for password reveal |
+| `src/format.rs` | 4.9K | Text classification & URL parsing |
+| `src/link_preview.rs` | 4.6K | Open Graph metadata fetching |
 | `src/watcher_control.rs` | 4.0K | Unix socket IPC for pause/resume |
-| `src/help_modal.rs` | 4.4K | Keyboard shortcuts UI |
-| `src/format.rs` | 3.7K | Text classification & URL parsing |
-| `src/source.rs` | 3.2K | Database path resolution |
-| `src/theme.rs`, `src/entry.rs`, `src/main.rs` | 2.8K | UI theme, entry struct, entry point |
+| `src/source.rs` | 3.1K | Database path resolution |
+| `src/theme.rs` | 1.8K | UI theme enum, load/save with config fallback |
+| `src/config.rs` | 1.1K | `AppConfig` struct, TOML read/write |
+| `src/cli.rs` | 754B | CLI argument definitions (`--db`, `--theme`) |
+| `src/paths.rs` | 652B | Platform-specific config/data directory resolution |
+| `src/entry.rs` | 909B | Clipboard entry struct |
+| `src/main.rs` | 621B | App entry point |

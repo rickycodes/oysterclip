@@ -18,6 +18,8 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 rfd = "0.15"
 regex = "1"
 directories = "5"
+toml = "0.8"
+clap = { version = "4", features = ["derive"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "charset"] }
 scraper = "0.24"
 url = "2"

@@ -28,7 +28,6 @@ impl Theme {
 }
 
 pub fn load_theme() -> Theme {
-    // Try to load from localStorage if available
     #[cfg(target_arch = "wasm32")]
     {
         if let Ok(Some(stored)) = web_sys::window()
@@ -40,14 +39,34 @@ pub fn load_theme() -> Theme {
             }
         }
     }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        // CLI arg takes priority over config file, but doesn't persist
+        if let Some(t) = &crate::cli::args().theme {
+            return if t == "light" { Theme::Light } else { Theme::Dark };
+        }
+
+        if crate::config::AppConfig::load().theme.mode == "light" {
+            return Theme::Light;
+        }
+    }
+
     Theme::Dark
 }
 
-pub fn save_theme(_theme: Theme) {
+pub fn save_theme(theme: Theme) {
     #[cfg(target_arch = "wasm32")]
     {
         if let Ok(Some(storage)) = web_sys::window().and_then(|w| w.local_storage().ok()) {
-            let _ = storage.set_item("theme", if _theme == Theme::Light { "light" } else { "dark" });
+            let _ = storage.set_item("theme", if theme == Theme::Light { "light" } else { "dark" });
         }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let mut config = crate::config::AppConfig::load();
+        config.theme.mode = if theme == Theme::Light { "light" } else { "dark" }.to_string();
+        config.save();
     }
 }
