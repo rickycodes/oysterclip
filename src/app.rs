@@ -272,12 +272,10 @@ pub fn App() -> Element {
                 query: current_query,
                 error: error(),
                 action_status: action_status(),
-                watcher_status: current_watcher_status,
                 focus_search,
                 on_select: handle_select,
                 on_query_input: handle_query_input,
                 on_clear: handle_clear,
-                on_toggle_watcher: handle_toggle_watcher,
             }
             DetailPane {
                 state: detail_state,
@@ -336,6 +334,8 @@ pub fn App() -> Element {
                 theme.set(new_theme);
                 save_theme(new_theme);
             },
+            watcher_status: current_watcher_status,
+            on_toggle_watcher: handle_toggle_watcher,
         }
     }
 }

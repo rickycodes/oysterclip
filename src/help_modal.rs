@@ -1,8 +1,28 @@
 use dioxus::prelude::*;
 use crate::theme::Theme;
+use crate::watcher_control::WatcherStatus;
+use crate::format::format_timestamp;
 
 #[component]
-pub fn HelpModal(is_open: bool, on_close: EventHandler<()>, current_theme: Theme, on_theme_toggle: EventHandler<()>) -> Element {
+pub fn HelpModal(
+    is_open: bool,
+    on_close: EventHandler<()>,
+    current_theme: Theme,
+    on_theme_toggle: EventHandler<()>,
+    watcher_status: WatcherStatus,
+    on_toggle_watcher: EventHandler<()>,
+) -> Element {
+    let watcher_state_class = if watcher_status.available {
+        if watcher_status.paused { "watcher-pill paused" } else { "watcher-pill running" }
+    } else {
+        "watcher-pill offline"
+    };
+    let watcher_button_class = if watcher_status.available {
+        if watcher_status.paused { "watcher-toggle-btn resume" } else { "watcher-toggle-btn pause" }
+    } else {
+        "watcher-toggle-btn disabled"
+    };
+
     rsx! {
         if is_open {
             div {
@@ -17,6 +37,7 @@ pub fn HelpModal(is_open: bool, on_close: EventHandler<()>, current_theme: Theme
                         aria_label: "Close help",
                         "×"
                     }
+
                     h2 { class: "help-title", "Keyboard Shortcuts" }
                     div { class: "help-content",
                         div { class: "help-section",
@@ -52,6 +73,10 @@ pub fn HelpModal(is_open: bool, on_close: EventHandler<()>, current_theme: Theme
                                 code { "Escape" }
                                 span { "Close overlay / clear search" }
                             }
+                            div { class: "help-row",
+                                code { "?" }
+                                span { "Show this help" }
+                            }
                         }
                         div { class: "help-section",
                             h3 { "Search" }
@@ -83,6 +108,10 @@ pub fn HelpModal(is_open: bool, on_close: EventHandler<()>, current_theme: Theme
                                 span { class: "help-tip", "Combine filters with free-text search" }
                             }
                         }
+                    }
+
+                    h2 { class: "help-title help-title-secondary", "Controls" }
+                    div { class: "help-content",
                         div { class: "help-section",
                             h3 { "Theme" }
                             div { class: "help-row",
@@ -94,10 +123,36 @@ pub fn HelpModal(is_open: bool, on_close: EventHandler<()>, current_theme: Theme
                             }
                         }
                         div { class: "help-section",
-                            h3 { "Other" }
-                            div { class: "help-row",
-                                code { "?" }
-                                span { "Show this help" }
+                            h3 { "Watcher" }
+                            div { class: "help-row help-row-watcher",
+                                span { class: "{watcher_state_class}", "{watcher_status.label}" }
+                                button {
+                                    class: "{watcher_button_class}",
+                                    disabled: !watcher_status.available,
+                                    onclick: move |_| on_toggle_watcher.call(()),
+                                    if watcher_status.available {
+                                        if watcher_status.paused { "Resume" } else { "Pause" }
+                                    } else {
+                                        "Unavailable"
+                                    }
+                                }
+                            }
+                            div { class: "watcher-detail", "{watcher_status.detail}" }
+                            div { class: "watcher-subtle-row",
+                                if let Some(last_capture_at) = watcher_status.last_capture_at {
+                                    span { class: "watcher-subtle-label", "Last capture" }
+                                    span { class: "watcher-subtle-value", "{format_timestamp(last_capture_at)}" }
+                                } else if watcher_status.available {
+                                    span { class: "watcher-subtle-label", "Last capture" }
+                                    span { class: "watcher-subtle-value", "No captures yet" }
+                                } else {
+                                    span { class: "watcher-subtle-value", "Waiting for watcher status" }
+                                }
+                            }
+                            if let Some(last_error) = watcher_status.last_error.as_ref() {
+                                if !last_error.is_empty() {
+                                    div { class: "watcher-warning", "Last error: {last_error}" }
+                                }
                             }
                         }
                     }

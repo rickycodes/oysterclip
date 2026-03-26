@@ -12,7 +12,6 @@ use crate::format::{
     TextSegment,
 };
 use crate::link_preview::LinkPreviewState;
-use crate::watcher_control::WatcherStatus;
 
 fn get_entry_icon(name: &str) -> &'static str {
     match name {
@@ -69,12 +68,10 @@ pub fn Sidebar(
     query: String,
     error: Option<String>,
     action_status: Option<String>,
-    watcher_status: WatcherStatus,
     focus_search: ReadSignal<u32>,
     on_select: EventHandler<i64>,
     on_query_input: EventHandler<String>,
     on_clear: EventHandler<()>,
-    on_toggle_watcher: EventHandler<()>,
 ) -> Element {
     let mut search_input: Signal<Option<Rc<MountedData>>> = use_signal(|| None);
 
@@ -89,25 +86,6 @@ pub fn Sidebar(
             }
         }
     });
-    let watcher_state_class = if watcher_status.available {
-        if watcher_status.paused {
-            "watcher-pill paused"
-        } else {
-            "watcher-pill running"
-        }
-    } else {
-        "watcher-pill offline"
-    };
-
-    let watcher_button_class = if watcher_status.available {
-        if watcher_status.paused {
-            "watcher-toggle-btn resume"
-        } else {
-            "watcher-toggle-btn pause"
-        }
-    } else {
-        "watcher-toggle-btn disabled"
-    };
 
     rsx! {
         aside { class: "sidebar",
@@ -144,47 +122,6 @@ pub fn Sidebar(
                         // while the search input is focused
                         event.stop_propagation();
                     },
-                }
-            }
-            div { class: "watcher-card",
-                div { class: "watcher-card-top",
-                    div {
-                        span { class: "watcher-eyebrow", "Watcher" }
-                        div { class: "watcher-title-row",
-                            span { class: "{watcher_state_class}", "{watcher_status.label}" }
-                        }
-                    }
-                    button {
-                        class: "{watcher_button_class}",
-                        disabled: !watcher_status.available,
-                        onclick: move |_| on_toggle_watcher.call(()),
-                        if watcher_status.available {
-                            if watcher_status.paused {
-                                "Resume"
-                            } else {
-                                "Pause"
-                            }
-                        } else {
-                            "Unavailable"
-                        }
-                    }
-                }
-                div { class: "watcher-detail", "{watcher_status.detail}" }
-                div { class: "watcher-subtle-row",
-                    if let Some(last_capture_at) = watcher_status.last_capture_at {
-                        span { class: "watcher-subtle-label", "Last capture" }
-                        span { class: "watcher-subtle-value", "{format_timestamp(last_capture_at)}" }
-                    } else if watcher_status.available {
-                        span { class: "watcher-subtle-label", "Last capture" }
-                        span { class: "watcher-subtle-value", "No captures yet" }
-                    } else {
-                        span { class: "watcher-subtle-value", "Waiting for watcher status" }
-                    }
-                }
-                if let Some(last_error) = watcher_status.last_error.as_ref() {
-                    if !last_error.is_empty() {
-                        div { class: "watcher-warning", "Last error: {last_error}" }
-                    }
                 }
             }
             if let Some(err) = error {

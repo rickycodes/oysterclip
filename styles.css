@@ -751,6 +751,17 @@ body {
   font-family: var(--mono-font);
 }
 
+.help-title-secondary {
+  margin-top: 32px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+}
+
+.help-row-watcher {
+  align-items: center;
+  gap: 12px;
+}
+
 .help-content {
   display: flex;
   flex-direction: column;
