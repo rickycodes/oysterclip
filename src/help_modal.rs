@@ -108,6 +108,10 @@ pub fn HelpModal(
                                 span { "Show only images" }
                             }
                             div { class: "help-row",
+                                code { "type:text" }
+                                span { "Show only text entries" }
+                            }
+                            div { class: "help-row",
                                 code { "type:password" }
                                 span { "Show only passwords" }
                             }
@@ -118,6 +122,14 @@ pub fn HelpModal(
                             div { class: "help-row",
                                 code { "kind:json" }
                                 span { "Show only JSON" }
+                            }
+                            div { class: "help-row",
+                                code { "kind:path" }
+                                span { "Show only file paths" }
+                            }
+                            div { class: "help-row",
+                                code { "kind:pass" }
+                                span { "Show only passwords" }
                             }
                             div { class: "help-row",
                                 code { "since:1h" }
