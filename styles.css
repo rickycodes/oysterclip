@@ -24,6 +24,11 @@
   --danger-border: rgba(255, 120, 120, 0.32);
   --danger-border-hover: rgba(255, 150, 150, 0.5);
   --danger-ink: #ffd4d4;
+  --path-bg: rgba(20, 100, 90, 0.18);
+  --path-bg-hover: rgba(25, 115, 105, 0.26);
+  --path-border: rgba(80, 200, 180, 0.3);
+  --path-border-hover: rgba(100, 220, 200, 0.48);
+  --path-ink: #a8ede6;
   --link: #7bb3ff;
   --link-hover: #a8ccff;
   --help-overlay-bg: rgba(3, 4, 8, 0.84);
@@ -70,6 +75,11 @@
   --danger-border: rgba(185, 28, 28, 0.18);
   --danger-border-hover: rgba(185, 28, 28, 0.28);
   --danger-ink: #991b1b;
+  --path-bg: rgba(15, 118, 110, 0.08);
+  --path-bg-hover: rgba(15, 118, 110, 0.14);
+  --path-border: rgba(15, 118, 110, 0.2);
+  --path-border-hover: rgba(15, 118, 110, 0.32);
+  --path-ink: #0f5c58;
   --link: #0057b8;
   --link-hover: #003f88;
   --help-overlay-bg: rgba(203, 213, 225, 0.78);
@@ -631,21 +641,9 @@ body {
 }
 
 .detail-text.detail-path {
-  border-left: 3px solid #4caf50;
+  border-left: 3px solid var(--path-border-hover);
 }
 
-.detail-open-btn {
-  background: #4caf50;
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 6px 14px;
-  cursor: pointer;
-  font-size: 13px;
-}
-.detail-open-btn:hover {
-  opacity: 0.85;
-}
 
 .detail-image-wrap {
   border-radius: var(--radius-md);

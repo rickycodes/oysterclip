@@ -348,7 +348,19 @@ pub fn DetailPane(
                                         "{pretty_json.as_deref().unwrap_or(&content)}"
                                     }
                                 } else if is_path {
-                                    pre { class: "detail-text detail-path", "{content}" }
+                                    pre { class: "detail-text detail-path",
+                                        {
+                                            let path_to_open = content.clone();
+                                            rsx! {
+                                                a {
+                                                    class: "text-link",
+                                                    href: "#",
+                                                    onclick: move |_| open_url(&path_to_open),
+                                                    "{content}"
+                                                }
+                                            }
+                                        }
+                                    }
                                 } else if has_urls(&content) {
                                     div { class: "detail-text",
                                         LinkableText { text: content.clone() }
@@ -361,18 +373,6 @@ pub fn DetailPane(
                                         class: "detail-copy-btn",
                                         onclick: move |_| on_copy_text.call(text.clone()),
                                         "Copy"
-                                    }
-                                    if is_path {
-                                        {
-                                            let open_target = content.clone();
-                                            rsx! {
-                                                button {
-                                                    class: "detail-open-btn",
-                                                    onclick: move |_| open_url(&open_target),
-                                                    "Open"
-                                                }
-                                            }
-                                        }
                                     }
                                     if is_password_text {
                                         button {
