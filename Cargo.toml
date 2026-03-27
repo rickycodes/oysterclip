@@ -23,3 +23,9 @@ clap = { version = "4", features = ["derive"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "charset"] }
 scraper = "0.24"
 url = "2"
+
+[profile.release]
+strip = true
+opt-level = "z"
+codegen-units = 1
+panic = "abort"
