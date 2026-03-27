@@ -20,6 +20,7 @@ fn get_entry_icon(name: &str) -> &'static str {
         "file-text" => r#"<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>"#,
         "image" => r#"<path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>"#,
         "braces" => r#"<path stroke-linecap="round" stroke-linejoin="round" d="M7 4a2 2 0 00-2 2v3a2 2 0 01-2 2 2 2 0 012 2v3a2 2 0 002 2M17 4a2 2 0 012 2v3a2 2 0 002 2 2 2 0 00-2 2v3a2 2 0 01-2 2"></path>"#,
+        "folder" => r#"<path stroke-linecap="round" stroke-linejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"></path>"#,
         _ => r#"<circle cx="12" cy="12" r="10"></circle>"#,
     }
 }
@@ -251,6 +252,7 @@ pub fn DetailPane(
                         let is_data_uri = is_image_data_uri(&content);
                         let is_password_text = is_password(&content);
                         let is_json = kind.as_deref() == Some("json");
+                        let is_path = kind.as_deref() == Some("path");
                         let pretty_json = if is_json {
                             serde_json::from_str::<serde_json::Value>(&content)
                                 .ok()
@@ -264,6 +266,8 @@ pub fn DetailPane(
                             "Link"
                         } else if is_json {
                             "JSON"
+                        } else if is_path {
+                            "Path"
                         } else {
                             "Text"
                         };
@@ -343,6 +347,8 @@ pub fn DetailPane(
                                     pre { class: "detail-text detail-json",
                                         "{pretty_json.as_deref().unwrap_or(&content)}"
                                     }
+                                } else if is_path {
+                                    pre { class: "detail-text detail-path", "{content}" }
                                 } else if has_urls(&content) {
                                     div { class: "detail-text",
                                         LinkableText { text: content.clone() }
@@ -355,6 +361,18 @@ pub fn DetailPane(
                                         class: "detail-copy-btn",
                                         onclick: move |_| on_copy_text.call(text.clone()),
                                         "Copy"
+                                    }
+                                    if is_path {
+                                        {
+                                            let open_target = content.clone();
+                                            rsx! {
+                                                button {
+                                                    class: "detail-open-btn",
+                                                    onclick: move |_| open_url(&open_target),
+                                                    "Open"
+                                                }
+                                            }
+                                        }
                                     }
                                     if is_password_text {
                                         button {

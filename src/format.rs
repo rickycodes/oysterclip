@@ -74,6 +74,8 @@ pub fn entry_label(entry: &ClipboardEntry) -> &'static str {
                 "Link"
             } else if kind.as_deref() == Some("json") {
                 "JSON"
+            } else if kind.as_deref() == Some("path") {
+                "Path"
             } else {
                 "Text"
             }
@@ -91,6 +93,8 @@ pub fn entry_icon_name(entry: &ClipboardEntry) -> &'static str {
                 "link"
             } else if kind.as_deref() == Some("json") {
                 "braces"
+            } else if kind.as_deref() == Some("path") {
+                "folder"
             } else {
                 "file-text"
             }
