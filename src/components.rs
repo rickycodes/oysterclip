@@ -13,6 +13,8 @@ use crate::format::{
 };
 use crate::link_preview::LinkPreviewState;
 
+pub const APP_NAME: &str = "OysterClip";
+
 fn get_entry_icon(name: &str) -> &'static str {
     match name {
         "lock" => r#"<path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>"#,
@@ -94,7 +96,7 @@ pub fn Sidebar(
     rsx! {
         aside { class: "sidebar",
             div { class: "sidebar-header",
-                h1 { "OysterClip" }
+                h1 { "{APP_NAME}" }
                 div { class: "sidebar-header-actions",
                     span { class: "sidebar-count", "{total_entries} entries" }
                     button {
