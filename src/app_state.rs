@@ -7,7 +7,7 @@ use crate::app_actions::{entry_id, matches_query};
 use crate::auth::AuthCache;
 use crate::components::DetailState;
 use crate::entry::{CachedEntries, ClipboardEntry, ClipboardPayload};
-use crate::format::extract_single_url;
+use crate::format::{entry_label, extract_single_url};
 use crate::history::get_clipboard_entries;
 use crate::link_preview::{fetch_link_preview, LinkPreviewState};
 use crate::source::ClipboardSource;
@@ -37,6 +37,7 @@ pub struct AppState {
     pub total_entries: usize,
     pub detail_state: DetailState,
     pub selected_text: Option<String>,
+    pub selected_label: &'static str,
     pub current_watcher_status: WatcherStatus,
 }
 
@@ -181,6 +182,10 @@ pub fn use_app_state() -> AppState {
             _ => None,
         })
     });
+    let selected_label = current_selected_id
+        .and_then(|id| filtered_entries.iter().find(|e| entry_id(e) == id))
+        .map(|e| entry_label(e))
+        .unwrap_or("Text");
     let detail_state = if let Some(message) = error() {
         DetailState::Error(message)
     } else if current_entries.is_empty() {
@@ -213,6 +218,7 @@ pub fn use_app_state() -> AppState {
         total_entries: current_entries.len(),
         detail_state,
         selected_text,
+        selected_label,
         current_watcher_status: watcher_status(),
     }
 }

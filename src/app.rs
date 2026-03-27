@@ -38,6 +38,7 @@ pub fn App() -> Element {
     let current_query = state.current_query.clone();
     let detail_state = state.detail_state;
     let selected_text = state.selected_text;
+    let selected_label = state.selected_label;
     let total_entries = state.total_entries;
     let current_watcher_status = state.current_watcher_status;
     let current_selected_ids: Vec<i64> = selected_ids().into_iter().collect();
@@ -76,8 +77,8 @@ pub fn App() -> Element {
 
     let handle_copy_text = {
         let copy_status_signal = copy_status;
-        move |(entry_id, text): (i64, String)| {
-            copy_text_to_clipboard(copy_status_signal, entry_id, text);
+        move |(entry_id, text, label): (i64, String, &'static str)| {
+            copy_text_to_clipboard(copy_status_signal, entry_id, text, label);
         }
     };
 
@@ -159,6 +160,7 @@ pub fn App() -> Element {
     let handle_keydown = {
         let keyboard_entries = filtered_entries.clone();
         let selected_text_for_enter = selected_text.clone();
+        let selected_label_for_enter = selected_label;
         let copy_status_for_enter = copy_status;
         let current_query_for_escape = current_query.clone();
         move |event: KeyboardEvent| {
@@ -240,7 +242,7 @@ pub fn App() -> Element {
                     if let Some(text) = selected_text_for_enter.clone() {
                         event.prevent_default();
                         if let Some(id) = current_selected_id {
-                            copy_text_to_clipboard(copy_status_for_enter, id, text);
+                            copy_text_to_clipboard(copy_status_for_enter, id, text, selected_label_for_enter);
                         }
                     }
                 }

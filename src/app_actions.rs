@@ -320,10 +320,10 @@ pub fn confirm_and_delete_entries(
     }
 }
 
-pub fn copy_text_to_clipboard(mut copy_status: Signal<Option<(i64, String)>>, entry_id: i64, text: String) {
+pub fn copy_text_to_clipboard(mut copy_status: Signal<Option<(i64, String)>>, entry_id: i64, text: String, label: &str) {
     let result = Clipboard::new().and_then(|mut cb| cb.set_text(text));
     let message = match result {
-        Ok(_) => "Copied".to_string(),
+        Ok(_) => format!("Copied {}", label),
         Err(_) => "Copy failed".to_string(),
     };
     copy_status.set(Some((entry_id, message.clone())));
