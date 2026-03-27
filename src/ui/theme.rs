@@ -43,7 +43,7 @@ pub fn load_theme() -> Theme {
     #[cfg(not(target_arch = "wasm32"))]
     {
         // CLI arg takes priority over config file, but doesn't persist
-        if let Some(t) = &crate::cli::args().theme {
+        if let Some(t) = &crate::config::cli::args().theme {
             return if t == "light" { Theme::Light } else { Theme::Dark };
         }
 

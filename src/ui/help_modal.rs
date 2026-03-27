@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
-use crate::theme::Theme;
-use crate::watcher_control::WatcherStatus;
-use crate::format::format_timestamp;
+use crate::ui::theme::Theme;
+use crate::system::watcher_control::WatcherStatus;
+use crate::data::format::format_timestamp;
 
 #[component]
 pub fn HelpModal(

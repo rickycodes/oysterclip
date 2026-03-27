@@ -14,10 +14,10 @@ fn project_dirs() -> io::Result<ProjectDirs> {
     })
 }
 
-pub(crate) fn default_history_path() -> io::Result<PathBuf> {
+pub fn default_history_path() -> io::Result<PathBuf> {
     Ok(project_dirs()?.data_local_dir().join(HISTORY_FILE))
 }
 
-pub(crate) fn config_path() -> io::Result<PathBuf> {
+pub fn config_path() -> io::Result<PathBuf> {
     Ok(project_dirs()?.config_dir().join(CONFIG_FILE))
 }

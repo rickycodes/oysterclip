@@ -1,17 +1,17 @@
 use dioxus::prelude::*;
 use std::collections::HashSet;
 
-use crate::app_actions::{
+use crate::app::actions::{
     adjacent_entry_id, confirm_and_clear_history, confirm_and_delete_entries,
     confirm_and_delete_entry, copy_text_to_clipboard, set_status,
 };
-use crate::app_state::use_app_state;
-use crate::components::{DetailPane, Sidebar};
-use crate::help_modal::HelpModal;
-use crate::theme::{load_theme, save_theme};
-use crate::watcher_control;
+use crate::app::state::use_app_state;
+use crate::ui::components::{DetailPane, Sidebar};
+use crate::ui::help_modal::HelpModal;
+use crate::ui::theme::{load_theme, save_theme};
+use crate::system::watcher_control;
 
-const APP_STYLE: &str = include_str!("../styles.css");
+const APP_STYLE: &str = include_str!("../../styles.css");
 
 #[component]
 pub fn App() -> Element {
@@ -43,7 +43,7 @@ pub fn App() -> Element {
     let current_watcher_status = state.current_watcher_status;
     let current_selected_ids: Vec<i64> = selected_ids().into_iter().collect();
     let overlay_image_src = match &detail_state {
-        crate::components::DetailState::Entry(crate::entry::ClipboardEntry::Image {
+        crate::ui::components::DetailState::Entry(crate::data::entry::ClipboardEntry::Image {
             data_url: Some(src),
             ..
         }) => Some(src.clone()),
@@ -151,7 +151,7 @@ pub fn App() -> Element {
                 set_status(action_status, message);
             }
             Err(err) => {
-                watcher_status.set(crate::watcher_control::WatcherStatus::unavailable(err));
+                watcher_status.set(crate::system::watcher_control::WatcherStatus::unavailable(err));
                 set_status(action_status, "Watcher control failed");
             }
         }
@@ -204,8 +204,8 @@ pub fn App() -> Element {
                 Code::Home => {
                     event.prevent_default();
                     if let Some(id) = keyboard_entries.first().map(|entry| match entry {
-                        crate::entry::ClipboardEntry::Text { id, .. }
-                        | crate::entry::ClipboardEntry::Image { id, .. } => *id,
+                        crate::data::entry::ClipboardEntry::Text { id, .. }
+                        | crate::data::entry::ClipboardEntry::Image { id, .. } => *id,
                     }) {
                         selected_id.set(Some(id));
                         show_password.set(false);
@@ -216,8 +216,8 @@ pub fn App() -> Element {
                 Code::End => {
                     event.prevent_default();
                     if let Some(id) = keyboard_entries.last().map(|entry| match entry {
-                        crate::entry::ClipboardEntry::Text { id, .. }
-                        | crate::entry::ClipboardEntry::Image { id, .. } => *id,
+                        crate::data::entry::ClipboardEntry::Text { id, .. }
+                        | crate::data::entry::ClipboardEntry::Image { id, .. } => *id,
                     }) {
                         selected_id.set(Some(id));
                         show_password.set(false);
@@ -261,7 +261,7 @@ pub fn App() -> Element {
                             set_status(action_status, message);
                         }
                         Err(err) => {
-                            watcher_status.set(crate::watcher_control::WatcherStatus::unavailable(err));
+                            watcher_status.set(crate::system::watcher_control::WatcherStatus::unavailable(err));
                             set_status(action_status, "Watcher control failed");
                         }
                     }

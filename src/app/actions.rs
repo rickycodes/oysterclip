@@ -6,9 +6,9 @@ use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use crate::entry::{CachedEntries, ClipboardEntry};
-use crate::history::{clear_history, delete_entries, delete_entry};
-use crate::source::ClipboardSource;
+use crate::data::entry::{CachedEntries, ClipboardEntry};
+use crate::data::history::{clear_history, delete_entries, delete_entry};
+use crate::config::source::ClipboardSource;
 
 const STATUS_TIMEOUT_SECS: u64 = 5;
 const STATUS_TIMEOUT: Duration = Duration::from_secs(STATUS_TIMEOUT_SECS);
@@ -170,7 +170,7 @@ fn parse_since_cutoff(value: &str) -> Option<u64> {
 }
 
 fn is_password(content: &str) -> bool {
-    crate::format::is_password(content)
+    crate::data::format::is_password(content)
 }
 
 pub fn adjacent_entry_id(

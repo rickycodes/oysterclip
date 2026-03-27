@@ -1,6 +1,6 @@
 use chrono::{DateTime, Local, Utc};
 
-use crate::entry::ClipboardEntry;
+use crate::data::entry::ClipboardEntry;
 
 pub fn format_relative_timestamp(timestamp: u64) -> String {
     let now = Utc::now().timestamp() as u64;

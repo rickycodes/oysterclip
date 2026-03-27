@@ -7,8 +7,8 @@ use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
 
-use crate::entry::{CachedEntries, ClipboardEntry, ClipboardPayload, SourceStamp};
-use crate::source::ClipboardSource;
+use crate::data::entry::{CachedEntries, ClipboardEntry, ClipboardPayload, SourceStamp};
+use crate::config::source::ClipboardSource;
 
 const KEYRING_SERVICE: &str = "clipboard-manager";
 const KEYRING_ACCOUNT: &str = "default-encryption-key";

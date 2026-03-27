@@ -1,19 +1,8 @@
 mod app;
-mod app_actions;
-mod app_state;
-mod auth;
-mod cli;
+mod ui;
+mod data;
 mod config;
-mod components;
-mod entry;
-mod format;
-mod help_modal;
-mod history;
-mod link_preview;
-mod paths;
-mod source;
-mod theme;
-mod watcher_control;
+mod system;
 
 use app::App;
 use dioxus::desktop::tao::window::WindowBuilder;
@@ -21,7 +10,7 @@ use dioxus::desktop::Config as DesktopConfig;
 use dioxus::prelude::LaunchBuilder;
 
 fn main() {
-    cli::parse();
+    config::parse();
     LaunchBuilder::desktop()
         .with_cfg(
             DesktopConfig::new()

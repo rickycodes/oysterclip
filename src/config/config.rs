@@ -19,7 +19,7 @@ impl Default for ThemeConfig {
 
 impl AppConfig {
     pub fn load() -> Self {
-        let Ok(path) = crate::paths::config_path() else {
+        let Ok(path) = crate::config::paths::config_path() else {
             return Self::default();
         };
         let Ok(text) = std::fs::read_to_string(&path) else {
@@ -29,7 +29,7 @@ impl AppConfig {
     }
 
     pub fn save(&self) {
-        let Ok(path) = crate::paths::config_path() else {
+        let Ok(path) = crate::config::paths::config_path() else {
             return;
         };
         if let Some(parent) = path.parent() {

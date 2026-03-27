@@ -3,15 +3,15 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-use crate::app_actions::{open_url, set_status};
-use crate::auth::{authenticate_admin_action, AuthCache};
-use crate::entry::ClipboardEntry;
-use crate::format::{
+use crate::app::actions::{open_url, set_status};
+use crate::system::auth::{authenticate_admin_action, AuthCache};
+use crate::data::entry::ClipboardEntry;
+use crate::data::format::{
     entry_label, entry_icon_name, extract_single_url, format_relative_timestamp, format_timestamp, has_urls, image_data_uri_summary,
     is_image_data_uri, is_password, mask_password_preview, preview_text, split_text_with_urls,
     TextSegment,
 };
-use crate::link_preview::LinkPreviewState;
+use crate::data::link_preview::LinkPreviewState;
 
 pub const APP_NAME: &str = "OysterClip";
 

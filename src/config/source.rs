@@ -1,7 +1,7 @@
 use std::env;
 use std::path::{Path, PathBuf};
 
-use crate::paths::default_history_path;
+use crate::config::paths::default_history_path;
 
 const HISTORY_PATH_ENV: &str = "CLIPBOARD_HISTORY_DB";
 
@@ -20,7 +20,7 @@ enum SourceKind {
 
 impl ClipboardSource {
     pub fn from_env() -> Self {
-        if let Some(arg) = &crate::cli::args().db {
+        if let Some(arg) = &crate::config::cli::args().db {
             return Self::from_arg(arg.clone());
         }
 
@@ -95,7 +95,7 @@ fn default_history_path_from_env() -> Result<PathBuf, String> {
 #[cfg(test)]
 mod tests {
     use super::ClipboardSource;
-    use crate::paths::default_history_path;
+    use crate::config::paths::default_history_path;
     use std::path::PathBuf;
 
     #[test]

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 
-use crate::source::ClipboardSource;
+use crate::config::source::ClipboardSource;
 
 const CONTROL_SOCKET_FILE: &str = ".clipboard-watcher.sock";
 

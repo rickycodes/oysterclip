@@ -3,15 +3,15 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use crate::app_actions::{entry_id, matches_query};
-use crate::auth::AuthCache;
-use crate::components::DetailState;
-use crate::entry::{CachedEntries, ClipboardEntry, ClipboardPayload};
-use crate::format::{entry_label, extract_single_url};
-use crate::history::get_clipboard_entries;
-use crate::link_preview::{fetch_link_preview, LinkPreviewState};
-use crate::source::ClipboardSource;
-use crate::watcher_control::{self, WatcherStatus};
+use crate::app::actions::{entry_id, matches_query};
+use crate::system::auth::AuthCache;
+use crate::ui::components::DetailState;
+use crate::data::entry::{CachedEntries, ClipboardEntry, ClipboardPayload};
+use crate::data::format::{entry_label, extract_single_url};
+use crate::data::history::get_clipboard_entries;
+use crate::data::link_preview::{fetch_link_preview, LinkPreviewState};
+use crate::config::source::ClipboardSource;
+use crate::system::watcher_control::{self, WatcherStatus};
 
 const PREFETCH_URL_LIMIT: usize = 16;
 const PREFETCH_IDLE_MS: u64 = 800;
