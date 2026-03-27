@@ -320,12 +320,20 @@ pub fn confirm_and_delete_entries(
     }
 }
 
-pub fn copy_text_to_clipboard(copy_status: Signal<Option<String>>, text: String) {
+pub fn copy_text_to_clipboard(mut copy_status: Signal<Option<(i64, String)>>, entry_id: i64, text: String) {
     let result = Clipboard::new().and_then(|mut cb| cb.set_text(text));
-    match result {
-        Ok(_) => set_status(copy_status, "Copied"),
-        Err(_) => set_status(copy_status, "Copy failed"),
-    }
+    let message = match result {
+        Ok(_) => "Copied".to_string(),
+        Err(_) => "Copy failed".to_string(),
+    };
+    copy_status.set(Some((entry_id, message.clone())));
+
+    spawn(async move {
+        tokio::time::sleep(STATUS_TIMEOUT).await;
+        if copy_status().as_ref().map(|(_, m)| m.as_str()) == Some(message.as_str()) {
+            copy_status.set(None);
+        }
+    });
 }
 
 pub fn set_status(mut status: Signal<Option<String>>, message: impl Into<String>) {

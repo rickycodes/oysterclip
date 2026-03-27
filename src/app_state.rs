@@ -25,7 +25,7 @@ pub struct AppState {
     pub selected_ids: Signal<HashSet<i64>>,
     pub query: Signal<String>,
     pub error: Signal<Option<String>>,
-    pub copy_status: Signal<Option<String>>,
+    pub copy_status: Signal<Option<(i64, String)>>,
     pub action_status: Signal<Option<String>>,
     pub show_password: Signal<bool>,
     pub auth_cache: Signal<Arc<Mutex<AuthCache>>>,
@@ -48,7 +48,7 @@ pub fn use_app_state() -> AppState {
     let selected_ids = use_signal(HashSet::<i64>::new);
     let query = use_signal(String::new);
     let mut error = use_signal(|| None::<String>);
-    let copy_status = use_signal(|| None::<String>);
+    let copy_status = use_signal(|| None::<(i64, String)>);
     let action_status = use_signal(|| None::<String>);
     let show_password = use_signal(|| false);
     let auth_cache = use_signal(|| Arc::new(Mutex::new(AuthCache::new(5))));

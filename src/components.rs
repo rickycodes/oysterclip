@@ -255,7 +255,7 @@ pub fn DetailPane(
     auth_cache: Signal<Arc<Mutex<AuthCache>>>,
     action_status: Signal<Option<String>>,
     link_previews: Signal<HashMap<String, LinkPreviewState>>,
-    on_copy_text: EventHandler<String>,
+    on_copy_text: EventHandler<(i64, String)>,
     on_delete: EventHandler<i64>,
     on_open_image: EventHandler<()>,
 ) -> Element {
@@ -391,7 +391,7 @@ pub fn DetailPane(
                                 div { class: "detail-actions",
                                     button {
                                         class: "detail-copy-btn",
-                                        onclick: move |_| on_copy_text.call(text.clone()),
+                                        onclick: move |_| on_copy_text.call((id, text.clone())),
                                         "Copy"
                                     }
                                     if is_password_text {

@@ -23,7 +23,7 @@ pub fn App() -> Element {
     let mut selected_ids = state.selected_ids;
     let mut query = state.query;
     let error = state.error;
-    let mut copy_status = state.copy_status;
+    let copy_status = state.copy_status;
     let action_status = state.action_status;
     let mut show_password = state.show_password;
     let mut image_overlay_open = use_signal(|| false);
@@ -53,9 +53,6 @@ pub fn App() -> Element {
         selected_id.set(Some(id));
         show_password.set(false);
         image_overlay_open.set(false);
-        if copy_status().is_some() {
-            copy_status.set(None);
-        }
     };
 
     let handle_query_input = move |value: String| {
@@ -79,8 +76,8 @@ pub fn App() -> Element {
 
     let handle_copy_text = {
         let copy_status_signal = copy_status;
-        move |text: String| {
-            copy_text_to_clipboard(copy_status_signal, text);
+        move |(entry_id, text): (i64, String)| {
+            copy_text_to_clipboard(copy_status_signal, entry_id, text);
         }
     };
 
@@ -183,9 +180,6 @@ pub fn App() -> Element {
                         selected_id.set(Some(id));
                         show_password.set(false);
                         image_overlay_open.set(false);
-                        if copy_status().is_some() {
-                            copy_status.set(None);
-                        }
                     }
                 }
                 Code::ArrowUp | Code::KeyK => {
@@ -202,9 +196,6 @@ pub fn App() -> Element {
                         selected_id.set(Some(id));
                         show_password.set(false);
                         image_overlay_open.set(false);
-                        if copy_status().is_some() {
-                            copy_status.set(None);
-                        }
                     }
                 }
                 // Jump to first entry: Home
@@ -217,9 +208,6 @@ pub fn App() -> Element {
                         selected_id.set(Some(id));
                         show_password.set(false);
                         image_overlay_open.set(false);
-                        if copy_status().is_some() {
-                            copy_status.set(None);
-                        }
                     }
                 }
                 // Jump to last entry: End
@@ -232,9 +220,6 @@ pub fn App() -> Element {
                         selected_id.set(Some(id));
                         show_password.set(false);
                         image_overlay_open.set(false);
-                        if copy_status().is_some() {
-                            copy_status.set(None);
-                        }
                     }
                 }
                 // Toggle selection: Space
@@ -254,7 +239,9 @@ pub fn App() -> Element {
                 Code::Enter | Code::KeyY => {
                     if let Some(text) = selected_text_for_enter.clone() {
                         event.prevent_default();
-                        copy_text_to_clipboard(copy_status_for_enter, text);
+                        if let Some(id) = current_selected_id {
+                            copy_text_to_clipboard(copy_status_for_enter, id, text);
+                        }
                     }
                 }
                 // Toggle watcher pause/resume: p
@@ -374,7 +361,9 @@ pub fn App() -> Element {
             }
             DetailPane {
                 state: detail_state,
-                copy_status: copy_status(),
+                copy_status: copy_status().and_then(|(id, msg)| {
+                    if Some(id) == current_selected_id { Some(msg) } else { None }
+                }),
                 show_password,
                 auth_cache,
                 action_status,
