@@ -12,6 +12,7 @@ pub(crate) const TEXT_KIND_IMAGE_DATA_URI: &str = "image-data-uri";
 pub(crate) const TEXT_KIND_URL: &str = "url";
 pub(crate) const TEXT_KIND_JSON: &str = "json";
 pub(crate) const TEXT_KIND_MULTILINE: &str = "multiline";
+pub(crate) const TEXT_KIND_PATH: &str = "path";
 pub(crate) const TEXT_KIND_PLAIN: &str = "plain";
 pub(crate) const STARTUP_MESSAGE: &str = "Starting clipboard watcher";
 pub(crate) const OPEN_HISTORY_STORE_FAILED: &str = "Failed to open history store";
