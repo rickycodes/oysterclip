@@ -40,7 +40,7 @@ pub fn LinkableText(text: String) -> Element {
                             a {
                                 key: "{idx}",
                                 class: "text-link",
-                                onclick: move |_| open_url(&url_clone),
+                                onclick: move |e: dioxus::prelude::MouseEvent| { e.prevent_default(); open_url(&url_clone); },
                                 href: "#",
                                 "{url}"
                             }
@@ -355,7 +355,7 @@ pub fn DetailPane(
                                                 a {
                                                     class: "text-link",
                                                     href: "#",
-                                                    onclick: move |_| open_url(&path_to_open),
+                                                    onclick: move |e: dioxus::prelude::MouseEvent| { e.prevent_default(); open_url(&path_to_open); },
                                                     "{content}"
                                                 }
                                             }
