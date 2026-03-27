@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use crate::app::actions::{entry_id, matches_query};
 use crate::system::auth::AuthCache;
-use crate::ui::components::DetailState;
+use crate::ui::DetailState;
 use crate::data::entry::{CachedEntries, ClipboardEntry, ClipboardPayload};
 use crate::data::format::{entry_label, extract_single_url};
 use crate::data::history::get_clipboard_entries;

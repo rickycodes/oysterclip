@@ -6,7 +6,7 @@ use crate::app::actions::{
     confirm_and_delete_entry, copy_text_to_clipboard, set_status,
 };
 use crate::app::state::use_app_state;
-use crate::ui::components::{DetailPane, Sidebar};
+use crate::ui::{DetailPane, Sidebar};
 use crate::ui::help_modal::HelpModal;
 use crate::ui::theme::{load_theme, save_theme};
 use crate::system::watcher_control;
@@ -43,7 +43,7 @@ pub fn App() -> Element {
     let current_watcher_status = state.current_watcher_status;
     let current_selected_ids: Vec<i64> = selected_ids().into_iter().collect();
     let overlay_image_src = match &detail_state {
-        crate::ui::components::DetailState::Entry(crate::data::entry::ClipboardEntry::Image {
+        crate::ui::DetailState::Entry(crate::data::entry::ClipboardEntry::Image {
             data_url: Some(src),
             ..
         }) => Some(src.clone()),
