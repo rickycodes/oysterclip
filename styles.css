@@ -31,6 +31,9 @@
   --path-ink: #a8ede6;
   --link: #7bb3ff;
   --link-hover: #a8ccff;
+  --json-border: rgba(251, 191, 36, 0.55);
+  --image-border: rgba(167, 139, 250, 0.55);
+  --password-border: rgba(251, 146, 60, 0.55);
   --help-overlay-bg: rgba(3, 4, 8, 0.84);
   --help-dialog-bg: #11131a;
   --help-key-bg: rgba(255, 255, 255, 0.05);
@@ -82,6 +85,9 @@
   --path-ink: #0f5c58;
   --link: #0057b8;
   --link-hover: #003f88;
+  --json-border: rgba(161, 98, 7, 0.5);
+  --image-border: rgba(109, 40, 217, 0.45);
+  --password-border: rgba(194, 65, 12, 0.45);
   --help-overlay-bg: rgba(203, 213, 225, 0.78);
   --help-dialog-bg: #d5dce5;
   --help-key-bg: #e3e8ee;
@@ -289,6 +295,26 @@ body {
 
 .entry-card-pass .entry-preview {
   font-size: 20px;
+}
+
+.entry-card-pass {
+  box-shadow: inset 3px 0 0 var(--password-border);
+}
+
+.entry-card-json {
+  box-shadow: inset 3px 0 0 var(--json-border);
+}
+
+.entry-card-path {
+  box-shadow: inset 3px 0 0 var(--path-border-hover);
+}
+
+.entry-card-url {
+  box-shadow: inset 3px 0 0 var(--link);
+}
+
+.entry-card-image {
+  box-shadow: inset 3px 0 0 var(--image-border);
 }
 
 .entry-card-checked {
@@ -607,6 +633,10 @@ body {
   background: var(--bg-soft);
 }
 
+.detail-text.detail-password {
+  border-left: 3px solid var(--password-border);
+}
+
 .detail-text.detail-password-masked {
   font-size: 20px;
 }
@@ -637,18 +667,26 @@ body {
 }
 
 .detail-text.detail-json {
-  border-left: 3px solid var(--link);
+  border-left: 3px solid var(--json-border);
 }
 
 .detail-text.detail-path {
   border-left: 3px solid var(--path-border-hover);
 }
 
+.detail-text.detail-url {
+  border-left: 3px solid var(--link);
+}
+
+.detail-text.detail-data-uri {
+  border-left: 3px solid var(--image-border);
+}
 
 .detail-image-wrap {
   border-radius: var(--radius-md);
   background: var(--panel-strong);
   border: 1px solid var(--border);
+  border-left: 3px solid var(--image-border);
   padding: 14px;
   display: flex;
   justify-content: center;

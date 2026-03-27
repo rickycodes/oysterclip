@@ -172,11 +172,29 @@ pub fn Sidebar(
                             ClipboardEntry::Text { id, .. } | ClipboardEntry::Image { id, .. } => *id,
                         };
                         let is_active = Some(entry_id) == selected_id;
-                        let is_password_entry = matches!(entry, ClipboardEntry::Text { content, .. } if is_password(content));
                         let is_checked = selected_ids.contains(&entry_id);
+                        let type_class = match entry {
+                            ClipboardEntry::Image { .. } => "entry-card-image",
+                            ClipboardEntry::Text { content, kind, .. } => {
+                                if is_password(content) {
+                                    "entry-card-pass"
+                                } else if is_image_data_uri(content) {
+                                    "entry-card-image"
+                                } else if kind.as_deref() == Some("json") {
+                                    "entry-card-json"
+                                } else if kind.as_deref() == Some("path") {
+                                    "entry-card-path"
+                                } else if extract_single_url(content).is_some() {
+                                    "entry-card-url"
+                                } else {
+                                    ""
+                                }
+                            }
+                        };
                         let mut class = if is_active { "entry-card active".to_string() } else { "entry-card".to_string() };
-                        if is_password_entry {
-                            class.push_str(" entry-card-pass");
+                        if !type_class.is_empty() {
+                            class.push(' ');
+                            class.push_str(type_class);
                         }
                         if is_checked {
                             class.push_str(" entry-card-checked");
@@ -338,13 +356,13 @@ pub fn DetailPane(
                                 if is_password_text {
                                     div { class: "detail-password-area",
                                         if show_password() {
-                                            pre { class: "detail-text", "{content}" }
+                                            pre { class: "detail-text detail-password", "{content}" }
                                         } else {
-                                            pre { class: "detail-text detail-password-masked", "{mask_password_preview()}" }
+                                            pre { class: "detail-text detail-password detail-password-masked", "{mask_password_preview()}" }
                                         }
                                     }
                                 } else if is_data_uri {
-                                    pre { class: "detail-text detail-text-truncated", "{display_text}" }
+                                    pre { class: "detail-text detail-text-truncated detail-data-uri", "{display_text}" }
                                 } else if is_json {
                                     pre { class: "detail-text detail-json",
                                         "{pretty_json.as_deref().unwrap_or(&content)}"
@@ -364,7 +382,7 @@ pub fn DetailPane(
                                         }
                                     }
                                 } else if has_urls(&content) {
-                                    div { class: "detail-text",
+                                    div { class: "detail-text detail-url",
                                         LinkableText { text: content.clone() }
                                     }
                                 } else {
