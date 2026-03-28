@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 use crate::app::actions::{
     adjacent_entry_id, confirm_and_clear_history, confirm_and_delete_entries,
-    confirm_and_delete_entry, copy_text_to_clipboard, set_status,
+    confirm_and_delete_entry, copy_text_to_clipboard, set_status, DeleteActionState,
 };
 use crate::app::state::use_app_state;
 use crate::ui::{DetailPane, Sidebar};
@@ -64,14 +64,17 @@ pub fn App() -> Element {
     let source_for_clear = source.clone();
     let cache_for_clear = cache.clone();
     let handle_clear = move |_| {
-        confirm_and_clear_history(
-            source_for_clear.clone(),
-            cache_for_clear.clone(),
+        let state = DeleteActionState {
             entries,
             selected_id,
             selected_ids,
             error,
             action_status,
+        };
+        confirm_and_clear_history(
+            source_for_clear.clone(),
+            cache_for_clear.clone(),
+            state,
         );
     };
 
@@ -93,17 +96,22 @@ pub fn App() -> Element {
     let handle_delete = {
         let delete_entries = entries;
         let delete_selected_id = selected_id;
+        let delete_selected_ids = selected_ids;
         let delete_error = error;
         let delete_action_status = action_status;
         move |id: i64| {
             image_overlay_open.set(false);
+            let state = DeleteActionState {
+                entries: delete_entries,
+                selected_id: delete_selected_id,
+                selected_ids: delete_selected_ids,
+                error: delete_error,
+                action_status: delete_action_status,
+            };
             confirm_and_delete_entry(
                 source_for_delete.clone(),
                 cache_for_delete.clone(),
-                delete_entries,
-                delete_selected_id,
-                delete_error,
-                delete_action_status,
+                state,
                 id,
             );
         }
@@ -114,14 +122,17 @@ pub fn App() -> Element {
     let handle_delete_selected = move |_| {
         let ids: Vec<i64> = selected_ids().into_iter().collect();
         if !ids.is_empty() {
-            confirm_and_delete_entries(
-                source_for_bulk.clone(),
-                cache_for_bulk.clone(),
+            let state = DeleteActionState {
                 entries,
                 selected_id,
                 selected_ids,
                 error,
                 action_status,
+            };
+            confirm_and_delete_entries(
+                source_for_bulk.clone(),
+                cache_for_bulk.clone(),
+                state,
                 ids,
             );
         }
@@ -272,26 +283,33 @@ pub fn App() -> Element {
                     if !ids.is_empty() {
                         event.prevent_default();
                         image_overlay_open.set(false);
-                        confirm_and_delete_entries(
-                            source_for_delete_keys.clone(),
-                            cache_for_delete_keys.clone(),
+                        let state = DeleteActionState {
                             entries,
                             selected_id,
                             selected_ids,
                             error,
                             action_status,
+                        };
+                        confirm_and_delete_entries(
+                            source_for_delete_keys.clone(),
+                            cache_for_delete_keys.clone(),
+                            state,
                             ids,
                         );
                     } else if let Some(id) = current_selected_id {
                         event.prevent_default();
                         image_overlay_open.set(false);
+                        let state = DeleteActionState {
+                            entries,
+                            selected_id,
+                            selected_ids,
+                            error,
+                            action_status,
+                        };
                         confirm_and_delete_entry(
                             source_for_delete_keys.clone(),
                             cache_for_delete_keys.clone(),
-                            entries,
-                            selected_id,
-                            error,
-                            action_status,
+                            state,
                             id,
                         );
                     }

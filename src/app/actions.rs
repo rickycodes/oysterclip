@@ -13,6 +13,15 @@ use crate::config::source::ClipboardSource;
 const STATUS_TIMEOUT_SECS: u64 = 5;
 const STATUS_TIMEOUT: Duration = Duration::from_secs(STATUS_TIMEOUT_SECS);
 
+/// Holds mutable state signals used by confirmation dialogs and actions.
+pub struct DeleteActionState {
+    pub entries: Signal<Vec<ClipboardEntry>>,
+    pub selected_id: Signal<Option<i64>>,
+    pub selected_ids: Signal<HashSet<i64>>,
+    pub error: Signal<Option<String>>,
+    pub action_status: Signal<Option<String>>,
+}
+
 pub fn entry_id(entry: &ClipboardEntry) -> i64 {
     match entry {
         ClipboardEntry::Text { id, .. } | ClipboardEntry::Image { id, .. } => *id,
@@ -196,11 +205,7 @@ pub fn adjacent_entry_id(
 pub fn confirm_and_clear_history(
     source: Arc<ClipboardSource>,
     cache: Arc<Mutex<Option<CachedEntries>>>,
-    mut entries: Signal<Vec<ClipboardEntry>>,
-    mut selected_id: Signal<Option<i64>>,
-    mut selected_ids: Signal<HashSet<i64>>,
-    mut error: Signal<Option<String>>,
-    action_status: Signal<Option<String>>,
+    mut state: DeleteActionState,
 ) {
     let confirmed = MessageDialog::new()
         .set_level(MessageLevel::Warning)
@@ -218,15 +223,15 @@ pub fn confirm_and_clear_history(
             if let Ok(mut cache_guard) = cache.lock() {
                 *cache_guard = None;
             }
-            entries.set(Vec::new());
-            selected_id.set(None);
-            selected_ids.set(HashSet::new());
-            error.set(None);
-            set_status(action_status, "History cleared");
+            state.entries.set(Vec::new());
+            state.selected_id.set(None);
+            state.selected_ids.set(HashSet::new());
+            state.error.set(None);
+            set_status(state.action_status, "History cleared");
         }
         Err(err) => {
-            error.set(Some(err));
-            set_status(action_status, "Clear failed");
+            state.error.set(Some(err));
+            set_status(state.action_status, "Clear failed");
         }
     }
 }
@@ -234,10 +239,7 @@ pub fn confirm_and_clear_history(
 pub fn confirm_and_delete_entry(
     source: Arc<ClipboardSource>,
     cache: Arc<Mutex<Option<CachedEntries>>>,
-    mut entries: Signal<Vec<ClipboardEntry>>,
-    mut selected_id: Signal<Option<i64>>,
-    mut error: Signal<Option<String>>,
-    action_status: Signal<Option<String>>,
+    mut state: DeleteActionState,
     id: i64,
 ) {
     let confirmed = MessageDialog::new()
@@ -256,19 +258,19 @@ pub fn confirm_and_delete_entry(
             if let Ok(mut cache_guard) = cache.lock() {
                 *cache_guard = None;
             }
-            let mut next_entries = entries();
+            let mut next_entries = (state.entries)();
             next_entries.retain(|entry| match entry {
                 ClipboardEntry::Text { id: entry_id, .. }
-                | ClipboardEntry::Image { id: entry_id, .. } => *entry_id != id,
+                | ClipboardEntry::Image { id: entry_id, .. } => entry_id != &id,
             });
-            entries.set(next_entries);
-            selected_id.set(None);
-            error.set(None);
-            set_status(action_status, "Entry deleted");
+            state.entries.set(next_entries);
+            state.selected_id.set(None);
+            state.error.set(None);
+            set_status(state.action_status, "Entry deleted");
         }
         Err(err) => {
-            error.set(Some(err));
-            set_status(action_status, "Delete failed");
+            state.error.set(Some(err));
+            set_status(state.action_status, "Delete failed");
         }
     }
 }
@@ -276,11 +278,7 @@ pub fn confirm_and_delete_entry(
 pub fn confirm_and_delete_entries(
     source: Arc<ClipboardSource>,
     cache: Arc<Mutex<Option<CachedEntries>>>,
-    mut entries: Signal<Vec<ClipboardEntry>>,
-    mut selected_id: Signal<Option<i64>>,
-    mut selected_ids: Signal<HashSet<i64>>,
-    mut error: Signal<Option<String>>,
-    action_status: Signal<Option<String>>,
+    mut state: DeleteActionState,
     ids: Vec<i64>,
 ) {
     let count = ids.len();
@@ -304,17 +302,17 @@ pub fn confirm_and_delete_entries(
                 *cache_guard = None;
             }
             let id_set: HashSet<i64> = ids.iter().cloned().collect();
-            let mut next_entries = entries();
+            let mut next_entries = (state.entries)();
             next_entries.retain(|e| !id_set.contains(&entry_id(e)));
-            entries.set(next_entries);
-            selected_id.set(None);
-            selected_ids.set(HashSet::new());
-            error.set(None);
-            set_status(action_status, format!("{count} {noun} deleted"));
+            state.entries.set(next_entries);
+            state.selected_id.set(None);
+            state.selected_ids.set(HashSet::new());
+            state.error.set(None);
+            set_status(state.action_status, format!("{count} {noun} deleted"));
         }
         Err(err) => {
-            error.set(Some(err));
-            set_status(action_status, "Delete failed");
+            state.error.set(Some(err));
+            set_status(state.action_status, "Delete failed");
         }
     }
 }
