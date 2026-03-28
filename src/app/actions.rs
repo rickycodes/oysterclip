@@ -29,11 +29,10 @@ pub fn matches_query(entry: &ClipboardEntry, query: &str) -> bool {
     let (filters, search_text) = parse_query_filters(trimmed);
 
     // Check type and kind filters first
-    if !filters.is_empty() {
-        if !apply_filters(entry, &filters) {
+    if !filters.is_empty()
+        && !apply_filters(entry, &filters) {
             return false;
         }
-    }
 
     // If no search text remains, we're done (filters alone matched)
     if search_text.is_empty() {
@@ -288,8 +287,8 @@ pub fn confirm_and_delete_entries(
     let noun = if count == 1 { "entry" } else { "entries" };
     let confirmed = MessageDialog::new()
         .set_level(MessageLevel::Warning)
-        .set_title(&format!("Delete {count} {noun}?"))
-        .set_description(&format!(
+        .set_title(format!("Delete {count} {noun}?"))
+        .set_description(format!(
             "This will permanently delete {count} selected clipboard {noun}."
         ))
         .set_buttons(MessageButtons::OkCancel)

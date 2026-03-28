@@ -1,7 +1,7 @@
-pub mod config;
+pub mod settings;
 pub mod cli;
 pub mod paths;
 pub mod source;
 
-pub use config::AppConfig;
+pub use settings::AppConfig;
 pub use cli::parse;

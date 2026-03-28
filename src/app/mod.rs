@@ -1,5 +1,5 @@
-pub mod app;
+pub mod root;
 pub mod state;
 pub mod actions;
 
-pub use app::App;
+pub use root::App;

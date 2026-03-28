@@ -6,4 +6,3 @@ pub mod theme;
 
 pub use sidebar::Sidebar;
 pub use detail_pane::{DetailPane, DetailState};
-pub use help_modal::HelpModal;

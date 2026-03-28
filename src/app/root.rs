@@ -28,7 +28,7 @@ pub fn App() -> Element {
     let mut show_password = state.show_password;
     let mut image_overlay_open = use_signal(|| false);
     let mut help_open = use_signal(|| false);
-    let mut theme = use_signal(|| load_theme());
+    let mut theme = use_signal(load_theme);
     let mut focus_search = use_signal(|| 0u32);
     let auth_cache = state.auth_cache;
     let link_previews = state.link_previews;
