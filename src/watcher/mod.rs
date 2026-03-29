@@ -1,4 +1,6 @@
 use arboard::Clipboard;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -18,12 +20,31 @@ pub fn start_watching(
     control_state: SharedControlState,
     save_images_to_disk: bool,
     image_export_dir: &std::path::Path,
-) {
+) -> std::io::Result<()> {
+    let shutdown = Arc::new(AtomicBool::new(false));
+
+    // Set up signal handler for graceful shutdown (Unix only)
+    #[cfg(unix)]
+    {
+        let shutdown_clone = shutdown.clone();
+        let mut signals = signal_hook::iterator::Signals::new([signal_hook::consts::signal::SIGTERM, signal_hook::consts::signal::SIGINT])?;
+        std::thread::spawn(move || {
+            for _ in signals.forever() {
+                shutdown_clone.store(true, Ordering::SeqCst);
+            }
+        });
+    }
+
     let mut clipboard = Clipboard::new().expect(CLIPBOARD_NOT_AVAILABLE);
     let mut last_text: Option<String> = None;
     let mut last_image_hash: Option<u64> = None;
 
     loop {
+        if shutdown.load(Ordering::SeqCst) {
+            println!("Shutting down gracefully...");
+            break;
+        }
+
         if is_paused(&control_state) {
             sleep(Duration::from_millis(INTERVAL_MS));
             continue;
@@ -113,6 +134,8 @@ pub fn start_watching(
 
         sleep(Duration::from_millis(INTERVAL_MS));
     }
+
+    Ok(())
 }
 
 fn is_paused(state: &SharedControlState) -> bool {

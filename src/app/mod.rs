@@ -42,7 +42,7 @@ pub fn run(cli: Cli) -> Result<()> {
         control_state,
         config.save_images_to_disk,
         &config.image_export_dir,
-    );
+    ).map_err(AppError::IoError)?;
 
     Ok(())
 }
@@ -91,7 +91,7 @@ fn handle_command(command: Commands, app_paths: &crate::config::paths::AppPaths)
                 control_state,
                 config.save_images_to_disk,
                 &config.image_export_dir,
-            );
+            ).map_err(AppError::IoError)?;
 
             Ok(())
         }
