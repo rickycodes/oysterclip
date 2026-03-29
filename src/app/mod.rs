@@ -1,14 +1,16 @@
 pub mod error;
 
 use crate::config::{Cli, Commands, ControlAction};
-use crate::config::config::load_config;
+use crate::config::settings::load_config;
 use crate::config::paths::{ensure_app_dir, resolve_app_paths};
-use crate::config::constants::{OPEN_HISTORY_STORE_FAILED, STARTUP_MESSAGE, INTERVAL_MS};
+use crate::config::constants::STARTUP_MESSAGE;
 use crate::history::HistoryStore;
 use crate::history::current_timestamp;
 use crate::ipc::{new_control_state, print_control_response, send_control_command, start_control_server};
 use crate::watcher::start_watching;
 use error::{AppError, Result};
+
+const INTERVAL_MS: u64 = 500;
 
 pub fn run(cli: Cli) -> Result<()> {
     let app_paths = resolve_app_paths()?;

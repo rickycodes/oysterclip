@@ -3,6 +3,7 @@ use std::io;
 use std::path::PathBuf;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum AppError {
     ConfigNotFound(PathBuf),
     ConfigInvalid(String),
