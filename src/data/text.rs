@@ -1,4 +1,4 @@
-use crate::constants::{
+use crate::config::constants::{
     TEXT_KIND_EMPTY, TEXT_KIND_IMAGE_DATA_URI, TEXT_KIND_JSON, TEXT_KIND_MULTILINE,
     TEXT_KIND_PATH, TEXT_KIND_PLAIN, TEXT_KIND_URL,
 };
@@ -56,7 +56,7 @@ fn is_file_path(text: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::detect_text_kind;
-    use crate::constants::{
+    use crate::config::constants::{
         TEXT_KIND_EMPTY, TEXT_KIND_IMAGE_DATA_URI, TEXT_KIND_JSON, TEXT_KIND_MULTILINE,
         TEXT_KIND_PATH, TEXT_KIND_PLAIN, TEXT_KIND_URL,
     };

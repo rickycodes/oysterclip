@@ -2,11 +2,11 @@ use rusqlite::{params, Connection, OptionalExtension};
 use std::io;
 use std::path::{Path, PathBuf};
 
-use crate::constants::{
+use crate::config::constants::{
     CREATE_ENTRIES_TABLE_SQL, DELETE_PRUNABLE_ENTRIES_SQL, INSERT_IMAGE_ENTRY_SQL,
     INSERT_TEXT_ENTRY_SQL, SELECT_EXISTING_TEXT_ENTRY_SQL,
 };
-use crate::entry::PasteEntry;
+use crate::data::entry::PasteEntry;
 use super::crypto::{load_or_create_encryption_key, encrypt_text, text_content_hash};
 
 pub(crate) struct HistoryStore {
@@ -153,7 +153,7 @@ mod tests {
     use std::path::Path;
     use std::time::SystemTime;
 
-    use crate::constants::CREATE_ENTRIES_TABLE_SQL;
+    use crate::config::constants::CREATE_ENTRIES_TABLE_SQL;
 
     #[test]
     fn text_encryption_round_trips() {

@@ -5,30 +5,26 @@ use std::time::Duration;
 
 mod cli;
 mod config;
-mod constants;
-mod entry;
+mod data;
 mod history;
-mod image_store;
 mod ipc;
-mod paths;
-mod text;
 
 use crate::cli::{Cli, Commands, ControlAction};
-use crate::config::load_config;
-use crate::constants::{
+use crate::config::config::load_config;
+use crate::config::paths::{ensure_app_dir, resolve_app_paths};
+use crate::config::constants::{
     APPEND_IMAGE_HISTORY_FAILED, APPEND_TEXT_HISTORY_FAILED, CLIPBOARD_NOT_AVAILABLE, IMAGE_SAVED,
     INTERVAL_MS, OPEN_HISTORY_STORE_FAILED, STARTUP_MESSAGE, TEXT_CAPTURED, TEXT_EMPTY_SKIPPED,
     TEXT_IMAGE_DATA_URI_SKIPPED, TEXT_KIND_EMPTY, TEXT_KIND_IMAGE_DATA_URI,
 };
-use crate::entry::PasteEntry;
+use crate::data::entry::PasteEntry;
+use crate::data::text::detect_text_kind;
+use crate::data::image_store::{encode_png, save_png, simple_image_hash};
 use crate::history::{current_timestamp, HistoryStore};
-use crate::image_store::{encode_png, save_png, simple_image_hash};
 use crate::ipc::{
     new_control_state, print_control_response, send_control_command, start_control_server,
     SharedControlState,
 };
-use crate::paths::{ensure_app_dir, resolve_app_paths};
-use crate::text::detect_text_kind;
 
 fn main() {
     let cli = Cli::parse();

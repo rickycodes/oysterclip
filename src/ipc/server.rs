@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use crate::constants::CONTROL_SOCKET_FILE;
+use crate::config::constants::CONTROL_SOCKET_FILE;
 
 #[cfg(unix)]
 use std::os::unix::net::{UnixListener, UnixStream};

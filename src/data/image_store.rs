@@ -3,7 +3,7 @@ use std::fs;
 use std::io::Cursor;
 use std::path::Path;
 
-use crate::constants::FAILED_IMAGE_BUFFER;
+use crate::config::constants::FAILED_IMAGE_BUFFER;
 
 pub(crate) fn simple_image_hash(bytes: &[u8]) -> u64 {
     let mut h = 0xcbf29ce484222325u64;

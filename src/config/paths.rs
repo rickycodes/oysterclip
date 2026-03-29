@@ -2,7 +2,7 @@ use directories::ProjectDirs;
 use std::io;
 use std::path::PathBuf;
 
-use crate::constants::{CONFIG_FILE, HISTORY_FILE};
+use super::constants::{CONFIG_FILE, HISTORY_FILE};
 
 pub(crate) struct AppPaths {
     pub(crate) base_dir: PathBuf,

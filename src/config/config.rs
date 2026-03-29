@@ -2,7 +2,7 @@ use serde::Deserialize;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::constants::MAX_HISTORY_ENTRIES;
+use super::constants::MAX_HISTORY_ENTRIES;
 
 pub(crate) struct WatcherConfig {
     pub(crate) max_history_entries: usize,
@@ -68,7 +68,7 @@ impl WatcherConfig {
 #[cfg(test)]
 mod tests {
     use super::{RawWatcherConfig, WatcherConfig};
-    use crate::constants::MAX_HISTORY_ENTRIES;
+    use crate::config::constants::MAX_HISTORY_ENTRIES;
     use std::path::Path;
 
     #[test]
