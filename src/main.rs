@@ -1,13 +1,12 @@
 use clap::Parser;
 
-mod cli;
 mod config;
 mod data;
 mod history;
 mod ipc;
 mod watcher;
 
-use crate::cli::{Cli, Commands, ControlAction};
+use crate::config::{Cli, Commands, ControlAction};
 use crate::config::config::load_config;
 use crate::config::paths::{ensure_app_dir, resolve_app_paths};
 use crate::config::constants::{
