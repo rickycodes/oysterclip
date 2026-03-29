@@ -97,101 +97,94 @@ dx serve --platform desktop
 
 ## Architecture
 
-| File | Size | Purpose |
-|------|------|---------|
-| `src/components.rs` | 25K | UI rendering (DetailPane, Sidebar, entry display) |
-| `src/app.rs` | 13K | Main app structure, layout, keyboard routing |
-| `src/history.rs` | 9.5K | SQLite history reading & decryption |
-| `src/app_actions.rs` | 9.5K | Copy, delete, clear, watcher control actions |
-| `src/help_modal.rs` | 7.5K | Keyboard shortcuts UI |
-| `src/app_state.rs` | 7.4K | AppState signal management, filtering, search |
-| `src/auth.rs` | 5.4K | Local auth flow for password reveal |
-| `src/format.rs` | 4.9K | Text classification & URL parsing |
-| `src/link_preview.rs` | 4.6K | Open Graph metadata fetching |
-| `src/watcher_control.rs` | 4.0K | Unix socket IPC for pause/resume |
-| `src/source.rs` | 3.1K | Database path resolution |
-| `src/theme.rs` | 1.8K | UI theme enum, load/save with config fallback |
-| `src/config.rs` | 1.1K | `AppConfig` struct, TOML read/write |
-| `src/cli.rs` | 754B | CLI argument definitions (`--db`, `--theme`) |
-| `src/paths.rs` | 652B | Platform-specific config/data directory resolution |
-| `src/entry.rs` | 909B | Clipboard entry struct |
-| `src/main.rs` | 621B | App entry point |
+### Design Philosophy
 
-## Running
+The viewer follows a **reactive signal-based architecture** using Dioxus:
+- Central `AppState` signal holds filtered/searched history and UI state
+- Components reactively subscribe to state changes without manual re-renders
+- Actions (copy, delete, pause) dispatch to AppState and optionally trigger side effects
+- Clear separation: UI layer (components) → state management (app_state) → business logic (actions)
 
-```bash
-cargo run [-- [OPTIONS]]
+### Module Organization
+
+| Module | Purpose | Design Pattern |
+|--------|---------|-----------------|
+| `app.rs` | Main layout, keyboard routing, signal setup | Layout wrapper, event router |
+| `app_state.rs` | History data, search filters, selection state | Reactive signals (Dioxus) |
+| `components.rs` | UI rendering: DetailPane, Sidebar, entry cards | Dioxus function components |
+| `app_actions.rs` | Copy to clipboard, delete, clear, watcher control | Action handlers with side effects |
+| `history.rs` | SQLite reads, decryption, database operations | Repository pattern |
+| `auth.rs` | Local password reveal flow with session caching | Temporary auth state |
+| `format.rs` | Entry classification, URL/JSON detection | Utility functions |
+| `link_preview.rs` | Open Graph metadata fetching | External API integration |
+| `watcher_control.rs` | Unix socket IPC to watcher daemon | Client-side IPC |
+| `source.rs` | Database path resolution (CLI → env → default) | Configuration resolution |
+| `theme.rs` | Dark/light mode with persistent config storage | Preference management |
+| `config.rs` | AppConfig TOML struct | Configuration data model |
+| `cli.rs` | clap argument definitions | CLI parsing |
+| `paths.rs` | Platform-specific config/data dirs | Platform abstraction |
+| `entry.rs` | ClipboardEntry struct (shared with watcher) | Data model |
+| `main.rs` | Dioxus app initialization | Entry point |
+
+### Key Design Decisions
+
+**Reactive State Management**
+- Uses Dioxus signals (`use_signal`) instead of Redux-like state containers
+- AppState holds: history entries, filtered results, search query, selected index, watcher status
+- Components subscribe to specific signals, only re-render on changes
+- Eliminates boilerplate compared to action/reducer patterns
+
+**Filtering & Search**
+- Search filters parsed into structured types: `FilterType::Text`, `FilterType::Image`, `FilterKind::Url`, `DateFilter`
+- Filters AND-combined; free-text search applied to all fields
+- Efficient in-memory filtering (database queried once on startup + polling)
+
+**Password Reveal Flow**
+- Shows masked text by default for entries classified as passwords
+- Local auth caching: user enters password once, cached for 5 min (or configurable)
+- Cache cleared on app focus loss (defensive)
+- No server round-trip; all auth happens locally
+
+**URL Previews**
+- Open Graph fetching: title, description, image from remote URLs
+- Fails gracefully with fallback to URL text
+- Cached per URL to avoid repeated fetches
+- Clickable URLs open in default browser
+
+**Watcher Control**
+- Unix socket client to watcher daemon
+- Commands: `pause`, `resume`, `status` (checks if paused)
+- Status polled every 1000ms; UI shows pause state
+- Cross-platform: fails gracefully on Windows (buttons disabled)
+
+**Configuration Resolution**
+- CLI flags > environment variables > config file > defaults
+- Config persisted to TOML but CLI flags don't overwrite it
+- Separate runtime config (theme override) vs. persistent config
+
+**Database Access**
+- Reads only; no modifications except via clipboard-watcher
+- Supports both SQLite and raw JSON input (for testing)
+- Decryption happens on-demand using watcher's keychain key
+
+### Performance Considerations
+
+- **Initial load**: Full history read from database (~500 entries in <100ms)
+- **Polling**: History polled every 500ms, status every 1000ms
+- **Filtering**: In-memory filter + search (O(n) but fast for <1000 entries)
+- **Images**: Rendered from PNG blobs; large images may stall UI (deferred rendering considered)
+- **Link previews**: Fetched asynchronously; timeout after 5s
+
+### Component Hierarchy
+
 ```
-
-**Options:**
-
-| Flag | Description |
-|------|-------------|
-| `--db <PATH>` | Path to the clipboard history database |
-| `--theme <dark\|light>` | Override theme for this session (does not persist) |
-
-The database is resolved in this order:
-1. `--db <PATH>` flag
-2. `CLIPBOARD_HISTORY_DB` environment variable
-3. Canonical per-user app-data path (default)
-
-**Examples:**
-```bash
-cargo run
-cargo run -- --db /path/to/.clipboard_history.db
-cargo run -- --theme light
-CLIPBOARD_HISTORY_DB=/custom/path/.clipboard_history.db cargo run
-```
-
-Raw JSON can be passed to `--db` for read-only inspection:
-```bash
-cargo run -- --db '[{"id":1,...}]'
-```
-
-## Configuration
-
-On desktop, persistent preferences are stored in a TOML config file:
-
-| Platform | Path |
-|----------|------|
-| Linux | `~/.config/clipboard-manager/config.toml` |
-| macOS | `~/Library/Application Support/clipboard-manager/config.toml` |
-| Windows | `%APPDATA%\clipboard-manager\config.toml` |
-
-**Example `config.toml`:**
-```toml
-[theme]
-mode = "light"   # "dark" or "light" — toggling in the app updates this automatically
-```
-
-CLI flags take priority over the config file but do not overwrite it.
-
-## Hot Reload (Development)
-
-Install Dioxus CLI for fast iterative development:
-```bash
-cargo install dioxus-cli --version 0.7.3 --locked
-dx serve --platform desktop
-```
-
-## Architecture
-
-| File | Size | Purpose |
-|------|------|---------|
-| `src/components.rs` | 25K | UI rendering (DetailPane, Sidebar, entry display) |
-| `src/app.rs` | 13K | Main app structure, layout, keyboard routing |
-| `src/history.rs` | 9.5K | SQLite history reading & decryption |
-| `src/app_actions.rs` | 9.5K | Copy, delete, clear, watcher control actions |
-| `src/help_modal.rs` | 7.5K | Keyboard shortcuts UI |
-| `src/app_state.rs` | 7.4K | AppState signal management, filtering, search |
-| `src/auth.rs` | 5.4K | Local auth flow for password reveal |
-| `src/format.rs` | 4.9K | Text classification & URL parsing |
-| `src/link_preview.rs` | 4.6K | Open Graph metadata fetching |
-| `src/watcher_control.rs` | 4.0K | Unix socket IPC for pause/resume |
-| `src/source.rs` | 3.1K | Database path resolution |
-| `src/theme.rs` | 1.8K | UI theme enum, load/save with config fallback |
-| `src/config.rs` | 1.1K | `AppConfig` struct, TOML read/write |
-| `src/cli.rs` | 754B | CLI argument definitions (`--db`, `--theme`) |
-| `src/paths.rs` | 652B | Platform-specific config/data directory resolution |
-| `src/entry.rs` | 909B | Clipboard entry struct |
-| `src/main.rs` | 621B | App entry point |
+App (main layout, keyboard handler)
+├── HelpModal (toggleable, overlays content)
+├── Sidebar (entry list cards, clickable)
+│   └── EntryCard (colored border, text preview)
+├── DetailPane (selected entry details)
+│   ├── PasswordReveal (if classified as password)
+│   ├── LinkPreview (if URL)
+│   ├── ImageDisplay (PNG or file preview)
+│   └── JsonPrettyPrint (if JSON)
+└── SearchBar (filter input, live update)
