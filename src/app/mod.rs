@@ -1,4 +1,4 @@
-use std::io;
+pub mod error;
 
 use crate::config::{Cli, Commands, ControlAction};
 use crate::config::config::load_config;
@@ -8,8 +8,9 @@ use crate::history::HistoryStore;
 use crate::history::current_timestamp;
 use crate::ipc::{new_control_state, print_control_response, send_control_command, start_control_server};
 use crate::watcher::start_watching;
+use error::{AppError, Result};
 
-pub fn run(cli: Cli) -> io::Result<()> {
+pub fn run(cli: Cli) -> Result<()> {
     let app_paths = resolve_app_paths()?;
     ensure_app_dir(&app_paths)?;
 
@@ -19,13 +20,8 @@ pub fn run(cli: Cli) -> io::Result<()> {
     }
 
     let config = load_config(&app_paths.config_path, &app_paths.image_dir);
-    let history_store =
-        HistoryStore::open(&app_paths.db_path, config.max_history_entries).map_err(|err| {
-            io::Error::new(
-                err.kind(),
-                format!("{OPEN_HISTORY_STORE_FAILED}: {err}"),
-            )
-        })?;
+    let history_store = HistoryStore::open(&app_paths.db_path, config.max_history_entries)
+        .map_err(|err| AppError::HistoryDbFailed(err.to_string()))?;
 
     println!("{STARTUP_MESSAGE} - interval: {INTERVAL_MS}ms");
     println!("History DB: {}", app_paths.db_path.display());
@@ -36,13 +32,8 @@ pub fn run(cli: Cli) -> io::Result<()> {
         current_timestamp(),
     );
 
-    let _control_guard =
-        start_control_server(control_state.clone(), &app_paths.db_path).map_err(|err| {
-            io::Error::new(
-                err.kind(),
-                format!("Failed to start watcher control socket: {err}"),
-            )
-        })?;
+    let _control_guard = start_control_server(control_state.clone(), &app_paths.db_path)
+        .map_err(|err| AppError::ControlSocketFailed(err.to_string()))?;
 
     start_watching(
         history_store,
@@ -54,7 +45,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
     Ok(())
 }
 
-fn handle_command(command: Commands, app_paths: &crate::config::paths::AppPaths) -> io::Result<()> {
+fn handle_command(command: Commands, app_paths: &crate::config::paths::AppPaths) -> Result<()> {
     match command {
         Commands::Version => {
             println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
@@ -68,16 +59,12 @@ fn handle_command(command: Commands, app_paths: &crate::config::paths::AppPaths)
             };
             send_control_command(&app_paths.db_path, cmd)
                 .map(|response| print_control_response(&response))
+                .map_err(|err| AppError::ControlSocketFailed(err.to_string()))
         }
         Commands::Watch(args) => {
             let config = load_config(&app_paths.config_path, &app_paths.image_dir);
             let history_store = HistoryStore::open(&app_paths.db_path, config.max_history_entries)
-                .map_err(|err| {
-                    io::Error::new(
-                        err.kind(),
-                        format!("{OPEN_HISTORY_STORE_FAILED}: {err}"),
-                    )
-                })?;
+                .map_err(|err| AppError::HistoryDbFailed(err.to_string()))?;
 
             println!("{STARTUP_MESSAGE} - interval: {INTERVAL_MS}ms");
             println!("History DB: {}", app_paths.db_path.display());
@@ -94,13 +81,8 @@ fn handle_command(command: Commands, app_paths: &crate::config::paths::AppPaths)
                 }
             }
 
-            let _control_guard =
-                start_control_server(control_state.clone(), &app_paths.db_path).map_err(|err| {
-                    io::Error::new(
-                        err.kind(),
-                        format!("Failed to start watcher control socket: {err}"),
-                    )
-                })?;
+            let _control_guard = start_control_server(control_state.clone(), &app_paths.db_path)
+                .map_err(|err| AppError::ControlSocketFailed(err.to_string()))?;
 
             start_watching(
                 history_store,
