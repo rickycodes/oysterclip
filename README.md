@@ -64,17 +64,101 @@ The watcher creates and loads its text encryption key from the OS keychain.
 cargo test
 ```
 
-**Project Layout**
+## Architecture & Design
 
-| File | LOC | Purpose |
-|------|-----|---------|
-| `src/main.rs` | 7.6K | Main clipboard polling loop |
-| `src/history.rs` | 11K | SQLite operations (insert, dedupe, encrypt, retention) |
-| `src/ipc.rs` | 7.4K | Unix socket control server |
-| `src/config.rs` | 3.7K | TOML config loading |
-| `src/image_store.rs` | 2.3K | Image hashing & PNG storage |
-| `src/text.rs` | 1.6K | Text classification (plain, url, json, multiline) |
-| `src/paths.rs` | 951B | Canonical app-data path resolution |
-| `src/constants.rs` | 2.7K | SQL schema & keyring IDs |
-| `src/cli.rs` | 3.2K | Argument parsing |
-| `src/entry.rs` | 350B | Entry struct definitions |
+### Module Organization
+
+The codebase is organized into domain-focused modules:
+
+```
+src/
+├── main.rs              (20 lines)  Entry point: CLI parsing → orchestrator
+├── app/
+│   ├── mod.rs           (115 lines) Orchestrator/Facade pattern
+│   └── error.rs         (43 lines)  Custom AppError with type-safe variants
+├── config/
+│   ├── mod.rs           Module exports
+│   ├── cli.rs           CLI argument parsing (clap)
+│   ├── settings.rs      TOML config loading & WatcherConfig
+│   ├── constants.rs     SQL schema, keyring IDs, defaults
+│   └── paths.rs         Canonical app-data path resolution
+├── data/
+│   ├── mod.rs           Module exports
+│   ├── entry.rs         ClipboardEntry struct definitions
+│   ├── text.rs          Text classification (plain, url, json, multiline)
+│   └── image_store.rs   Image hashing & PNG blob storage
+├── history/
+│   ├── mod.rs           Module exports
+│   ├── store.rs         SQLite operations (insert, dedupe, retention)
+│   └── crypto.rs        XChaCha20Poly1305 encryption/decryption & keychain
+├── ipc/
+│   ├── mod.rs           Shared types & public API (ControlResponse, etc.)
+│   ├── server.rs        Unix socket control server (pause/resume/status)
+│   └── client.rs        Control command client
+└── watcher/
+    └── mod.rs           (133 lines) Clipboard polling loop & signal handling
+```
+
+### Design Patterns
+
+**Facade/Orchestrator Pattern (app/mod.rs)**
+- Centralizes startup, subsystem coordination, and error handling
+- Simplifies main.rs to minimal entry point (20 lines)
+- Decouples CLI parsing from domain logic
+- Improves testability by collecting all initialization logic in one place
+- Routes commands (watch, control pause/resume) to appropriate subsystems
+
+**Module Inception**
+- Each major domain (config, data, history, ipc, watcher) is its own module with a `mod.rs` declaring submodules
+- Provides clear public API boundaries via re-exports
+- Enables internal reorganization without affecting external imports
+
+**Custom Error Type**
+- `AppError` enum with semantic variants: `HistoryDbFailed`, `ControlSocketFailed`, `ConfigNotFound`, etc.
+- Implements `Display`, `std::error::Error`, and `From<io::Error>`
+- Type-safe error matching instead of string parsing
+- Better error context for debugging
+
+**Signal Handling (Unix-only)**
+- SIGTERM/SIGINT caught in background thread via signal-hook crate
+- Atomic flag shared with watch loop prevents race conditions
+- Graceful shutdown implemented with #[cfg(unix)] gating
+- On non-Unix platforms, watcher runs normally but shutdown flag is unused
+
+### Key Design Decisions
+
+**Encryption at Rest**
+- Uses XChaCha20Poly1305 (20-byte nonce, 256-bit key)
+- Encryption key stored in OS keychain (secure_storage crate)
+- Text stored as (ciphertext, nonce) pairs; images are not encrypted (space/perf)
+- Decryption happens on-demand when entries are read
+
+**Deduplication Strategy**
+- Text entries deduplicated by SHA256 content hash before insert
+- Prevents duplicate entries on repeated clipboard activity
+- Images deduplicated by SHA256 as well
+- Hash computed once at capture time, reused for queries
+
+**IPC for Control Commands**
+- Unix socket-based control server (Linux/macOS only)
+- Commands: `status` (returns paused state), `pause`, `resume`
+- Socket path: `~/.config/clipboard-manager/.clipboard-watcher.sock`
+- Cross-platform Windows support planned (item 2.9 in roadmap)
+
+**Polling Architecture**
+- Fixed 500ms interval polling keeps CPU usage minimal
+- More reliable than event-based clipboard access across platforms
+- Atomic pause flag enables responsive pause/resume without loop restart
+
+### Project Statistics
+
+| Layer | Modules | Total LOC |
+|-------|---------|-----------|
+| Entry point | main.rs | 20 |
+| Orchestration | app/ | 158 (mod, error) |
+| Config | config/ | ~300 (cli, settings, constants, paths) |
+| Data models | data/ | ~200 (entry, text, image_store) |
+| History | history/ | ~280 (store, crypto) |
+| IPC | ipc/ | ~300 (server, client) |
+| Watcher | watcher/ | 133 |
+| **Total** | **9 modules** | **~1,400** |
