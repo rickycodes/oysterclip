@@ -858,7 +858,7 @@ external infrastructure.*
 
 ## Build Order
 
-1. Workspace consolidation (1.0)
+1. ~~Workspace consolidation (1.0)~~ ✅
 2. Shared storage crate (1.1)
 3. Image lifecycle cleanup (1.2)
 4. ~~Password sidebar fix (2.1)~~ *(not an issue)*
