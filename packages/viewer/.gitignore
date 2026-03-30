@@ -1,7 +1,10 @@
-.vscode
-init.sh
+# IDE
+.vscode/
 
+# Build artifacts
+/target/
+
+# Package-specific
+init.sh
 /public/
 /dist/
-/target/
-/Cargo.lock

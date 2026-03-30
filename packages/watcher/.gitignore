@@ -1,5 +1,11 @@
-/target
-/clipboard_images
+# Build artifacts
+/target/
+
+# IDE
+.vscode/
+
+# Runtime files (handled at workspace root)
+/clipboard_images/
 .clipboard_history.db
 .clipboard_history.json.gpg
 .clipboard-watcher.toml

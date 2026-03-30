@@ -1,0 +1,22 @@
+# Build artifacts
+/target/
+*.pdb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Workspace-level runtime files
+.clipboard-watcher.toml
+.clipboard-watcher.sock
+.clipboard_history.db
+.clipboard_history.json.gpg
+clipboard_images/
+notes.txt
+
+# Dependencies (use workspace Cargo.lock instead)
+# Note: individual package Cargo.lock files are ignored per-package via their .gitignore
