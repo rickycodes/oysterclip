@@ -17,7 +17,7 @@ impl EntryType {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             "text" => Some(EntryType::Text),
             "image" => Some(EntryType::Image),

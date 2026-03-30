@@ -7,7 +7,7 @@ use crate::system::auth::{authenticate_admin_action, AuthCache};
 use crate::data::entry::ClipboardEntry;
 use crate::data::format::{
     entry_icon_name, entry_label, extract_single_url, format_timestamp, has_urls, image_data_uri_summary,
-    is_image_data_uri, is_password, mask_password_preview, preview_text,
+    is_image_data_uri, is_password, mask_password_preview, preview_text, extract_html_img_src, is_html_img_tag,
 };
 use crate::data::link_preview::LinkPreviewState;
 use crate::ui::linkable_text::LinkableText;
@@ -60,6 +60,12 @@ pub fn DetailPane(
                         let is_password_text = is_password(&content);
                         let is_json = kind.as_deref() == Some("json");
                         let is_path = kind.as_deref() == Some("path");
+                        let is_html_image = is_html_img_tag(&content);
+                        let html_image_src = if is_html_image {
+                            extract_html_img_src(&content)
+                        } else {
+                            None
+                        };
                         let pretty_json = if is_json {
                             serde_json::from_str::<serde_json::Value>(&content)
                                 .ok()
@@ -69,6 +75,8 @@ pub fn DetailPane(
                         };
                         let detail_label = if is_password_text {
                             "Password"
+                        } else if is_html_image {
+                            "HTML Image"
                         } else if exact_url.is_some() {
                             "Link"
                         } else if is_json {
@@ -168,6 +176,11 @@ pub fn DetailPane(
                                             }
                                         }
                                     }
+                                } else if let Some(image_src) = html_image_src {
+                                    div { class: "detail-image-wrap",
+                                        img { class: "detail-image", src: "{image_src}", alt: "Extracted HTML image" }
+                                    }
+                                    div { class: "detail-image-hint", "HTML image extracted from clipboard." }
                                 } else if has_urls(&content) {
                                     div { class: "detail-text detail-url",
                                         LinkableText { text: content.clone() }

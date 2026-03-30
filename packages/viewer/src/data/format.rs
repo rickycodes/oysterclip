@@ -184,3 +184,32 @@ pub fn is_password(text: &str) -> bool {
 pub fn mask_password_preview() -> String {
     "•".repeat(PASSWORD_PREVIEW_MASK_LEN)
 }
+
+pub fn extract_html_img_src(html: &str) -> Option<String> {
+    let html = html.trim();
+    if !html.starts_with("<img") || !html.ends_with("/>") {
+        return None;
+    }
+
+    let src_start = html.find("src=")?;
+    let after_src = &html[src_start + 4..];
+
+    let url = if let Some(after_quote) = after_src.strip_prefix('"') {
+        after_quote.split('"').next()?
+    } else if let Some(after_quote) = after_src.strip_prefix('\'') {
+        after_quote.split('\'').next()?
+    } else {
+        // Unquoted URL
+        after_src.split([' ', '>', '/']).next()?
+    };
+
+    if url.is_empty() {
+        return None;
+    }
+
+    Some(url.to_string())
+}
+
+pub fn is_html_img_tag(text: &str) -> bool {
+    text.starts_with("<img") && text.ends_with("/>") && text.contains("src=")
+}

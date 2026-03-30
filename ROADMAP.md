@@ -833,6 +833,32 @@ actions = [
 - Workflows: copy URL → extract ID → auto-open in admin panel (one click)
 - Community recipes: users share ".extract-github-issue-number.toml" config
 
+### 4.34.2 HTML image extraction ✅ *COMPLETED*
+
+Detect and render `<img src="...">` HTML tags as image entries in the UI.
+
+**Use case:** User copies an HTML snippet containing an image tag; viewer recognizes the pattern and displays the image instead of raw HTML text.
+
+**Implementation approach:**
+- Viewer-side detection at render time (no watcher changes)
+- Detect `<img src="...">` pattern in text entries
+- Extract src URL using regex-free parsing
+- Render as image in detail pane
+- Support both external URLs (`https://...`) and data URLs (`data:image/...`)
+- Fallback: display HTML text if image fails to load
+
+**Technical details:**
+- Added `is_html_img_tag()` to validate `<img .../>`  format
+- Added `extract_html_img_src()` to parse src URL (handles quoted and unquoted URLs)
+- Updated detail_pane to detect and render html_image entries with image display
+- Watcher remains unchanged; classification happens at UI layer
+
+**Status:** ✅ COMPLETE
+- ✅ HTML img tag detection and src extraction
+- ✅ Viewer detail pane renders images
+- ✅ Support for https:// and data:image/ URLs
+- ✅ All tests passing, no clippy warnings
+
 ### 4.35 Predictive suggestions and recommendations
 ML-powered insights into clipboard patterns.
 - Clustering: "based on history, you usually copy these 3 things together"
@@ -972,8 +998,9 @@ external infrastructure.*
 61. Secure deletion and overwrite (4.33)
 62. Clipboard automation triggers and webhooks (4.34)
 63. Content transformations & field extraction (4.34.1)
-64. Predictive suggestions and recommendations (4.35)
-65. Clipboard timeline and visualization (4.36)
+64. HTML image extraction (4.34.2) ✅
+65. Predictive suggestions and recommendations (4.35)
+66. Clipboard timeline and visualization (4.36)
 66. Cross-device sync (4.37)
 67. Plugin ecosystem and integrations (4.38)
 68. Clipboard API and CLI tooling (4.39)
