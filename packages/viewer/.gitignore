@@ -1,0 +1,7 @@
+.vscode
+init.sh
+
+/public/
+/dist/
+/target/
+/Cargo.lock

@@ -1,0 +1,31 @@
+[package]
+name = "OysterClip"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+dioxus = { version = "0.7", features = ["desktop"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+arboard = "3"
+tokio = { version = "1", features = ["time"] }
+chacha20poly1305 = "0.10"
+keyring = "2"
+rusqlite = { version = "0.32", features = ["bundled"] }
+rfd = "0.15"
+regex = "1"
+directories = "5"
+toml = "0.8"
+clap = { version = "4", features = ["derive"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "charset"] }
+scraper = "0.24"
+url = "2"
+
+[profile.release]
+strip = true
+opt-level = "z"
+codegen-units = 1
+panic = "abort"
