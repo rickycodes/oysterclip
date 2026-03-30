@@ -1,7 +1,7 @@
 [package]
-name = "OysterClip"
-version = "0.1.0"
-edition = "2021"
+name = "viewer"
+version.workspace = true
+edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
@@ -24,8 +24,3 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 scraper = "0.24"
 url = "2"
 
-[profile.release]
-strip = true
-opt-level = "z"
-codegen-units = 1
-panic = "abort"
