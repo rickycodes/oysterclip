@@ -20,21 +20,23 @@ adding high-value UX improvements.
 
 **Goal:** Consolidate separate repos into a single Rust workspace to enable code sharing, unified versioning, and easier coordination.
 
-**Status:** ✅ Done
-- Moved watcher code to `packages/watcher/`
-- Merged viewer with full history to `packages/viewer/`
-- Created `packages/common/` with shared modules:
-  - `paths.rs` - Canonical app directory resolution
-  - `constants.rs` - Shared constants, DB schema, keyring IDs
+**Status:** ✅ COMPLETE - All work done
+- ✅ Moved watcher code to `packages/watcher/` (preserving git move history)
+- ✅ Merged viewer with full commit history to `packages/viewer/` 
+- ✅ Created `packages/common/` with shared modules:
+  - `paths.rs` - Canonical app directory resolution (used by both watcher and viewer)
+  - `constants.rs` - Shared constants, DB schema, keyring IDs, socket file names
   - `crypto.rs` - XChaCha20Poly1305 encryption/decryption, keychain integration
   - `ipc.rs` - Control protocol types and socket paths
-- Both packages depend on `clipboard-manager-common`
-- Root workspace manages unified versioning and release profiles
+- ✅ Updated watcher to use `common::paths`
+- ✅ Updated viewer to use `common::paths` and `common::constants`
+- ✅ Root workspace manages unified versioning (0.1.0) and release profiles
+- ✅ Both packages build successfully with no clippy warnings
 
-**Current Structure:**
+**Final Structure:**
 ```
 clipboard-manager/
-├── Cargo.toml                 (workspace manifest)
+├── Cargo.toml                 (workspace: common, watcher, viewer)
 ├── Cargo.lock
 ├── README.md
 ├── ROADMAP.md
@@ -43,211 +45,63 @@ clipboard-manager/
 │
 └── packages/
     ├── common/                ⭐ Shared crate
-    │   └── src/
-    │       ├── lib.rs
-    │       ├── paths.rs       (app paths resolution)
-    │       ├── constants.rs   (shared constants, schema)
-    │       ├── crypto.rs      (encryption/keychain)
-    │       └── ipc.rs         (control protocol)
-    │
-    ├── watcher/               (CLI daemon)
     │   ├── Cargo.toml
     │   └── src/
+    │       ├── lib.rs
+    │       ├── paths.rs       (app paths, config dir resolution)
+    │       ├── constants.rs   (HISTORY_FILE, CONFIG_FILE, SOCKET_FILE, DB schema)
+    │       ├── crypto.rs      (XChaCha20-Poly1305, keychain setup)
+    │       └── ipc.rs         (ControlCommand, ControlResponse enums)
     │
-    └── viewer/                (Dioxus UI)
-        ├── Cargo.toml
+    ├── watcher/               (CLI daemon, ~1.4K LOC)
+    │   ├── Cargo.toml         (depends on: common)
+    │   └── src/
+    │
+    └── viewer/                (Dioxus UI, ~0.7K LOC)
+        ├── Cargo.toml         (depends on: common)
         └── src/
 ```
 
-**Next:** 1.1 - Move shared data types into common (ClipboardEntry, database models)
+**Work Completed:**
+1. Consolidated both repos with full history (git subtree)
+2. Extracted common paths/constants/crypto/ipc into shared crate
+3. Both packages updated to import from common
+4. All clippy warnings resolved
+5. Workspace builds cleanly
 
-[workspace.package]
-version = "0.5.0"
-authors = ["You"]
-license = "MIT"
-repository = "https://github.com/yourusername/clipboard-manager"
-edition = "2021"
+**Next:** 1.1 - Share data types (ClipboardEntry) and improve test coverage
 
-# Shared dependency versions to prevent conflicts
-[workspace.dependencies]
-tokio = "1.35"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-tracing = "0.1"
-dioxus = "0.5"
-```
+### 1.1 Shared data types and error handling
 
-**What goes into common:**
+Move common data structures into `packages/common/` for true code sharing.
 
-From watcher `src/`:
-- `config/constants.rs` → `constants.rs` (SQL schema, keyring IDs, defaults)
-- `config/paths.rs` → `storage.rs` (canonical path resolution)
-- `history/crypto.rs` → `crypto.rs` (XChaCha20Poly1305, keychain integration)
-- `ipc/mod.rs` → `ipc.rs` (IPC types, socket paths, protocol)
-- `data/entry.rs` → `entry.rs` (ClipboardEntry struct)
+**Goal:** Eliminate remaining duplication; both packages use identical data structures.
 
-New modules:
-- `errors.rs` (unified AppError enum, Result type used by both crates)
+**To Extract:**
+- `ClipboardEntry` (or viewer's `CachedEntries`, watcher's `PasteEntry`)
+- Unified `AppError` enum with variants for both packages
+- Text classification utilities (kind detection)
+- Database models and queries
 
-From viewer `src/`:
-- Remove duplicate `paths.rs`, `entry.rs` (import from common)
-- Move `history.rs` crypto logic to common, keep viewer-specific decrypt helpers
-
-**Migration Steps:**
-
-1. **Create workspace repo:**
-   ```bash
-   mkdir clipboard-manager && cd $_
-   git init
-   ```
-
-2. **Import watcher with full history:**
-   ```bash
-   git subtree add --prefix crates/watcher \
-     https://github.com/yourusername/clipboard-watcher.git main
-   ```
-
-3. **Import viewer with full history:**
-   ```bash
-   git subtree add --prefix crates/viewer \
-     https://github.com/yourusername/clipboard-viewer.git main
-   ```
-
-4. **Create common from extracted code:**
-   ```bash
-   mkdir -p crates/common/src
-   # Manually extract modules or create via patch
-   # Commit: "Create common shared crate"
-   ```
-
-5. **Update watcher Cargo.toml:**
-   ```toml
-   [dependencies]
-   common = { path = "../common" }
-   # Remove: xchachapoly1305, zeroize, etc. if only in common
-   ```
-
-6. **Update viewer Cargo.toml:**
-   ```toml
-   [dependencies]
-   common = { path = "../common" }
-   # Remove: xchachapoly1305, etc.
-   ```
-
-7. **Update imports throughout both crates:**
-   ```rust
-   // watcher: was crate::history::crypto
-   use common::crypto::{encrypt_text, decrypt_text};
-
-   // viewer: was crate::entry
-   use common::entry::ClipboardEntry;
-   ```
-
-8. **Add root manifests:**
-   - Root `Cargo.toml` (workspace member list, shared deps)
-   - `Cargo.lock` (committed)
-   - `.github/workflows/` (test/lint/release)
-   - `docs/workspace-setup.md`
-
-9. **Verify and test:**
-   ```bash
-   cargo test --workspace
-   cargo clippy --workspace
-   cargo build --release
-   ```
-
-**CI/CD Changes:**
-
-```yaml
-# .github/workflows/test.yml
-name: Test
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo test --workspace
-      - run: cargo clippy --workspace
-
-  release:
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
-      - run: |
-          cargo build --release -p watcher
-          cargo build --release -p viewer
-          # Create release artifacts
-```
-
-**Development Workflow:**
-
-```bash
-# Clone and set up
-git clone https://github.com/yourusername/clipboard-manager.git
-cd clipboard-manager
-
-# Work on specific crate
-cargo run -p watcher
-cargo run -p viewer
-
-# Test everything
-cargo test --workspace
-
-# Lint everything
-cargo clippy --workspace
-
-# Format
-cargo fmt --all
-
-# Build release binaries
-cargo build --release -p watcher
-cargo build --release -p viewer
-```
-
-**Deliverables:**
-- ✅ Root monorepo on GitHub: `clipboard-manager`
-- ✅ Full commit history preserved (git subtree)
-- ✅ `common` crate with shared logic
-- ✅ `watcher` and `viewer` updated to use `common`
-- ✅ CI/CD pipeline (test, lint, release all in sync)
-- ✅ Documentation: workspace setup, architecture, contribution flow
-- ✅ Prepared for future TUI (just `cargo new crates/tui`)
-
-**Benefits:**
-- Single source of truth for schema/crypto/paths
-- Unified versioning (all crates version-bump together)
-- Simpler contribution (clone once, work on any crate)
-- Easier TUI integration (`common` already ready)
-- Ultra-clean crate names: `watcher`, `viewer`, `tui`, `common`
-
-### 1.1 Shared storage crate
-Schema, keyring IDs, file names, and socket paths are hardcoded independently in both repos.
-Extract into a `clipboard-common` crate that watcher and all viewers depend on. Eliminates
-drift, makes future changes in one place.
-- Extract DB schema, keyring service/account constants, socket name, default DB filename
-- Extract canonical path resolution logic (currently duplicated)
-- Extract entry types, encryption/decryption logic, formatting utilities
-- Both watcher and viewer update their `Cargo.toml` to depend on the new crate
+**Status:** 🔄 Not started
 
 ### 1.2 Image lifecycle cleanup
+
 Deleting an entry or pruning old rows leaves orphaned PNG files on disk forever.
 - Watcher: when retention prunes rows with `image_path`, delete the file
 - Viewer: when user deletes an image entry with `image_path`, delete the file
 - Safeguard: only delete files inside the known `clipboard_images/` directory
 
+**Status:** 🔄 Not started
+
 ### 1.3 Contract-level integration tests
+
 After the shared crate exists, add tests that exercise the full round-trip:
 - Encryption/decryption round-trip across both crates
 - Path resolution consistency (argument → env → default)
 - Pause/status/resume IPC socket protocol compatibility
+
+**Status:** 🔄 Not started
 
 ---
 
