@@ -16,67 +16,50 @@ adding high-value UX improvements.
 
 *These make later changes safer and remove known correctness problems.*
 
-### 1.0 Workspace consolidation (prerequisite to 1.1)
+### 1.0 Workspace consolidation ✅ COMPLETE
 
 **Goal:** Consolidate separate repos into a single Rust workspace to enable code sharing, unified versioning, and easier coordination.
 
-**Final Structure:**
+**Status:** ✅ Done
+- Moved watcher code to `packages/watcher/`
+- Merged viewer with full history to `packages/viewer/`
+- Created `packages/common/` with shared modules:
+  - `paths.rs` - Canonical app directory resolution
+  - `constants.rs` - Shared constants, DB schema, keyring IDs
+  - `crypto.rs` - XChaCha20Poly1305 encryption/decryption, keychain integration
+  - `ipc.rs` - Control protocol types and socket paths
+- Both packages depend on `clipboard-manager-common`
+- Root workspace manages unified versioning and release profiles
+
+**Current Structure:**
 ```
-clipboard-manager/                 (monorepo root)
-├── Cargo.toml                      (workspace manifest)
+clipboard-manager/
+├── Cargo.toml                 (workspace manifest)
 ├── Cargo.lock
 ├── README.md
 ├── ROADMAP.md
-│
-├── crates/
-│   ├── common/                     ⭐ NEW SHARED CRATE
-│   │   ├── Cargo.toml
-│   │   ├── src/
-│   │   │   ├── lib.rs
-│   │   │   ├── entry.rs            (ClipboardEntry struct, types)
-│   │   │   ├── storage.rs          (paths, schema, migrations)
-│   │   │   ├── crypto.rs           (XChaCha20Poly1305, keyring setup)
-│   │   │   ├── ipc.rs              (socket paths, protocol types)
-│   │   │   ├── constants.rs        (defaults, keyring IDs, SQL schema)
-│   │   │   └── errors.rs           (shared error types)
-│   │
-│   ├── watcher/                    (from current clipboard-watcher repo)
-│   │   ├── Cargo.toml              (add dep: common)
-│   │   └── src/ (imports from common)
-│   │
-│   ├── viewer/                     (from current clipboard-viewer repo)
-│   │   ├── Cargo.toml              (add dep: common)
-│   │   └── src/ (imports from common)
-│   │
-│   └── tui/                        (future clipboard-tui)
-│       ├── Cargo.toml
-│       └── src/
-│
-├── .github/workflows/
-│   ├── test.yml                    (cargo test --workspace)
-│   ├── clippy.yml                  (cargo clippy --workspace)
-│   └── release.yml                 (build & package all binaries)
-│
 ├── docs/
-│   ├── workspace-setup.md          (contributor guide)
-│   ├── architecture.md
-│   ├── storage-schema.md
-│   ├── ipc-protocol.md
-│   └── encryption.md
+│   └── architecture.png
 │
-└── LICENSE
+└── packages/
+    ├── common/                ⭐ Shared crate
+    │   └── src/
+    │       ├── lib.rs
+    │       ├── paths.rs       (app paths resolution)
+    │       ├── constants.rs   (shared constants, schema)
+    │       ├── crypto.rs      (encryption/keychain)
+    │       └── ipc.rs         (control protocol)
+    │
+    ├── watcher/               (CLI daemon)
+    │   ├── Cargo.toml
+    │   └── src/
+    │
+    └── viewer/                (Dioxus UI)
+        ├── Cargo.toml
+        └── src/
 ```
 
-**Root Cargo.toml:**
-```toml
-[workspace]
-members = [
-  "crates/common",
-  "crates/watcher",
-  "crates/viewer",
-  "crates/tui"
-]
-resolver = "2"
+**Next:** 1.1 - Move shared data types into common (ClipboardEntry, database models)
 
 [workspace.package]
 version = "0.5.0"
