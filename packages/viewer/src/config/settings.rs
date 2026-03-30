@@ -13,7 +13,9 @@ pub struct ThemeConfig {
 
 impl Default for ThemeConfig {
     fn default() -> Self {
-        Self { mode: "dark".to_string() }
+        Self {
+            mode: "dark".to_string(),
+        }
     }
 }
 

@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-use super::paths;
 use super::constants::SOCKET_FILE;
+use super::paths;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ControlCommand {

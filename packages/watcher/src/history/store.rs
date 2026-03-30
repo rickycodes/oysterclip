@@ -2,12 +2,12 @@ use rusqlite::{params, Connection, OptionalExtension};
 use std::io;
 use std::path::{Path, PathBuf};
 
+use super::crypto::{encrypt_text, load_or_create_encryption_key, text_content_hash};
 use crate::config::constants::{
     CREATE_ENTRIES_TABLE_SQL, DELETE_PRUNABLE_ENTRIES_SQL, INSERT_IMAGE_ENTRY_SQL,
     INSERT_TEXT_ENTRY_SQL, SELECT_EXISTING_TEXT_ENTRY_SQL,
 };
 use crate::data::entry::PasteEntry;
-use super::crypto::{load_or_create_encryption_key, encrypt_text, text_content_hash};
 
 pub(crate) struct HistoryStore {
     db_path: PathBuf,
@@ -146,9 +146,9 @@ fn prune_history(conn: &Connection, _db_path: &Path, max_entries: usize) -> io::
 
 #[cfg(test)]
 mod tests {
+    use super::super::crypto::{decrypt_text, encrypt_text, text_content_hash};
     use super::ensure_image_blob_column;
     use super::prune_history;
-    use super::super::crypto::{decrypt_text, encrypt_text, text_content_hash};
     use rusqlite::{params, Connection};
     use std::path::Path;
     use std::time::SystemTime;

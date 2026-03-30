@@ -68,7 +68,12 @@ fn parse_link_preview(final_url: &Url, html: &str) -> Option<LinkPreview> {
     let document = Html::parse_document(html);
     let title = meta_content(&document, "property", "og:title")
         .or_else(|| meta_content(&document, "name", "twitter:title"))
-        .or_else(|| document.select(&TITLE_SELECTOR).next().map(|node| node.text().collect()))
+        .or_else(|| {
+            document
+                .select(&TITLE_SELECTOR)
+                .next()
+                .map(|node| node.text().collect())
+        })
         .map(clean_text)
         .filter(|value| !value.is_empty())?;
 
@@ -93,7 +98,10 @@ fn parse_link_preview(final_url: &Url, html: &str) -> Option<LinkPreview> {
         description,
         site_name,
         image_url,
-        display_url: final_url.host_str().unwrap_or(raw_host(final_url)).to_string(),
+        display_url: final_url
+            .host_str()
+            .unwrap_or(raw_host(final_url))
+            .to_string(),
     })
 }
 

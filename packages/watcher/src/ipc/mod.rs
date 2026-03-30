@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
-mod server;
 mod client;
+mod server;
 
 #[derive(Debug, Clone)]
 pub(crate) struct ControlState {
@@ -28,5 +28,5 @@ pub(crate) struct ControlResponse {
     pub(crate) image_dir: String,
 }
 
-pub(crate) use server::{start_control_server, new_control_state};
-pub(crate) use client::{send_control_command, print_control_response};
+pub(crate) use client::{print_control_response, send_control_command};
+pub(crate) use server::{new_control_state, start_control_server};

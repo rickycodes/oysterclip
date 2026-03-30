@@ -137,7 +137,10 @@ fn control_socket_path(db_path: &Path) -> io::Result<PathBuf> {
     let parent = absolute_db_path.parent().ok_or_else(|| {
         io::Error::new(
             io::ErrorKind::InvalidInput,
-            format!("database path has no parent: {}", absolute_db_path.display()),
+            format!(
+                "database path has no parent: {}",
+                absolute_db_path.display()
+            ),
         )
     })?;
 

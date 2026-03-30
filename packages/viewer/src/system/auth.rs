@@ -38,7 +38,6 @@ impl AuthCache {
             None
         };
     }
-
 }
 
 pub fn authenticate_admin_action() -> AuthResult {

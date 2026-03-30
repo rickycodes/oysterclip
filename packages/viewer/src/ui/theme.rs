@@ -44,7 +44,11 @@ pub fn load_theme() -> Theme {
     {
         // CLI arg takes priority over config file, but doesn't persist
         if let Some(t) = &crate::config::cli::args().theme {
-            return if t == "light" { Theme::Light } else { Theme::Dark };
+            return if t == "light" {
+                Theme::Light
+            } else {
+                Theme::Dark
+            };
         }
 
         if crate::config::AppConfig::load().theme.mode == "light" {
@@ -59,14 +63,26 @@ pub fn save_theme(theme: Theme) {
     #[cfg(target_arch = "wasm32")]
     {
         if let Ok(Some(storage)) = web_sys::window().and_then(|w| w.local_storage().ok()) {
-            let _ = storage.set_item("theme", if theme == Theme::Light { "light" } else { "dark" });
+            let _ = storage.set_item(
+                "theme",
+                if theme == Theme::Light {
+                    "light"
+                } else {
+                    "dark"
+                },
+            );
         }
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     {
         let mut config = crate::config::AppConfig::load();
-        config.theme.mode = if theme == Theme::Light { "light" } else { "dark" }.to_string();
+        config.theme.mode = if theme == Theme::Light {
+            "light"
+        } else {
+            "dark"
+        }
+        .to_string();
         config.save();
     }
 }

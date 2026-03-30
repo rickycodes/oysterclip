@@ -11,7 +11,7 @@ use crate::config::constants::CONTROL_SOCKET_FILE;
 #[cfg(unix)]
 use std::os::unix::net::{UnixListener, UnixStream};
 
-use super::{ControlState, SharedControlState, ControlResponse};
+use super::{ControlResponse, ControlState, SharedControlState};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ControlRequest {

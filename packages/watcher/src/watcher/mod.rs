@@ -10,8 +10,8 @@ use crate::config::constants::{
     TEXT_KIND_IMAGE_DATA_URI,
 };
 use crate::data::entry::PasteEntry;
-use crate::data::text::detect_text_kind;
 use crate::data::image_store::{encode_png, save_png, simple_image_hash};
+use crate::data::text::detect_text_kind;
 use crate::history::{current_timestamp, HistoryStore};
 use crate::ipc::SharedControlState;
 
@@ -27,7 +27,10 @@ pub fn start_watching(
     #[cfg(unix)]
     {
         let shutdown_clone = shutdown.clone();
-        let mut signals = signal_hook::iterator::Signals::new([signal_hook::consts::signal::SIGTERM, signal_hook::consts::signal::SIGINT])?;
+        let mut signals = signal_hook::iterator::Signals::new([
+            signal_hook::consts::signal::SIGTERM,
+            signal_hook::consts::signal::SIGINT,
+        ])?;
         std::thread::spawn(move || {
             for _ in signals.forever() {
                 shutdown_clone.store(true, Ordering::SeqCst);

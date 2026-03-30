@@ -1,5 +1,5 @@
-mod store;
 mod crypto;
+mod store;
 
-pub(crate) use store::HistoryStore;
 pub(crate) use crypto::current_timestamp;
+pub(crate) use store::HistoryStore;

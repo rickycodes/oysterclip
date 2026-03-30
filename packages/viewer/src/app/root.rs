@@ -6,10 +6,10 @@ use crate::app::actions::{
     confirm_and_delete_entry, copy_text_to_clipboard, set_status, DeleteActionState,
 };
 use crate::app::state::use_app_state;
-use crate::ui::{DetailPane, Sidebar};
+use crate::system::watcher_control;
 use crate::ui::help_modal::HelpModal;
 use crate::ui::theme::{load_theme, save_theme};
-use crate::system::watcher_control;
+use crate::ui::{DetailPane, Sidebar};
 
 const APP_STYLE: &str = include_str!("../../styles.css");
 
@@ -71,11 +71,7 @@ pub fn App() -> Element {
             error,
             action_status,
         };
-        confirm_and_clear_history(
-            source_for_clear.clone(),
-            cache_for_clear.clone(),
-            state,
-        );
+        confirm_and_clear_history(source_for_clear.clone(), cache_for_clear.clone(), state);
     };
 
     let handle_copy_text = {
@@ -129,12 +125,7 @@ pub fn App() -> Element {
                 error,
                 action_status,
             };
-            confirm_and_delete_entries(
-                source_for_bulk.clone(),
-                cache_for_bulk.clone(),
-                state,
-                ids,
-            );
+            confirm_and_delete_entries(source_for_bulk.clone(), cache_for_bulk.clone(), state, ids);
         }
     };
 
@@ -162,7 +153,9 @@ pub fn App() -> Element {
                 set_status(action_status, message);
             }
             Err(err) => {
-                watcher_status.set(crate::system::watcher_control::WatcherStatus::unavailable(err));
+                watcher_status.set(crate::system::watcher_control::WatcherStatus::unavailable(
+                    err,
+                ));
                 set_status(action_status, "Watcher control failed");
             }
         }
@@ -176,7 +169,7 @@ pub fn App() -> Element {
         let current_query_for_escape = current_query.clone();
         move |event: KeyboardEvent| {
             let code = event.code();
-            
+
             match code {
                 // Navigation: Arrow keys (Shift+Arrow extends selection)
                 Code::ArrowDown | Code::KeyJ => {
@@ -197,7 +190,8 @@ pub fn App() -> Element {
                 }
                 Code::ArrowUp | Code::KeyK => {
                     event.prevent_default();
-                    if let Some(id) = adjacent_entry_id(&keyboard_entries, current_selected_id, -1) {
+                    if let Some(id) = adjacent_entry_id(&keyboard_entries, current_selected_id, -1)
+                    {
                         if event.modifiers().shift() {
                             let mut set = selected_ids();
                             if let Some(cur) = current_selected_id {
@@ -253,7 +247,12 @@ pub fn App() -> Element {
                     if let Some(text) = selected_text_for_enter.clone() {
                         event.prevent_default();
                         if let Some(id) = current_selected_id {
-                            copy_text_to_clipboard(copy_status_for_enter, id, text, selected_label_for_enter);
+                            copy_text_to_clipboard(
+                                copy_status_for_enter,
+                                id,
+                                text,
+                                selected_label_for_enter,
+                            );
                         }
                     }
                 }
@@ -267,12 +266,18 @@ pub fn App() -> Element {
                     };
                     match result {
                         Ok(next_status) => {
-                            let message = if next_status.paused { "Watcher paused" } else { "Watcher resumed" };
+                            let message = if next_status.paused {
+                                "Watcher paused"
+                            } else {
+                                "Watcher resumed"
+                            };
                             watcher_status.set(next_status);
                             set_status(action_status, message);
                         }
                         Err(err) => {
-                            watcher_status.set(crate::system::watcher_control::WatcherStatus::unavailable(err));
+                            watcher_status.set(
+                                crate::system::watcher_control::WatcherStatus::unavailable(err),
+                            );
                             set_status(action_status, "Watcher control failed");
                         }
                     }

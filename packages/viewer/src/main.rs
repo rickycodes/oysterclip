@@ -1,8 +1,8 @@
 mod app;
-mod ui;
-mod data;
 mod config;
+mod data;
 mod system;
+mod ui;
 
 use app::App;
 use dioxus::desktop::tao::window::WindowBuilder;

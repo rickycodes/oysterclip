@@ -110,6 +110,9 @@ mod tests {
         );
 
         assert!(config.save_images_to_disk);
-        assert_eq!(config.image_export_dir, Path::new("/tmp/config-dir/exports"));
+        assert_eq!(
+            config.image_export_dir,
+            Path::new("/tmp/config-dir/exports")
+        );
     }
 }

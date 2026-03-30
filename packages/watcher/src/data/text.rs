@@ -1,6 +1,6 @@
 use crate::config::constants::{
-    TEXT_KIND_EMPTY, TEXT_KIND_IMAGE_DATA_URI, TEXT_KIND_JSON, TEXT_KIND_MULTILINE,
-    TEXT_KIND_PATH, TEXT_KIND_PLAIN, TEXT_KIND_URL,
+    TEXT_KIND_EMPTY, TEXT_KIND_IMAGE_DATA_URI, TEXT_KIND_JSON, TEXT_KIND_MULTILINE, TEXT_KIND_PATH,
+    TEXT_KIND_PLAIN, TEXT_KIND_URL,
 };
 
 pub(crate) fn detect_text_kind(text: &str) -> &'static str {
@@ -47,7 +47,8 @@ fn is_file_path(text: &str) -> bool {
     }
     // Windows absolute path: C:\ or C:/
     let b = text.as_bytes();
-    if b.len() >= 3 && b[0].is_ascii_alphabetic() && b[1] == b':' && (b[2] == b'\\' || b[2] == b'/') {
+    if b.len() >= 3 && b[0].is_ascii_alphabetic() && b[1] == b':' && (b[2] == b'\\' || b[2] == b'/')
+    {
         return true;
     }
     false
@@ -76,10 +77,16 @@ mod tests {
 
     #[test]
     fn detect_text_kind_classifies_paths() {
-        assert_eq!(detect_text_kind("/home/user/documents/file.txt"), TEXT_KIND_PATH);
+        assert_eq!(
+            detect_text_kind("/home/user/documents/file.txt"),
+            TEXT_KIND_PATH
+        );
         assert_eq!(detect_text_kind("/usr/local/bin"), TEXT_KIND_PATH);
         assert_eq!(detect_text_kind("~/Downloads/archive.zip"), TEXT_KIND_PATH);
-        assert_eq!(detect_text_kind("C:\\Users\\Alice\\Desktop\\notes.txt"), TEXT_KIND_PATH);
+        assert_eq!(
+            detect_text_kind("C:\\Users\\Alice\\Desktop\\notes.txt"),
+            TEXT_KIND_PATH
+        );
         assert_eq!(detect_text_kind("D:/projects/myapp"), TEXT_KIND_PATH);
         // These should not be classified as paths
         assert_eq!(detect_text_kind("https://example.com/path"), TEXT_KIND_URL);

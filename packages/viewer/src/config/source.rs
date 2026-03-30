@@ -107,7 +107,10 @@ mod tests {
     #[test]
     fn cli_path_input_is_treated_as_file() {
         let source = ClipboardSource::from_arg("/tmp/history.db".to_string());
-        assert_eq!(source.file_path().unwrap(), PathBuf::from("/tmp/history.db"));
+        assert_eq!(
+            source.file_path().unwrap(),
+            PathBuf::from("/tmp/history.db")
+        );
     }
 
     #[test]

@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use crate::paths::{resolve_app_paths, AppPaths};
+use std::path::PathBuf;
 
 /// StorageConfig: Information about where and how data is stored
 #[derive(Debug, Clone)]

@@ -1,7 +1,7 @@
-use dioxus::prelude::*;
-use crate::ui::theme::Theme;
-use crate::system::watcher_control::WatcherStatus;
 use crate::data::format::format_timestamp;
+use crate::system::watcher_control::WatcherStatus;
+use crate::ui::theme::Theme;
+use dioxus::prelude::*;
 
 #[component]
 pub fn HelpModal(
@@ -13,12 +13,20 @@ pub fn HelpModal(
     on_toggle_watcher: EventHandler<()>,
 ) -> Element {
     let watcher_state_class = if watcher_status.available {
-        if watcher_status.paused { "watcher-pill paused" } else { "watcher-pill running" }
+        if watcher_status.paused {
+            "watcher-pill paused"
+        } else {
+            "watcher-pill running"
+        }
     } else {
         "watcher-pill offline"
     };
     let watcher_button_class = if watcher_status.available {
-        if watcher_status.paused { "watcher-toggle-btn resume" } else { "watcher-toggle-btn pause" }
+        if watcher_status.paused {
+            "watcher-toggle-btn resume"
+        } else {
+            "watcher-toggle-btn pause"
+        }
     } else {
         "watcher-toggle-btn disabled"
     };

@@ -5,8 +5,8 @@ use std::path::Path;
 #[cfg(unix)]
 use std::os::unix::net::UnixStream;
 
-use super::{ControlResponse};
 use super::server::control_socket_path;
+use super::ControlResponse;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ControlRequest {

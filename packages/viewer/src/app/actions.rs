@@ -6,9 +6,9 @@ use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use crate::config::source::ClipboardSource;
 use crate::data::entry::{CachedEntries, ClipboardEntry};
 use crate::data::history::{clear_history, delete_entries, delete_entry};
-use crate::config::source::ClipboardSource;
 
 const STATUS_TIMEOUT_SECS: u64 = 5;
 const STATUS_TIMEOUT: Duration = Duration::from_secs(STATUS_TIMEOUT_SECS);
@@ -38,10 +38,9 @@ pub fn matches_query(entry: &ClipboardEntry, query: &str) -> bool {
     let (filters, search_text) = parse_query_filters(trimmed);
 
     // Check type and kind filters first
-    if !filters.is_empty()
-        && !apply_filters(entry, &filters) {
-            return false;
-        }
+    if !filters.is_empty() && !apply_filters(entry, &filters) {
+        return false;
+    }
 
     // If no search text remains, we're done (filters alone matched)
     if search_text.is_empty() {
@@ -58,11 +57,10 @@ pub fn matches_query(entry: &ClipboardEntry, query: &str) -> bool {
                     .map(|kind| kind.to_lowercase().contains(&search))
                     .unwrap_or(false)
         }
-        ClipboardEntry::Image { path, .. } => {
-            path.as_deref()
-                .map(|value| value.to_lowercase().contains(&search))
-                .unwrap_or(false)
-        }
+        ClipboardEntry::Image { path, .. } => path
+            .as_deref()
+            .map(|value| value.to_lowercase().contains(&search))
+            .unwrap_or(false),
     }
 }
 
@@ -100,7 +98,9 @@ fn apply_filters(entry: &ClipboardEntry, filters: &[QueryFilter]) -> bool {
             "type" => {
                 let type_matches = match entry {
                     ClipboardEntry::Text { .. } => {
-                        filter.value == "text" || filter.value == "pass" || filter.value == "password"
+                        filter.value == "text"
+                            || filter.value == "pass"
+                            || filter.value == "password"
                     }
                     ClipboardEntry::Image { .. } => filter.value == "image",
                 };
@@ -317,7 +317,12 @@ pub fn confirm_and_delete_entries(
     }
 }
 
-pub fn copy_text_to_clipboard(mut copy_status: Signal<Option<(i64, String)>>, entry_id: i64, text: String, label: &str) {
+pub fn copy_text_to_clipboard(
+    mut copy_status: Signal<Option<(i64, String)>>,
+    entry_id: i64,
+    text: String,
+    label: &str,
+) {
     let result = Clipboard::new().and_then(|mut cb| cb.set_text(text));
     let message = match result {
         Ok(_) => format!("Copied {}", label),

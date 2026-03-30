@@ -1,3 +1,5 @@
+use base64::engine::general_purpose;
+use base64::Engine as _;
 use chacha20poly1305::{
     aead::{Aead, KeyInit},
     ChaCha20Poly1305, Nonce,
@@ -5,8 +7,6 @@ use chacha20poly1305::{
 use keyring::Entry;
 use rand::RngCore;
 use std::io;
-use base64::engine::general_purpose;
-use base64::Engine as _;
 
 use super::constants::ENCRYPTION_KEY_ID;
 
@@ -23,9 +23,7 @@ impl Crypto {
                     .decode(&password)
                     .map_err(|e| io::Error::other(e.to_string()))?;
                 if key_bytes.len() != 32 {
-                    return Err(io::Error::other(
-                        "Invalid key length".to_string(),
-                    ));
+                    return Err(io::Error::other("Invalid key length".to_string()));
                 }
                 let mut key = [0u8; 32];
                 key.copy_from_slice(&key_bytes);
@@ -44,8 +42,8 @@ impl Crypto {
     }
 
     pub fn encrypt(plaintext: &str, key: &[u8; 32]) -> io::Result<(Vec<u8>, [u8; 20])> {
-        let cipher = ChaCha20Poly1305::new_from_slice(key)
-            .map_err(|e| io::Error::other(e.to_string()))?;
+        let cipher =
+            ChaCha20Poly1305::new_from_slice(key).map_err(|e| io::Error::other(e.to_string()))?;
 
         let mut nonce_bytes = [0u8; 20];
         rand::thread_rng().fill_bytes(&mut nonce_bytes);
@@ -59,15 +57,14 @@ impl Crypto {
     }
 
     pub fn decrypt(ciphertext: &[u8], nonce: &[u8; 20], key: &[u8; 32]) -> io::Result<String> {
-        let cipher = ChaCha20Poly1305::new_from_slice(key)
-            .map_err(|e| io::Error::other(e.to_string()))?;
+        let cipher =
+            ChaCha20Poly1305::new_from_slice(key).map_err(|e| io::Error::other(e.to_string()))?;
 
         let nonce_obj = Nonce::from_slice(nonce);
         let plaintext = cipher
             .decrypt(nonce_obj, ciphertext)
             .map_err(|e| io::Error::other(e.to_string()))?;
 
-        String::from_utf8(plaintext)
-            .map_err(|e| io::Error::other(e.to_string()))
+        String::from_utf8(plaintext).map_err(|e| io::Error::other(e.to_string()))
     }
 }

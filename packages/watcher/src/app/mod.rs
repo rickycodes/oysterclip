@@ -1,12 +1,14 @@
 pub mod error;
 
-use crate::config::{Cli, Commands, ControlAction};
-use crate::config::settings::load_config;
-use crate::config::paths::{ensure_app_dir, resolve_app_paths};
 use crate::config::constants::STARTUP_MESSAGE;
-use crate::history::HistoryStore;
+use crate::config::paths::{ensure_app_dir, resolve_app_paths};
+use crate::config::settings::load_config;
+use crate::config::{Cli, Commands, ControlAction};
 use crate::history::current_timestamp;
-use crate::ipc::{new_control_state, print_control_response, send_control_command, start_control_server};
+use crate::history::HistoryStore;
+use crate::ipc::{
+    new_control_state, print_control_response, send_control_command, start_control_server,
+};
 use crate::watcher::start_watching;
 use error::{AppError, Result};
 
@@ -42,7 +44,8 @@ pub fn run(cli: Cli) -> Result<()> {
         control_state,
         config.save_images_to_disk,
         &config.image_export_dir,
-    ).map_err(AppError::IoError)?;
+    )
+    .map_err(AppError::IoError)?;
 
     Ok(())
 }
@@ -91,7 +94,8 @@ fn handle_command(command: Commands, app_paths: &crate::config::paths::AppPaths)
                 control_state,
                 config.save_images_to_disk,
                 &config.image_export_dir,
-            ).map_err(AppError::IoError)?;
+            )
+            .map_err(AppError::IoError)?;
 
             Ok(())
         }

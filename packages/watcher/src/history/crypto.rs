@@ -38,9 +38,9 @@ pub(crate) fn load_or_create_encryption_key() -> io::Result<[u8; 32]> {
 }
 
 fn decode_encryption_key(encoded: &str) -> io::Result<[u8; 32]> {
-    let decoded = general_purpose::STANDARD
-        .decode(encoded)
-        .map_err(|err| io::Error::other(format!("failed to decode keychain encryption key: {err}")))?;
+    let decoded = general_purpose::STANDARD.decode(encoded).map_err(|err| {
+        io::Error::other(format!("failed to decode keychain encryption key: {err}"))
+    })?;
 
     if decoded.len() != 32 {
         return Err(io::Error::other(format!(
@@ -74,8 +74,9 @@ pub(crate) fn decrypt_text(ciphertext: &[u8], nonce: &[u8], key: &[u8; 32]) -> i
     let plaintext = cipher
         .decrypt(nonce, ciphertext)
         .map_err(|err| io::Error::other(format!("failed to decrypt clipboard text: {err}")))?;
-    String::from_utf8(plaintext)
-        .map_err(|err| io::Error::other(format!("failed to decode decrypted clipboard text: {err}")))
+    String::from_utf8(plaintext).map_err(|err| {
+        io::Error::other(format!("failed to decode decrypted clipboard text: {err}"))
+    })
 }
 
 pub(crate) fn text_content_hash(content: &str) -> String {

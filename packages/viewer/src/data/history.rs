@@ -7,8 +7,8 @@ use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
 
-use crate::data::entry::{CachedEntries, ClipboardEntry, ClipboardPayload, SourceStamp};
 use crate::config::source::ClipboardSource;
+use crate::data::entry::{CachedEntries, ClipboardEntry, ClipboardPayload, SourceStamp};
 
 const KEYRING_SERVICE: &str = "clipboard-manager";
 const KEYRING_ACCOUNT: &str = "default-encryption-key";
@@ -196,9 +196,9 @@ fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
                     .get(if has_image_blob { 8 } else { 7 })
                     .map_err(|e| format!("Failed to read image hash: {e}"))?;
                 let hash = image_hash.ok_or_else(|| "Missing image hash.".to_string())? as u64;
-                let data_url = image_png
-                    .map(data_url_from_png)
-                    .or_else(|| load_image_data_url_from_path(path.parent(), image_path.as_deref()));
+                let data_url = image_png.map(data_url_from_png).or_else(|| {
+                    load_image_data_url_from_path(path.parent(), image_path.as_deref())
+                });
 
                 entries.push(ClipboardEntry::Image {
                     id,
@@ -284,7 +284,10 @@ fn data_url_from_png(bytes: Vec<u8>) -> String {
     )
 }
 
-fn load_image_data_url_from_path(base_dir: Option<&Path>, path_str: Option<&str>) -> Option<String> {
+fn load_image_data_url_from_path(
+    base_dir: Option<&Path>,
+    path_str: Option<&str>,
+) -> Option<String> {
     let path_str = path_str?;
     let path = Path::new(path_str);
     let resolved = if path.is_absolute() {
