@@ -73,17 +73,22 @@ clipboard-manager/
 
 ### 1.1 Shared data types and error handling
 
-Move common data structures into `packages/common/` for true code sharing.
+**Goal:** Extract common data structures and error types into `packages/common/`.
 
-**Goal:** Eliminate remaining duplication; both packages use identical data structures.
+**Status:** 🔄 In Progress - Deferred to next phase
 
-**To Extract:**
-- `ClipboardEntry` (or viewer's `CachedEntries`, watcher's `PasteEntry`)
-- Unified `AppError` enum with variants for both packages
-- Text classification utilities (kind detection)
-- Database models and queries
+**Note:** Initial attempt showed that data models are tightly coupled to each application's needs:
+- Watcher uses `PasteEntry` (enum with Text/Image variants, working representation)
+- Viewer uses `ClipboardEntry` (similar but includes UI-specific fields like `data_url`)
+- Both need different handling during capture vs. display
 
-**Status:** 🔄 Not started
+**Approach for 1.1:**
+1. Define a storage-focused representation in common (for DB round-trips)
+2. Keep application-specific types for internal use
+3. Convert at boundaries (load from DB → local type)
+4. Consider: should data ever be shared between apps, or just configuration/paths?
+
+**Current State:** ✅ Paths, constants, crypto, IPC are in common. Data types remain local to each package for now.
 
 ### 1.2 Image lifecycle cleanup
 
