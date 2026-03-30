@@ -75,20 +75,19 @@ clipboard-manager/
 
 **Goal:** Extract common data structures and error types into `packages/common/`.
 
-**Status:** 🔄 In Progress - Deferred to next phase
+**Status:** ⏳ Pending - Blocked on design decisions
 
-**Note:** Initial attempt showed that data models are tightly coupled to each application's needs:
-- Watcher uses `PasteEntry` (enum with Text/Image variants, working representation)
-- Viewer uses `ClipboardEntry` (similar but includes UI-specific fields like `data_url`)
-- Both need different handling during capture vs. display
+**Analysis:** Initial attempt showed that data models are tightly coupled to each application's needs:
+- Watcher uses `PasteEntry` (internal working representation during capture)
+- Viewer uses `ClipboardEntry` (includes UI-specific fields like `data_url`, file source metadata)
+- Both need different handling during capture vs. display vs. storage
 
-**Approach for 1.1:**
-1. Define a storage-focused representation in common (for DB round-trips)
-2. Keep application-specific types for internal use
-3. Convert at boundaries (load from DB → local type)
-4. Consider: should data ever be shared between apps, or just configuration/paths?
+**Open Questions:**
+- Should data types be shared, or keep them app-specific?
+- What's the canonical storage format vs. working format?
+- Is there a clean boundary for conversion between formats?
 
-**Current State:** ✅ Paths, constants, crypto, IPC are in common. Data types remain local to each package for now.
+**Next Steps:** Decide on data model strategy before implementing shared types.
 
 ### 1.2 Image lifecycle cleanup
 
