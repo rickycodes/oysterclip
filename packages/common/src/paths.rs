@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use super::constants::{CONFIG_FILE, HISTORY_FILE};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AppPaths {
     pub base_dir: PathBuf,
     pub db_path: PathBuf,

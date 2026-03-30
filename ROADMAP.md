@@ -75,19 +75,70 @@ clipboard-manager/
 
 **Goal:** Extract common data structures and error types into `packages/common/`.
 
-**Status:** ⏳ Pending - Blocked on design decisions
+**Design: Three-layer separation**
 
-**Analysis:** Initial attempt showed that data models are tightly coupled to each application's needs:
-- Watcher uses `PasteEntry` (internal working representation during capture)
-- Viewer uses `ClipboardEntry` (includes UI-specific fields like `data_url`, file source metadata)
-- Both need different handling during capture vs. display vs. storage
+Layer 1: **StorageEntry** (DB schema exactly)
+```rust
+pub struct StorageEntry {
+    pub id: i64,
+    pub created_at: u64,
+    pub entry_type: EntryType,
+    pub text_kind: Option<String>,
+    pub text_ciphertext: Option<Vec<u8>>,
+    pub text_nonce: Option<Vec<u8>>,
+    pub image_path: Option<String>,
+    pub image_png: Option<Vec<u8>>,
+    pub image_hash: Option<u64>,
+    pub content_hash: Option<String>,
+}
+```
 
-**Open Questions:**
-- Should data types be shared, or keep them app-specific?
-- What's the canonical storage format vs. working format?
-- Is there a clean boundary for conversion between formats?
+Layer 2: **CommonEntry** (minimal, shared across apps)
+```rust
+pub enum CommonEntry {
+    Text {
+        id: i64,
+        timestamp: u64,
+        content: String,
+        kind: Option<String>,
+    },
+    Image {
+        id: i64,
+        timestamp: u64,
+        path: Option<String>,
+        hash: u64,
+    },
+}
+```
 
-**Next Steps:** Decide on data model strategy before implementing shared types.
+Layer 3: **App-specific** (in each package)
+- `watcher/src/data/entry.rs` — PasteEntry (working model during capture)
+- `viewer/src/data/entry.rs` — ClipboardEntry (UI model with data_url, source)
+
+**What goes into packages/common:**
+- `storage.rs` — StorageEntry, DB schema, path resolution, migrations
+- `entry.rs` — CommonEntry enum, entry type definitions
+- `crypto.rs` — encrypt/decrypt, keychain integration
+- `ipc.rs` — IPC protocol types, socket paths
+- `constants.rs` — SQL schema, keyring IDs, defaults
+- `errors.rs` — AppError enum, Result type alias
+- Conversion functions: StorageEntry ↔ CommonEntry
+
+**Rationale:**
+- Each app evolves independently (watcher doesn't bloat with UI concerns)
+- DB schema stays in sync (StorageEntry is source of truth)
+- Clean conversion boundaries between layers
+- Watcher works with PasteEntry (no UI baggage), viewer works with ClipboardEntry (UI-enriched)
+
+**Status:** ✅ COMPLETE - Option B design implemented
+- ✅ Created packages/common/ crate with entry.rs, storage.rs, crypto.rs, ipc.rs, constants.rs, errors.rs
+- ✅ Implemented StorageEntry matching DB schema exactly
+- ✅ Created CommonEntry as minimal shared enum
+- ✅ Updated watcher/src/data/entry.rs to use PasteEntry (app-specific)
+- ✅ Updated viewer/src/data/entry.rs to use ClipboardEntry (app-specific)
+- ✅ Added conversion utilities between layers
+- ✅ Updated both packages to depend on common crate
+- ✅ All imports updated throughout both packages
 
 ### 1.2 Image lifecycle cleanup
 
@@ -859,7 +910,7 @@ external infrastructure.*
 ## Build Order
 
 1. ~~Workspace consolidation (1.0)~~ ✅
-2. Shared storage crate (1.1)
+2. ~~Shared storage crate (1.1)~~ ✅
 3. Image lifecycle cleanup (1.2)
 4. ~~Password sidebar fix (2.1)~~ *(not an issue)*
 5. ~~Relative timestamps (3.1)~~ ✅
