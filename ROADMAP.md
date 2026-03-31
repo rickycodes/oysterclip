@@ -171,10 +171,20 @@ If the viewer starts before the watcher, or the watcher restarts, the socket sta
 - Treat `unavailable` as retriable on each poll cycle
 - Reconnect automatically when the socket becomes available again
 
-### 2.3 Link preview retry
-Failed link previews show a permanent "Failed" badge with no way to retry.
-- Re-attempt on next navigation to the entry
-- Optionally: add a small retry button in the detail pane
+### 2.3 Link preview retry ✅ *COMPLETED*
+Retry failed link previews with exponential backoff to handle transient network failures.
+
+**Implementation:**
+- Exponential backoff: 2s, 4s, 8s (max 3 attempts total)
+- Distinguishes transient failures (timeout, 5xx, network errors) from permanent ones (4xx, parsing failures)
+- Retries only on transient errors
+- No UI changes required; loading state naturally handles retry delays
+
+**Status:** ✅ COMPLETE
+- ✅ Retry loop with exponential backoff in fetch_link_preview()
+- ✅ Error classification (transient vs. permanent)
+- ✅ Tests verify backoff timing and error handling
+- ✅ No clippy warnings
 
 ### 2.4 URL detection edge cases
 The regex used for link detection and clickable URL rendering doesn't handle several common patterns.
@@ -944,7 +954,7 @@ external infrastructure.*
 7. ~~JSON pretty-print (3.3)~~ ✅
 8. Contract tests (1.3)
 9. Watcher socket recovery (2.2)
-10. Link preview retry (2.3)
+10. ~~Link preview retry (2.3)~~ ✅
 11. ~~Theme persistence (3.4)~~ ✅
 12. ~~Date range filtering (4.1)~~ ✅
 13. URL detection edge cases (2.4)
