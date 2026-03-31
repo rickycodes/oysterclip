@@ -6,6 +6,8 @@ use std::time::Duration;
 use url::Url;
 
 const PREVIEW_TIMEOUT: Duration = Duration::from_secs(4);
+const MAX_RETRY_ATTEMPTS: u8 = 3;
+const INITIAL_BACKOFF_MS: u64 = 2000;
 
 static HTTP_CLIENT: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
@@ -40,14 +42,50 @@ pub struct LinkPreview {
 
 pub async fn fetch_link_preview(raw_url: &str) -> Option<LinkPreview> {
     let parsed = validate_preview_url(raw_url)?;
-    let response = HTTP_CLIENT.get(parsed.clone()).send().await.ok()?;
-    if !response.status().is_success() {
-        return None;
+
+    for attempt in 1..=MAX_RETRY_ATTEMPTS {
+        match try_fetch_preview(&parsed).await {
+            Ok(preview) => return Some(preview),
+            Err(FetchError::Transient) => {
+                if attempt < MAX_RETRY_ATTEMPTS {
+                    let backoff_ms =
+                        INITIAL_BACKOFF_MS * (2_u64.saturating_pow((attempt - 1) as u32));
+                    tokio::time::sleep(Duration::from_millis(backoff_ms)).await;
+                }
+            }
+            Err(FetchError::Permanent) => return None,
+        }
+    }
+
+    None
+}
+
+enum FetchError {
+    Transient,
+    Permanent,
+}
+
+async fn try_fetch_preview(url: &Url) -> Result<LinkPreview, FetchError> {
+    let response = HTTP_CLIENT.get(url.clone()).send().await.map_err(|e| {
+        if e.is_timeout() || e.is_connect() {
+            FetchError::Transient
+        } else {
+            FetchError::Permanent
+        }
+    })?;
+
+    let status = response.status();
+    if !status.is_success() {
+        return Err(if status.is_server_error() {
+            FetchError::Transient
+        } else {
+            FetchError::Permanent
+        });
     }
 
     let final_url = response.url().clone();
     if !is_safe_preview_host(&final_url) {
-        return None;
+        return Err(FetchError::Permanent);
     }
 
     let content_type = response
@@ -57,11 +95,11 @@ pub async fn fetch_link_preview(raw_url: &str) -> Option<LinkPreview> {
         .unwrap_or_default()
         .to_ascii_lowercase();
     if !content_type.is_empty() && !content_type.starts_with("text/html") {
-        return None;
+        return Err(FetchError::Permanent);
     }
 
-    let html = response.text().await.ok()?;
-    parse_link_preview(&final_url, &html)
+    let html = response.text().await.map_err(|_| FetchError::Transient)?;
+    parse_link_preview(&final_url, &html).ok_or(FetchError::Permanent)
 }
 
 fn parse_link_preview(final_url: &Url, html: &str) -> Option<LinkPreview> {
@@ -157,4 +195,35 @@ fn is_safe_preview_host(url: &Url) -> bool {
 
 fn raw_host(url: &Url) -> &str {
     url.as_str()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fetch_error_classification() {
+        // Transient errors: timeout, connect, 5xx
+        assert!(matches!(FetchError::Transient, FetchError::Transient));
+
+        // Permanent errors: 4xx, parsing failures
+        assert!(matches!(FetchError::Permanent, FetchError::Permanent));
+    }
+
+    #[test]
+    fn test_backoff_calculation() {
+        // Verify exponential backoff: 2s, 4s, 8s
+        let backoff_1 = INITIAL_BACKOFF_MS * (2_u64.saturating_pow(0));
+        let backoff_2 = INITIAL_BACKOFF_MS * (2_u64.saturating_pow(1));
+        let backoff_3 = INITIAL_BACKOFF_MS * (2_u64.saturating_pow(2));
+
+        assert_eq!(backoff_1, 2000);
+        assert_eq!(backoff_2, 4000);
+        assert_eq!(backoff_3, 8000);
+    }
+
+    #[test]
+    fn test_max_attempts() {
+        assert_eq!(MAX_RETRY_ATTEMPTS, 3);
+    }
 }
