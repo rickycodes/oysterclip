@@ -1,3 +1,4 @@
+use crate::config::{HELP_KEYBOARD_SECTIONS, modal};
 use crate::data::format::format_timestamp;
 use crate::system::watcher_control::WatcherStatus;
 use crate::ui::theme::Theme;
@@ -42,117 +43,36 @@ pub fn HelpModal(
                     button {
                         class: "help-close",
                         onclick: move |_| on_close.call(()),
-                        aria_label: "Close help",
+                        aria_label: modal::CLOSE_LABEL,
                         "×"
                     }
 
-                    h2 { class: "help-title", "Keyboard Shortcuts" }
+                    h2 { class: "help-title", "{modal::TITLE}" }
                     div { class: "help-content",
-                        div { class: "help-section",
-                            h3 { "Navigation" }
-                            div { class: "help-row",
-                                code { "↑ / k" }
-                                span { "Previous entry" }
-                            }
-                            div { class: "help-row",
-                                code { "↓ / j" }
-                                span { "Next entry" }
-                            }
-                            div { class: "help-row",
-                                code { "Home" }
-                                span { "First entry" }
-                            }
-                            div { class: "help-row",
-                                code { "End" }
-                                span { "Last entry" }
+                        {
+                            rsx! {
+                                for section in HELP_KEYBOARD_SECTIONS {
+                                    div { class: "help-section",
+                                        h3 { "{section.title}" }
+                                        for entry in section.entries {
+                                            div { class: "help-row",
+                                                code { "{entry.code}" }
+                                                span { "{entry.description}" }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                         div { class: "help-section",
-                            h3 { "Selection" }
-                            div { class: "help-row",
-                                code { "Space" }
-                                span { "Toggle selection" }
-                            }
-                            div { class: "help-row",
-                                code { "Shift+↑ / Shift+↓" }
-                                span { "Extend selection" }
-                            }
-                            div { class: "help-row",
-                                code { "Escape" }
-                                span { "Clear selection" }
-                            }
-                        }
-                        div { class: "help-section",
-                            h3 { "Actions" }
-                            div { class: "help-row",
-                                code { "Enter / y" }
-                                span { "Copy to clipboard" }
-                            }
-                            div { class: "help-row",
-                                code { "Delete / Backspace / d" }
-                                span { "Delete entry (or selection)" }
-                            }
-                            div { class: "help-row",
-                                code { "Escape" }
-                                span { "Close overlay / clear selection / clear search" }
-                            }
-                            div { class: "help-row",
-                                code { "p" }
-                                span { "Pause / resume watcher" }
-                            }
-                            div { class: "help-row",
-                                code { "?" }
-                                span { "Show this help" }
-                            }
-                        }
-                        div { class: "help-section",
-                            h3 { "Search" }
-                            div { class: "help-row",
-                                code { "/ or Ctrl+F" }
-                                span { "Focus search" }
-                            }
-                            div { class: "help-row",
-                                code { "type:image" }
-                                span { "Show only images" }
-                            }
-                            div { class: "help-row",
-                                code { "type:text" }
-                                span { "Show only text entries" }
-                            }
-                            div { class: "help-row",
-                                code { "type:password" }
-                                span { "Show only passwords" }
-                            }
-                            div { class: "help-row",
-                                code { "kind:url" }
-                                span { "Show only URLs" }
-                            }
-                            div { class: "help-row",
-                                code { "kind:json" }
-                                span { "Show only JSON" }
-                            }
-                            div { class: "help-row",
-                                code { "kind:path" }
-                                span { "Show only file paths" }
-                            }
-                            div { class: "help-row",
-                                code { "kind:pass" }
-                                span { "Show only passwords" }
-                            }
-                            div { class: "help-row",
-                                code { "since:1h" }
-                                span { "Last hour (also: 24h, 7d, 30d, today, yesterday)" }
-                            }
-                            div { class: "help-row",
-                                span { class: "help-tip", "Combine filters with free-text search" }
-                            }
+                            span { class: "help-tip", "{modal::FILTER_TIP}" }
                         }
                     }
 
                     h2 { class: "help-title help-title-secondary", "Controls" }
                     div { class: "help-content",
                         div { class: "help-section",
-                            h3 { "Theme" }
+                            h3 { "{modal::controls::SECTION_THEME}" }
                             div { class: "help-row",
                                 button {
                                     class: "theme-toggle-btn",
@@ -162,7 +82,7 @@ pub fn HelpModal(
                             }
                         }
                         div { class: "help-section",
-                            h3 { "Watcher" }
+                            h3 { "{modal::controls::SECTION_WATCHER}" }
                             div { class: "help-row help-row-watcher",
                                 span { class: "{watcher_state_class}", "{watcher_status.label}" }
                                 button {
@@ -170,9 +90,9 @@ pub fn HelpModal(
                                     disabled: !watcher_status.available,
                                     onclick: move |_| on_toggle_watcher.call(()),
                                     if watcher_status.available {
-                                        if watcher_status.paused { "Resume" } else { "Pause" }
+                                        if watcher_status.paused { "{modal::controls::watcher::RESUME}" } else { "{modal::controls::watcher::PAUSE}" }
                                     } else {
-                                        "Unavailable"
+                                        "{modal::controls::watcher::UNAVAILABLE}"
                                     }
                                 }
                                 code { class: "help-key-aside", "p" }
@@ -180,18 +100,18 @@ pub fn HelpModal(
                             div { class: "watcher-detail", "{watcher_status.detail}" }
                             div { class: "watcher-subtle-row",
                                 if let Some(last_capture_at) = watcher_status.last_capture_at {
-                                    span { class: "watcher-subtle-label", "Last capture" }
+                                    span { class: "watcher-subtle-label", "{modal::controls::watcher::LAST_CAPTURE}" }
                                     span { class: "watcher-subtle-value", "{format_timestamp(last_capture_at)}" }
                                 } else if watcher_status.available {
-                                    span { class: "watcher-subtle-label", "Last capture" }
-                                    span { class: "watcher-subtle-value", "No captures yet" }
+                                    span { class: "watcher-subtle-label", "{modal::controls::watcher::LAST_CAPTURE}" }
+                                    span { class: "watcher-subtle-value", "{modal::controls::watcher::NO_CAPTURES_YET}" }
                                 } else {
-                                    span { class: "watcher-subtle-value", "Waiting for watcher status" }
+                                    span { class: "watcher-subtle-value", "{modal::controls::watcher::WAITING_FOR_STATUS}" }
                                 }
                             }
                             if let Some(last_error) = watcher_status.last_error.as_ref() {
                                 if !last_error.is_empty() {
-                                    div { class: "watcher-warning", "Last error: {last_error}" }
+                                    div { class: "watcher-warning", "{modal::controls::watcher::LAST_ERROR_PREFIX}{last_error}" }
                                 }
                             }
                         }
