@@ -1,0 +1,143 @@
+use arboard::Clipboard;
+use std::sync::Arc;
+use std::thread::sleep;
+use std::time::Duration;
+
+use crate::config::constants::{
+    APPEND_IMAGE_HISTORY_FAILED, APPEND_TEXT_HISTORY_FAILED, CLIPBOARD_NOT_AVAILABLE, IMAGE_SAVED,
+    INTERVAL_MS, TEXT_CAPTURED, TEXT_EMPTY_SKIPPED, TEXT_IMAGE_DATA_URI_SKIPPED, TEXT_KIND_EMPTY,
+    TEXT_KIND_IMAGE_DATA_URI,
+};
+use crate::data::entry::PasteEntry;
+use crate::data::image_store::{encode_png, save_png, simple_image_hash};
+use crate::data::text::detect_text_kind;
+use crate::history::{current_timestamp, HistoryStore};
+use crate::ipc::SharedControlState;
+
+use super::signal::should_shutdown;
+use super::state::ChangeDetectionState;
+
+/// Main clipboard polling loop. Runs until shutdown signal is received.
+pub fn poll_clipboard(
+    history_store: HistoryStore,
+    control_state: SharedControlState,
+    save_images_to_disk: bool,
+    image_export_dir: &std::path::Path,
+    shutdown: &Arc<std::sync::atomic::AtomicBool>,
+) -> std::io::Result<()> {
+    let mut clipboard = Clipboard::new().expect(CLIPBOARD_NOT_AVAILABLE);
+    let mut state = ChangeDetectionState::new();
+
+    loop {
+        if should_shutdown(shutdown) {
+            println!("Shutting down gracefully...");
+            break;
+        }
+
+        if is_paused(&control_state) {
+            sleep(Duration::from_millis(INTERVAL_MS));
+            continue;
+        }
+
+        if let Ok(text) = clipboard.get_text() {
+            if state.has_text_changed(&text) {
+                let kind = detect_text_kind(&text);
+                if kind == TEXT_KIND_EMPTY {
+                    println!("{TEXT_EMPTY_SKIPPED}");
+                } else if kind == TEXT_KIND_IMAGE_DATA_URI {
+                    println!(
+                        "{TEXT_IMAGE_DATA_URI_SKIPPED} {} chars for review",
+                        text.chars().count()
+                    );
+                } else {
+                    println!(
+                        "(text:{kind}) {TEXT_CAPTURED} {} chars",
+                        text.chars().count()
+                    );
+                    match history_store.append_entry(&PasteEntry::Text {
+                        timestamp: current_timestamp(),
+                        content: text.clone(),
+                        kind: Some(kind.to_string()),
+                    }) {
+                        Ok(_) => mark_capture_success(&control_state),
+                        Err(err) => {
+                            eprintln!("{APPEND_TEXT_HISTORY_FAILED}: {err}");
+                            set_last_error(
+                                &control_state,
+                                format!("{APPEND_TEXT_HISTORY_FAILED}: {err}"),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        if let Ok(img) = clipboard.get_image() {
+            let bytes: Vec<u8> = img.bytes.to_vec();
+            let hash = simple_image_hash(&bytes);
+
+            if state.has_image_changed(hash) {
+                match encode_png(&bytes, img.width, img.height) {
+                    Ok(png_bytes) => {
+                        let exported_path = if save_images_to_disk {
+                            match save_png(&png_bytes, hash, image_export_dir) {
+                                Ok(path) => {
+                                    println!("{IMAGE_SAVED}: {path}");
+                                    Some(path)
+                                }
+                                Err(err) => {
+                                    let message = format!("Failed to export image: {err}");
+                                    eprintln!("{message}");
+                                    set_last_error(&control_state, message);
+                                    None
+                                }
+                            }
+                        } else {
+                            None
+                        };
+
+                        match history_store.append_entry(&PasteEntry::Image {
+                            timestamp: current_timestamp(),
+                            png_bytes,
+                            path: exported_path,
+                            hash,
+                        }) {
+                            Ok(_) => mark_capture_success(&control_state),
+                            Err(err) => {
+                                eprintln!("{APPEND_IMAGE_HISTORY_FAILED}: {err}");
+                                set_last_error(
+                                    &control_state,
+                                    format!("{APPEND_IMAGE_HISTORY_FAILED}: {err}"),
+                                );
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        set_last_error(&control_state, format!("Failed to encode image: {err}"));
+                    }
+                }
+            }
+        }
+
+        sleep(Duration::from_millis(INTERVAL_MS));
+    }
+
+    Ok(())
+}
+
+fn is_paused(state: &SharedControlState) -> bool {
+    state.lock().map(|guard| guard.paused).unwrap_or(false)
+}
+
+fn mark_capture_success(state: &SharedControlState) {
+    if let Ok(mut guard) = state.lock() {
+        guard.last_capture_at = Some(current_timestamp());
+        guard.last_error = None;
+    }
+}
+
+fn set_last_error(state: &SharedControlState, message: String) {
+    if let Ok(mut guard) = state.lock() {
+        guard.last_error = Some(message);
+    }
+}
