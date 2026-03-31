@@ -1,5 +1,6 @@
 use dioxus::prelude::*;
 use std::collections::HashSet;
+use std::rc::Rc;
 
 use crate::app::actions::{
     adjacent_entry_id, confirm_and_clear_history, confirm_and_delete_entries,
@@ -30,6 +31,15 @@ pub fn App() -> Element {
     let mut help_open = use_signal(|| false);
     let mut theme = use_signal(load_theme);
     let mut focus_search = use_signal(|| 0u32);
+    let mut main_ref: Signal<Option<Rc<MountedData>>> = use_signal(|| None);
+
+    use_effect(move || {
+        if let Some(el) = main_ref() {
+            spawn(async move {
+                let _ = el.set_focus(true).await;
+            });
+        }
+    });
     let auth_cache = state.auth_cache;
     let link_previews = state.link_previews;
     let mut watcher_status = state.watcher_status;
@@ -364,6 +374,7 @@ pub fn App() -> Element {
         main {
             class: format!("app {}", theme().class_name()),
             tabindex: 0,
+            onmounted: move |e| main_ref.set(Some(e.data())),
             onkeydown: handle_keydown,
             oncontextmenu: move |_event| {
                 #[cfg(not(debug_assertions))]
