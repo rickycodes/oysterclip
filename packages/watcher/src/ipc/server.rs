@@ -118,14 +118,21 @@ fn handle_client(stream: UnixStream, state: &SharedControlState) -> io::Result<(
             .map_err(|_| io::Error::other("failed to acquire control state lock"))?;
         match request.cmd.as_str() {
             "ping" => build_response(&guard, true, "pong"),
-            "status" => build_response(&guard, true, "status"),
+            "status" => {
+                let status_msg = if guard.paused {
+                    "Watcher is paused"
+                } else {
+                    "Watcher is running"
+                };
+                build_response(&guard, true, status_msg)
+            }
             "pause" => {
                 guard.paused = true;
-                build_response(&guard, true, "watcher paused")
+                build_response(&guard, true, "Watcher paused")
             }
             "resume" => {
                 guard.paused = false;
-                build_response(&guard, true, "watcher resumed")
+                build_response(&guard, true, "Watcher resumed")
             }
             other => build_response(&guard, false, format!("unknown command: {other}")),
         }
