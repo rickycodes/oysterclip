@@ -1,4 +1,4 @@
-use crate::config::{HELP_KEYBOARD_SECTIONS, modal};
+use crate::config::{modal, HELP_KEYBOARD_SECTIONS};
 use crate::data::format::format_timestamp;
 use crate::system::watcher_control::WatcherStatus;
 use crate::ui::theme::Theme;

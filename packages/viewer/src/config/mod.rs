@@ -5,5 +5,5 @@ pub mod settings;
 pub mod source;
 
 pub use cli::parse;
-pub use help::{HELP_KEYBOARD_SECTIONS, modal};
+pub use help::{modal, HELP_KEYBOARD_SECTIONS};
 pub use settings::AppConfig;
