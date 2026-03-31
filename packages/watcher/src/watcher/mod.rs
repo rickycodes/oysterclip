@@ -9,7 +9,7 @@ use crate::history::HistoryStore;
 use crate::ipc::SharedControlState;
 
 /// Starts the clipboard watcher with signal handling.
-/// 
+///
 /// This orchestrates:
 /// - Signal handler setup for graceful shutdown
 /// - Main clipboard polling loop
