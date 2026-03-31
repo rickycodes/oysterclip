@@ -3,6 +3,7 @@ use crate::data::format::format_timestamp;
 use crate::system::watcher_control::WatcherStatus;
 use crate::ui::theme::Theme;
 use dioxus::prelude::*;
+use std::rc::Rc;
 
 #[component]
 pub fn HelpModal(
@@ -13,6 +14,18 @@ pub fn HelpModal(
     watcher_status: WatcherStatus,
     on_toggle_watcher: EventHandler<()>,
 ) -> Element {
+    let mut overlay_ref: Signal<Option<Rc<dioxus::prelude::MountedData>>> = use_signal(|| None);
+
+    use_effect(move || {
+        if is_open {
+            if let Some(el) = overlay_ref() {
+                spawn(async move {
+                    let _ = el.set_focus(true).await;
+                });
+            }
+        }
+    });
+
     let watcher_state_class = if watcher_status.available {
         if watcher_status.paused {
             "watcher-pill paused"
@@ -36,7 +49,23 @@ pub fn HelpModal(
         if is_open {
             div {
                 class: format!("help-overlay is-open {}", current_theme.class_name()),
+                tabindex: 0,
+                onmounted: move |e| overlay_ref.set(Some(e.data())),
                 onclick: move |_| on_close.call(()),
+                onkeydown: move |event: KeyboardEvent| {
+                    let code = event.code();
+                    match code {
+                        Code::Escape => {
+                            event.prevent_default();
+                            on_close.call(());
+                        }
+                        Code::KeyP => {
+                            event.prevent_default();
+                            on_toggle_watcher.call(());
+                        }
+                        _ => {}
+                    }
+                },
                 div {
                     class: "help-dialog",
                     onclick: move |event| event.stop_propagation(),
