@@ -59,7 +59,7 @@ adding high-value UX improvements.
 
 *These make later changes safer and remove known correctness problems.*
 
-### 1.0 Workspace consolidation ✅ COMPLETE
+### ~~1.0 Workspace consolidation~~ ✅ COMPLETE
 
 **Goal:** Consolidate separate repos into a single Rust workspace to enable code sharing, unified versioning, and easier coordination.
 
@@ -114,7 +114,7 @@ clipboard-manager/
 
 **Next:** 1.1 - Share data types (ClipboardEntry) and improve test coverage
 
-### 1.1 Shared data types and error handling
+### ~~1.1 Shared data types and error handling~~ ✅ COMPLETE
 
 **Goal:** Extract common data structures and error types into `packages/common/`.
 
@@ -214,7 +214,7 @@ If the viewer starts before the watcher, or the watcher restarts, the socket sta
 - Treat `unavailable` as retriable on each poll cycle
 - Reconnect automatically when the socket becomes available again
 
-### 2.3 Link preview retry ✅ *COMPLETED*
+### ~~2.3 Link preview retry~~ ✅ COMPLETE
 Retry failed link previews with exponential backoff to handle transient network failures.
 
 **Implementation:**
@@ -247,7 +247,7 @@ The regex used for link detection and clickable URL rendering now handles edge c
 - `www.example.com/path` → detected and linkable
 - `https://example.com?q=rust&sort=stars` → query params preserved
 
-### ~~2.5 Watcher graceful shutdown~~ ✅ *COMPLETED*
+### ~~2.5 Watcher graceful shutdown~~ ✅ COMPLETE
 Signal handling for SIGTERM/SIGINT implemented with signal-hook crate.
 - ✅ Capture SIGTERM and SIGINT signals (background thread with atomic flag)
 - ✅ Stop the watch loop gracefully 
@@ -284,7 +284,7 @@ Implement cross-platform control mechanism for pause/resume/status.
 - Single CLI interface: `clipboard-watcher control --pause/--resume/--status`
 - Enables full feature parity across platforms
 
-### 2.10 Watcher code modularization ✅ *COMPLETED*
+### ~~2.10 Watcher code modularization~~ ✅ COMPLETE
 Monolithic codebase refactored into domain-focused modules.
 - ✅ Split ipc.rs into ipc/{mod.rs, server.rs, client.rs}
 - ✅ Split history.rs into history/{mod.rs, crypto.rs, store.rs}
@@ -293,7 +293,7 @@ Monolithic codebase refactored into domain-focused modules.
 - ✅ Extracted watcher loop into watcher/mod.rs
 - ✅ Reduced cyclomatic complexity, improved testability and maintainability
 
-### 2.11 Watcher type-safe error handling ✅ *COMPLETED*
+### ~~2.11 Watcher type-safe error handling~~ ✅ COMPLETE
 Replaced generic io::Error with semantic error types.
 - ✅ Created app/error.rs with AppError enum (8 semantic variants)
 - ✅ Type-safe error matching instead of string parsing
@@ -305,35 +305,35 @@ Replaced generic io::Error with semantic error types.
 
 *Low-effort, high-impact polish.*
 
-### ✅ 3.1 Relative timestamps in sidebar *(done)*
+### ~~3.1 Relative timestamps in sidebar~~ ✅ COMPLETE
 - Shows `just now`, `5m ago`, `2h ago`, `yesterday`, day name, or `Mar 20` in sidebar rows
 - Full timestamp kept in the detail pane
 
-### ✅ 3.2 Keyboard shortcut to focus search *(done)*
+### ~~3.2 Keyboard shortcut to focus search~~ ✅ COMPLETE
 - `/` or `Ctrl+F` to focus the search input
 - `Escape` to clear search and return focus to the list
 - Documented in help modal
 
-### ✅ 3.3 JSON pretty-printing in detail pane *(done)*
+### ~~3.3 JSON pretty-printing in detail pane~~ ✅ COMPLETE
 - Parses and re-renders `kind:json` entries with `serde_json::to_string_pretty`
 - Falls back to raw content if parsing fails
 - Rendered with an amber left-border accent to distinguish from plain text
 - Detail label shows "JSON" instead of "Text"
 
-### ✅ 3.4 Theme persistence on desktop *(done)*
+### ~~3.4 Theme persistence on desktop~~ ✅ COMPLETE
 The dark/light theme resets to Dark on every app restart (localStorage only works in WASM builds).
 - On native desktop, theme preference is persisted to `config.toml` in the app config directory
 - CLI `--theme <dark|light>` overrides for a single session without writing back to the config
 - CLI `--db <path>` replaces the old positional argument for specifying the history database
 - Use shared storage crate path resolution once available (1.1)
 
-### ✅ 3.5 Keyboard shortcut for watcher toggle
+### ~~3.5 Keyboard shortcut for watcher toggle~~ ✅ COMPLETE
 `p` toggles pause/resume from anywhere in the list. Shows a status flash
 ("Watcher paused" / "Watcher resumed") consistent with other action feedback.
 Documented in the help modal Actions section; a `p` badge also appears inline
 next to the Pause/Resume button in the Controls panel.
 
-### ✅ 3.6 Per-entry copy feedback *(done)*
+### ~~3.6 Per-entry copy feedback~~ ✅ COMPLETE
 The "Copied!" status flash was tied to a single global signal — navigating quickly after
 copying could show the indicator on the wrong entry.
 - `copy_status` now stores `Option<(i64, String)>` — the entry ID paired with the message
@@ -377,12 +377,12 @@ When a filter is active there is no indication of how many entries are hidden.
 - Show "X of Y" below the search box when results are filtered
 - Disappears when the search is empty
 
-### ✅ 3.11 `kind:secret` / `kind:pass` filter support *(done)*
+### ~~3.11 `kind:secret` / `kind:pass` filter support~~ ✅ COMPLETE
 Password entries already use `"password"` as their kind string internally.
 `kind:pass`, `kind:password` all work via substring matching — no additional
 implementation needed. Document in the help modal filter reference.
 
-### ✅ 3.13 Help modal filter reference update *(done)*
+### ~~3.13 Help modal filter reference update~~ ✅ COMPLETE
 The help modal documents `kind:url` and `kind:json` but is missing `kind:path` (already
 implemented) and `since:` date filter variants. Bring the filter reference up to date.
 - Add `kind:path` example
@@ -408,7 +408,7 @@ and terminal-first workflows. Lives as a separate crate in the workspace.
 - Keybindings and UX tailored for keyboard-only terminal environment
 - Reads from the same clipboard-watcher database as the desktop viewer
 
-### ✅ 4.1 Date/time range filtering *(done)*
+### ~~4.1 Date/time range filtering~~ ✅ COMPLETE
 - `since:1h`, `since:Nh` (N hours), `since:Nd` (N days), `since:today`, `since:yesterday`
 - Combinable with other filters: `kind:url since:today github`
 - Documented in help modal
@@ -419,13 +419,13 @@ Let users pin entries so they persist through retention culling and appear at th
 - `f` to toggle pin on selected entry; pinned entries show a pin icon
 - Pinned entries sort to the top or live in a separate section
 
-### ✅ 4.3 Multi-select bulk delete *(done)*
+### ~~4.3 Multi-select bulk delete~~ ✅ COMPLETE
 `Space` toggles selection; `Shift+↑/↓` extends it; `Delete`/`d` bulk-deletes
 all selected entries with a count-aware confirmation; `Escape` clears selection.
 Selected entries show a blue left-accent stripe; a toolbar in the sidebar shows
 the count with Delete and ✕ clear buttons.
 
-### ✅ 4.13 Per-type color accents *(done)*
+### ~~4.13 Per-type color accents~~ ✅ COMPLETE
 Each content type gets a distinct colored left-border accent in both the sidebar
 entry cards and the detail pane, making type immediately scannable at a glance.
 - JSON → amber
@@ -911,7 +911,7 @@ actions = [
 - Workflows: copy URL → extract ID → auto-open in admin panel (one click)
 - Community recipes: users share ".extract-github-issue-number.toml" config
 
-### 4.34.2 HTML image extraction ✅ *COMPLETED*
+### ~~4.34.2 HTML image extraction~~ ✅ COMPLETE
 
 Detect and render `<img src="...">` HTML tags as image entries in the UI.
 
