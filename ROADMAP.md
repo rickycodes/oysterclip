@@ -229,11 +229,23 @@ Retry failed link previews with exponential backoff to handle transient network 
 - ✅ Tests verify backoff timing and error handling
 - ✅ No clippy warnings
 
-### 2.4 URL detection edge cases
-The regex used for link detection and clickable URL rendering doesn't handle several common patterns.
-- Strip trailing punctuation (`.`, `,`, `)`) that gets absorbed into matched URLs
-- Handle bare `www.` URLs without a scheme (render as `https://www....`)
-- Affects sidebar link label, detail pane hyperlinking, and link preview trigger
+### ~~2.4 URL detection edge cases~~ ✅ COMPLETE
+
+The regex used for link detection and clickable URL rendering now handles edge cases.
+
+**Status:** ✅ COMPLETE - All work done
+- ✅ Strip trailing punctuation (`.`, `,`, `)`, `!`, `;`, `:`, `"`, `'`, `>`, `]`, `}`) from URLs
+- ✅ Support bare `www.` URLs without scheme (e.g., `www.example.com`)
+- ✅ Separate regex patterns for scheme-based (https?://) and www URLs
+- ✅ Prevent overlapping matches, sort results by position
+- ✅ Added 18 comprehensive tests covering all edge cases
+- ✅ All 43 tests passing, 0 clippy warnings
+
+**Examples fixed:**
+- `https://example.com.` → `https://example.com` (no trailing period)
+- `(https://example.com)` → `https://example.com` (no trailing paren)
+- `www.example.com/path` → detected and linkable
+- `https://example.com?q=rust&sort=stars` → query params preserved
 
 ### ~~2.5 Watcher graceful shutdown~~ ✅ *COMPLETED*
 Signal handling for SIGTERM/SIGINT implemented with signal-hook crate.
@@ -1000,7 +1012,7 @@ external infrastructure.*
 10. ~~Link preview retry (2.3)~~ ✅
 11. ~~Theme persistence (3.4)~~ ✅
 12. ~~Date range filtering (4.1)~~ ✅
-13. URL detection edge cases (2.4)
+13. ~~URL detection edge cases (2.4)~~ ✅
 14. ~~Watcher graceful shutdown (2.5)~~ ✅
 15. Watcher logging framework (2.6)
 16. Watcher configuration validation (2.7)
