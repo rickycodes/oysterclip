@@ -12,6 +12,49 @@ adding high-value UX improvements.
 
 ---
 
+## Tier 0 — Vision & Community
+
+*Acknowledged high-value opportunities unlikely to ship in core product. Strong candidates for community contributions, platform experiments, or future revisits.*
+
+### 0.1 Internationalization (i18n)
+
+**Goal:** Enable translations to support multiple languages (Spanish, French, German, Japanese, Chinese, etc.).
+
+**Approach:**
+1. **Phase 1: Foundation**
+   - Extract all hardcoded UI strings to constants (partially done: help modal, watcher controls)
+   - Create `i18n` module with fluent/gettext integration
+   - Define translation keys structure (e.g., `btn.copy`, `msg.watcher_paused`)
+   - Add translation key comments to source strings for translator context
+
+2. **Phase 2: Tooling**
+   - Set up `.ftl` files (Fluent) or `.po` files (gettext) for each language
+   - Add translation workflow (crowdsourcing, community reviews)
+   - Create locale switcher in UI (Settings → Language)
+   - Persist language preference to config.toml
+
+3. **Phase 3: Coverage**
+   - Viewer UI strings (sidebar, detail pane, modals, status messages)
+   - Watcher messages (logs, control responses)
+   - Help modal and keyboard shortcuts
+   - Error messages and notifications
+
+**Status:** 🔄 In progress
+- ✅ Help modal strings extracted to constants
+- ✅ Watcher control messages extracted to constants
+- 🔄 Viewer UI strings being identified for extraction (Copy, Delete, Search, etc.)
+- ⏳ i18n framework not yet chosen (fluent vs gettext vs custom)
+- ⏳ Translation tooling and workflow not defined
+
+**Considerations:**
+- Rust fluent library vs gettext (performance, maintainability)
+- Where to store translations (repo vs external service)
+- How to manage contributor translations
+- RTL language support (Hebrew, Arabic)
+- Date/time/number formatting per locale
+
+---
+
 ## Tier 1 — Foundation
 
 *These make later changes safer and remove known correctness problems.*
