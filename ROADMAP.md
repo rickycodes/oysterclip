@@ -342,11 +342,24 @@ copying could show the indicator on the wrong entry.
 - Flash message is type-aware: "Copied JSON", "Copied Link", "Copied Path", etc.,
   using the existing `entry_label` system for both button clicks and keyboard shortcuts
 
-### 3.7 Extended `since:` filter syntax
-`since:` currently accepts `Nh` (hours) and `Nd` (days), but common durations are missing.
-- Add `since:Nm` for minutes (e.g. `since:30m`)
-- Add `since:Nw` for weeks (e.g. `since:2w`)
-- Document new variants in the help modal filter reference
+### ~~3.7 Extended `since:` filter syntax~~ ✅ COMPLETE
+
+Extended the date range filter to support more time units for flexible queries.
+
+**Status:** ✅ COMPLETE - All work done
+- ✅ Add `since:Nm` for minutes (e.g. `since:30m`, `since:1m`)
+- ✅ Add `since:Nw` for weeks (e.g. `since:2w`, `since:1w`)
+- ✅ Existing support retained: `Nh` (hours), `Nd` (days), `today`, `yesterday`
+- ✅ Added 9 comprehensive tests covering all time units and edge cases
+- ✅ All 52 tests passing, 0 clippy warnings
+
+**Supported formats:**
+- `since:30m` — last 30 minutes
+- `since:2h` — last 2 hours
+- `since:7d` — last 7 days
+- `since:2w` — last 2 weeks
+- `since:today` — since start of today
+- `since:yesterday` — since start of yesterday
 
 ### 3.8 Duplicate entry collapsing
 Consecutive identical clipboard entries (common with apps that write to the clipboard
@@ -1025,7 +1038,7 @@ external infrastructure.*
 23. ~~Per-entry copy feedback (3.6)~~ ✅
 24. Entry count badge (3.10)
 25. ~~`kind:pass` filter (3.11)~~ ✅
-26. Extended `since:` syntax (3.7)
+26. ~~Extended `since:` syntax (3.7)~~ ✅
 27. Search query history (3.9)
 28. Duplicate entry collapsing (3.8)
 29. Clickable image entries (3.12)

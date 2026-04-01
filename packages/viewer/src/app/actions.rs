@@ -144,7 +144,7 @@ fn apply_filters(entry: &ClipboardEntry, filters: &[QueryFilter]) -> bool {
 }
 
 /// Parse a `since:` value into a UTC unix timestamp cutoff.
-/// Supported: `1h`, `Nh` (N hours), `Nd` (N days), `today`, `yesterday`.
+/// Supported: `Nm` (N minutes), `Nh` (N hours), `Nd` (N days), `Nw` (N weeks), `today`, `yesterday`.
 fn parse_since_cutoff(value: &str) -> Option<u64> {
     let now = Utc::now();
 
@@ -164,6 +164,11 @@ fn parse_since_cutoff(value: &str) -> Option<u64> {
         return Some(start.with_timezone(&Utc).timestamp() as u64);
     }
 
+    if let Some(n) = value.strip_suffix('m') {
+        let minutes: i64 = n.parse().ok()?;
+        return Some((now - chrono::Duration::minutes(minutes)).timestamp() as u64);
+    }
+
     if let Some(n) = value.strip_suffix('h') {
         let hours: i64 = n.parse().ok()?;
         return Some((now - chrono::Duration::hours(hours)).timestamp() as u64);
@@ -172,6 +177,11 @@ fn parse_since_cutoff(value: &str) -> Option<u64> {
     if let Some(n) = value.strip_suffix('d') {
         let days: i64 = n.parse().ok()?;
         return Some((now - chrono::Duration::days(days)).timestamp() as u64);
+    }
+
+    if let Some(n) = value.strip_suffix('w') {
+        let weeks: i64 = n.parse().ok()?;
+        return Some((now - chrono::Duration::weeks(weeks)).timestamp() as u64);
     }
 
     None
@@ -364,4 +374,99 @@ pub fn open_url(url: &str) {
     };
 
     let _ = std::process::Command::new("sh").arg("-c").arg(cmd).spawn();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_since_minutes() {
+        let cutoff = parse_since_cutoff("30m");
+        assert!(cutoff.is_some());
+        let cutoff = cutoff.unwrap();
+        let expected = (Utc::now() - chrono::Duration::minutes(30)).timestamp() as u64;
+        // Allow 1 second of variance due to test execution time
+        assert!((cutoff as i64 - expected as i64).abs() <= 1);
+    }
+
+    #[test]
+    fn test_parse_since_hours() {
+        let cutoff = parse_since_cutoff("2h");
+        assert!(cutoff.is_some());
+        let cutoff = cutoff.unwrap();
+        let expected = (Utc::now() - chrono::Duration::hours(2)).timestamp() as u64;
+        assert!((cutoff as i64 - expected as i64).abs() <= 1);
+    }
+
+    #[test]
+    fn test_parse_since_days() {
+        let cutoff = parse_since_cutoff("7d");
+        assert!(cutoff.is_some());
+        let cutoff = cutoff.unwrap();
+        let expected = (Utc::now() - chrono::Duration::days(7)).timestamp() as u64;
+        assert!((cutoff as i64 - expected as i64).abs() <= 1);
+    }
+
+    #[test]
+    fn test_parse_since_weeks() {
+        let cutoff = parse_since_cutoff("2w");
+        assert!(cutoff.is_some());
+        let cutoff = cutoff.unwrap();
+        let expected = (Utc::now() - chrono::Duration::weeks(2)).timestamp() as u64;
+        assert!((cutoff as i64 - expected as i64).abs() <= 1);
+    }
+
+    #[test]
+    fn test_parse_since_today() {
+        let cutoff = parse_since_cutoff("today");
+        assert!(cutoff.is_some());
+        let cutoff = cutoff.unwrap();
+        let local = Local::now();
+        let start = Local
+            .with_ymd_and_hms(local.year(), local.month(), local.day(), 0, 0, 0)
+            .single()
+            .unwrap();
+        let expected = start.with_timezone(&Utc).timestamp() as u64;
+        assert_eq!(cutoff, expected);
+    }
+
+    #[test]
+    fn test_parse_since_yesterday() {
+        let cutoff = parse_since_cutoff("yesterday");
+        assert!(cutoff.is_some());
+        let cutoff = cutoff.unwrap();
+        let local = Local::now() - chrono::Duration::days(1);
+        let start = Local
+            .with_ymd_and_hms(local.year(), local.month(), local.day(), 0, 0, 0)
+            .single()
+            .unwrap();
+        let expected = start.with_timezone(&Utc).timestamp() as u64;
+        assert_eq!(cutoff, expected);
+    }
+
+    #[test]
+    fn test_parse_since_invalid() {
+        assert!(parse_since_cutoff("invalid").is_none());
+        assert!(parse_since_cutoff("abc").is_none());
+        assert!(parse_since_cutoff("").is_none());
+    }
+
+    #[test]
+    fn test_parse_since_one_minute() {
+        let cutoff = parse_since_cutoff("1m");
+        assert!(cutoff.is_some());
+        let cutoff = cutoff.unwrap();
+        let expected = (Utc::now() - chrono::Duration::minutes(1)).timestamp() as u64;
+        assert!((cutoff as i64 - expected as i64).abs() <= 1);
+    }
+
+    #[test]
+    fn test_parse_since_one_week() {
+        let cutoff = parse_since_cutoff("1w");
+        assert!(cutoff.is_some());
+        let cutoff = cutoff.unwrap();
+        let expected = (Utc::now() - chrono::Duration::weeks(1)).timestamp() as u64;
+        assert!((cutoff as i64 - expected as i64).abs() <= 1);
+    }
 }
