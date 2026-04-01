@@ -4,10 +4,10 @@
     <style>
       .component-box { fill: #f0f4ff; stroke: #3b4fc0; stroke-width: 2; }
       .storage-box { fill: #fff0f0; stroke: #d63031; stroke-width: 2; }
-      .text-title { font-size: 18px; font-weight: bold; fill: #2d3436; }
-      .text-detail { font-size: 13px; fill: #636e72; }
+      .text-title { font-size: 20px; font-weight: bold; fill: #2d3436; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif; }
+      .text-detail { font-size: 15px; fill: #636e72; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif; }
       .arrow { stroke: #636e72; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
-      .label { font-size: 12px; fill: #2d3436; background: white; }
+      .label { font-size: 13px; fill: #2d3436; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif; }
     </style>
     <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
       <polygon points="0 0, 10 3, 0 6" fill="#636e72" />
@@ -15,7 +15,14 @@
   </defs>
 
   <!-- Title -->
-  <text x="600" y="30" style="font-size: 24px; font-weight: bold; fill: #2d3436; text-anchor: middle;">OysterClip Architecture</text>
+  <text x="600" y="30" style="font-size: 26px; font-weight: bold; fill: #2d3436; text-anchor: middle; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;">OysterClip Architecture</text>
+
+  <!-- Arrows (drawn first so they appear behind boxes) -->
+  <!-- Arrows: Viewer -> Watcher (control) - dashed, should be behind -->
+  <path d="M 860 200 Q 600 150 330 200" class="arrow" stroke-dasharray="5,5"/>
+  
+  <!-- Arrows: Watcher -> Viewer (status polling) - dashed, should be behind -->
+  <path d="M 330 400 Q 600 450 860 380" class="arrow" stroke-dasharray="5,5"/>
 
   <!-- Watcher Component -->
   <rect x="50" y="120" width="280" height="380" rx="8" class="component-box"/>
@@ -29,11 +36,11 @@
   <text x="70" y="295" class="text-detail">• Handles pause/resume</text>
   <text x="70" y="320" class="text-detail">• Exports images</text>
   
-  <text x="70" y="360" style="font-size: 12px; font-weight: bold; fill: #2d3436;">Writes to:</text>
+  <text x="70" y="360" style="font-size: 13px; font-weight: bold; fill: #2d3436; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;">Writes to:</text>
   <text x="70" y="385" class="text-detail">✓ History DB</text>
   <text x="70" y="410" class="text-detail">✓ Image files</text>
   
-  <text x="70" y="450" style="font-size: 12px; font-weight: bold; fill: #2d3436;">Listens for:</text>
+  <text x="70" y="450" style="font-size: 13px; font-weight: bold; fill: #2d3436; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;">Listens for:</text>
   <text x="70" y="475" class="text-detail">✓ Control commands</text>
 
   <!-- Viewer Component -->
@@ -48,10 +55,10 @@
   <text x="880" y="295" class="text-detail">• Theme toggle</text>
   <text x="880" y="320" class="text-detail">• Link previews</text>
   
-  <text x="880" y="360" style="font-size: 12px; font-weight: bold; fill: #2d3436;">Reads from:</text>
+  <text x="880" y="360" style="font-size: 13px; font-weight: bold; fill: #2d3436; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;">Reads from:</text>
   <text x="880" y="385" class="text-detail">✓ History DB</text>
   
-  <text x="880" y="450" style="font-size: 12px; font-weight: bold; fill: #2d3436;">Sends to:</text>
+  <text x="880" y="450" style="font-size: 13px; font-weight: bold; fill: #2d3436; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;">Sends to:</text>
   <text x="880" y="475" class="text-detail">✓ Control commands</text>
 
   <!-- Storage Component -->
@@ -62,28 +69,26 @@
   <text x="450" y="355" class="text-detail">📦 SQLite Database</text>
   <text x="450" y="380" class="text-detail">  clipboard_history.db</text>
   
-  <text x="450" y="410" style="font-size: 12px; font-weight: bold; fill: #2d3436;">Contains:</text>
+  <text x="450" y="410" style="font-size: 13px; font-weight: bold; fill: #2d3436; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;">Contains:</text>
   <text x="450" y="435" class="text-detail">✓ Entries (id, type, content)</text>
   <text x="450" y="460" class="text-detail">✓ Metadata (timestamps)</text>
 
-  <!-- Arrows: Watcher -> Storage -->
+  <!-- Arrows: Watcher -> Storage (solid) -->
   <path d="M 330 260 Q 380 280 430 320" class="arrow"/>
-  <text x="350" y="270" style="font-size: 11px; fill: #2d3436; font-weight: bold;">writes</text>
+  <text x="410" y="265" class="label" text-anchor="end">writes</text>
 
-  <!-- Arrows: Viewer -> Storage -->
+  <!-- Arrows: Viewer -> Storage (solid) -->
   <path d="M 860 320 Q 810 320 710 320" class="arrow"/>
-  <text x="770" y="310" style="font-size: 11px; fill: #2d3436; font-weight: bold;">reads</text>
+  <text x="770" y="305" class="label" text-anchor="middle">reads</text>
 
-  <!-- Arrows: Viewer -> Watcher (control) -->
-  <path d="M 860 200 Q 600 150 330 200" class="arrow" stroke-dasharray="5,5"/>
-  <text x="580" y="165" style="font-size: 11px; fill: #2d3436; font-weight: bold;">control commands</text>
+  <!-- Label for control commands -->
+  <text x="580" y="160" class="label" text-anchor="middle">control commands</text>
 
-  <!-- Arrows: Watcher -> Viewer (status polling) -->
-  <path d="M 330 400 Q 600 450 860 380" class="arrow" stroke-dasharray="5,5"/>
-  <text x="520" y="475" style="font-size: 11px; fill: #2d3436; font-weight: bold;">status updates</text>
+  <!-- Label for status updates -->
+  <text x="520" y="480" class="label" text-anchor="middle">status updates</text>
 
   <!-- Legend -->
-  <text x="50" y="650" style="font-size: 12px; fill: #636e72;">
+  <text x="50" y="650" style="font-size: 13px; fill: #636e72; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;">
     <tspan x="50">━━━ sync data flows</tspan>
     <tspan x="400">╌╌╌ async commands/polling</tspan>
   </text>
