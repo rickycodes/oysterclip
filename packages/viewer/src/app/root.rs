@@ -7,6 +7,7 @@ use crate::app::actions::{
     confirm_and_delete_entry, copy_text_to_clipboard, set_status, DeleteActionState,
 };
 use crate::app::state::use_app_state;
+use crate::config::settings::AppConfig;
 use crate::system::watcher_control;
 use crate::ui::help_modal::HelpModal;
 use crate::ui::theme::{load_theme, save_theme};
@@ -17,6 +18,11 @@ const APP_STYLE: &str = include_str!("../../styles.css");
 #[component]
 pub fn App() -> Element {
     let state = use_app_state();
+
+    // Load config once at app startup
+    let config = AppConfig::load();
+    let notepad_handler = config.get_handler("notepad");
+
     let source = state.source.clone();
     let cache = state.cache.clone();
     let entries = state.entries;
@@ -98,7 +104,7 @@ pub fn App() -> Element {
     let handle_open_editor = {
         let filtered_entries = filtered_entries.clone();
         move |id: i64| {
-            let entry_to_edit = filtered_entries
+            if let Some(crate::data::entry::ClipboardEntry::Text { content, .. }) = filtered_entries
                 .iter()
                 .find(|entry| {
                     let entry_id = match entry {
@@ -107,23 +113,20 @@ pub fn App() -> Element {
                     };
                     entry_id == id
                 })
-                .cloned();
-
-            if let Some(entry) = entry_to_edit {
-                if let crate::data::entry::ClipboardEntry::Text { content, .. } = entry {
-                    aggregate_to_app(
-                        &[crate::data::entry::ClipboardEntry::Text {
-                            id,
-                            timestamp: 0,
-                            content,
-                            kind: None,
-                        }],
-                        "",
-                        None,
-                        "editor",
-                        action_status,
-                    );
-                }
+                .cloned()
+            {
+                aggregate_to_app(
+                    &[crate::data::entry::ClipboardEntry::Text {
+                        id,
+                        timestamp: 0,
+                        content,
+                        kind: None,
+                    }],
+                    "",
+                    None,
+                    "editor",
+                    action_status,
+                );
             }
         }
     };
@@ -179,27 +182,30 @@ pub fn App() -> Element {
     let handle_send_to_notepad = {
         let filtered_entries = filtered_entries.clone();
         let selected_ids_set = selected_ids();
+        let handler = notepad_handler.clone();
         move |_| {
-            let entries_to_send: Vec<_> = filtered_entries
-                .iter()
-                .filter(|entry| {
-                    let id = match entry {
-                        crate::data::entry::ClipboardEntry::Text { id, .. } => *id,
-                        crate::data::entry::ClipboardEntry::Image { id, .. } => *id,
-                    };
-                    selected_ids_set.contains(&id)
-                })
-                .cloned()
-                .collect();
+            if let Some(handler) = handler.clone() {
+                let entries_to_send: Vec<_> = filtered_entries
+                    .iter()
+                    .filter(|entry| {
+                        let id = match entry {
+                            crate::data::entry::ClipboardEntry::Text { id, .. } => *id,
+                            crate::data::entry::ClipboardEntry::Image { id, .. } => *id,
+                        };
+                        selected_ids_set.contains(&id)
+                    })
+                    .cloned()
+                    .collect();
 
-            aggregate_to_app(
-                &entries_to_send,
-                "\n---\n",
-                Some("[{timestamp}] {text}"),
-                "notepad",
-                action_status,
-            );
-            selected_ids.set(HashSet::new());
+                aggregate_to_app(
+                    &entries_to_send,
+                    handler.separator.as_deref().unwrap_or("\n---\n"),
+                    handler.template.as_deref(),
+                    handler.app.as_deref().unwrap_or("editor"),
+                    action_status,
+                );
+                selected_ids.set(HashSet::new());
+            }
         }
     };
 
@@ -455,6 +461,7 @@ pub fn App() -> Element {
                 on_delete_selected: handle_delete_selected,
                 on_clear_selection: handle_clear_selection,
                 on_send_to_notepad: handle_send_to_notepad,
+                show_notepad_button: notepad_handler.is_some(),
             }
             DetailPane {
                 state: detail_state,

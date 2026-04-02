@@ -424,8 +424,6 @@ pub fn aggregate_to_app(
     let app_to_use = if app == "editor" {
         if cfg!(target_os = "windows") {
             "notepad"
-        } else if cfg!(target_os = "macos") {
-            "nano"
         } else {
             "nano"
         }
@@ -442,19 +440,12 @@ pub fn aggregate_to_app(
                 .spawn()
                 .map(|_| ())
         })
-    } else if cfg!(target_os = "macos") {
-        let temp_file = std::env::temp_dir().join("clipboard_bulk_temp.txt");
-        std::fs::write(&temp_file, &combined).and_then(|_| {
-            std::process::Command::new("open")
-                .arg(&temp_file)
-                .spawn()
-                .map(|_| ())
-        })
     } else {
-        // Linux: write to temp file and open with xdg-open (uses default text editor)
+        // macOS and Linux: write to temp file and open
         let temp_file = std::env::temp_dir().join("clipboard_bulk_temp.txt");
         std::fs::write(&temp_file, &combined).and_then(|_| {
-            std::process::Command::new("xdg-open")
+            let opener = if cfg!(target_os = "macos") { "open" } else { "xdg-open" };
+            std::process::Command::new(opener)
                 .arg(&temp_file)
                 .spawn()
                 .map(|_| ())
@@ -464,9 +455,16 @@ pub fn aggregate_to_app(
     match result {
         Ok(_) => set_status(
             action_status,
-            format!("Sent {} entries to {}", entries.len(), if app == "editor" { "editor" } else { app }),
+            format!(
+                "Sent {} entries to {}",
+                entries.len(),
+                if app == "editor" { "editor" } else { app }
+            ),
         ),
-        Err(e) => set_status(action_status, format!("Failed to open {}: {}", app_to_use, e)),
+        Err(e) => set_status(
+            action_status,
+            format!("Failed to open {}: {}", app_to_use, e),
+        ),
     }
 }
 

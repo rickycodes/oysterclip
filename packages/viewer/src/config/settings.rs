@@ -59,4 +59,8 @@ impl AppConfig {
             let _ = std::fs::write(&path, text);
         }
     }
+
+    pub fn get_handler(&self, name: &str) -> Option<HandlerConfig> {
+        self.bulk_actions.handlers.get(name).cloned()
+    }
 }

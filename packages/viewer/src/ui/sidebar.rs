@@ -49,6 +49,7 @@ pub fn Sidebar(
     on_delete_selected: EventHandler<()>,
     on_clear_selection: EventHandler<()>,
     on_send_to_notepad: EventHandler<()>,
+    show_notepad_button: bool,
 ) -> Element {
     let mut search_input: Signal<Option<Rc<MountedData>>> = use_signal(|| None);
 
@@ -115,10 +116,12 @@ pub fn Sidebar(
                     span { class: "selection-count",
                         "{selected_ids.len()} selected"
                     }
-                    button {
-                        class: "selection-notepad-btn",
-                        onclick: move |_| on_send_to_notepad.call(()),
-                        "📝 Notepad"
+                    if show_notepad_button {
+                        button {
+                            class: "selection-notepad-btn",
+                            onclick: move |_| on_send_to_notepad.call(()),
+                            "📝 Notepad"
+                        }
                     }
                     button {
                         class: "selection-delete-btn",
