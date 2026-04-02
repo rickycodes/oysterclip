@@ -376,6 +376,100 @@ pub fn open_url(url: &str) {
     let _ = std::process::Command::new("sh").arg("-c").arg(cmd).spawn();
 }
 
+/// Aggregate multiple selected clipboard entries and send to a target app (e.g., notepad).
+///
+/// Config example:
+/// ```toml
+/// [bulk_actions.handlers]
+/// send_to_notepad = {
+///     handler_type = "aggregate_command",
+///     app = "notepad",
+///     separator = "\n---\n",
+///     template = "[{timestamp}] {text}"
+/// }
+/// ```
+pub fn aggregate_to_app(
+    entries: &[ClipboardEntry],
+    separator: &str,
+    template: Option<&str>,
+    app: &str,
+    action_status: Signal<Option<String>>,
+) {
+    if entries.is_empty() {
+        set_status(action_status, "No entries selected");
+        return;
+    }
+
+    let mut combined = String::new();
+
+    for (i, entry) in entries.iter().enumerate() {
+        if i > 0 {
+            combined.push_str(separator);
+        }
+
+        if let ClipboardEntry::Text { content, id, .. } = entry {
+            let formatted = if let Some(tmpl) = template {
+                let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+                tmpl.replace("{timestamp}", &now)
+                    .replace("{text}", content)
+                    .replace("{id}", &id.to_string())
+            } else {
+                content.clone()
+            };
+            combined.push_str(&formatted);
+        }
+    }
+
+    // Handle special "editor" app name to use system default editor
+    let app_to_use = if app == "editor" {
+        if cfg!(target_os = "windows") {
+            "notepad"
+        } else if cfg!(target_os = "macos") {
+            "nano"
+        } else {
+            "nano"
+        }
+    } else {
+        app
+    };
+
+    // Cross-platform app launching
+    let result = if cfg!(target_os = "windows") {
+        let temp_file = std::env::temp_dir().join("clipboard_bulk_temp.txt");
+        std::fs::write(&temp_file, &combined).and_then(|_| {
+            std::process::Command::new(app_to_use)
+                .arg(&temp_file)
+                .spawn()
+                .map(|_| ())
+        })
+    } else if cfg!(target_os = "macos") {
+        let temp_file = std::env::temp_dir().join("clipboard_bulk_temp.txt");
+        std::fs::write(&temp_file, &combined).and_then(|_| {
+            std::process::Command::new("open")
+                .arg(&temp_file)
+                .spawn()
+                .map(|_| ())
+        })
+    } else {
+        // Linux: write to temp file and open with xdg-open (uses default text editor)
+        let temp_file = std::env::temp_dir().join("clipboard_bulk_temp.txt");
+        std::fs::write(&temp_file, &combined).and_then(|_| {
+            std::process::Command::new("xdg-open")
+                .arg(&temp_file)
+                .spawn()
+                .map(|_| ())
+        })
+    };
+
+    match result {
+        Ok(_) => set_status(
+            action_status,
+            format!("Sent {} entries to {}", entries.len(), if app == "editor" { "editor" } else { app }),
+        ),
+        Err(e) => set_status(action_status, format!("Failed to open {}: {}", app_to_use, e)),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

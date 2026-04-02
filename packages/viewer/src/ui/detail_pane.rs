@@ -57,6 +57,7 @@ pub fn DetailPane(
     on_copy_text: EventHandler<(i64, String, &'static str)>,
     on_delete: EventHandler<i64>,
     on_open_image: EventHandler<()>,
+    on_open_editor: EventHandler<i64>,
 ) -> Element {
     rsx! {
         section { class: "content",
@@ -206,6 +207,11 @@ pub fn DetailPane(
                                         class: "detail-copy-btn",
                                         onclick: move |_| on_copy_text.call((id, text.clone(), type_label)),
                                         "Copy"
+                                    }
+                                    button {
+                                        class: "detail-notepad-btn",
+                                        onclick: move |_| on_open_editor.call(id),
+                                        "📝 Notepad"
                                     }
                                     if is_password_text {
                                         button {

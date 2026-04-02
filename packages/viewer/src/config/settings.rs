@@ -4,6 +4,24 @@ use serde::{Deserialize, Serialize};
 pub struct AppConfig {
     #[serde(default)]
     pub theme: ThemeConfig,
+    #[serde(default)]
+    pub bulk_actions: BulkActionsConfig,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct BulkActionsConfig {
+    #[serde(default)]
+    pub handlers: std::collections::HashMap<String, HandlerConfig>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct HandlerConfig {
+    pub handler_type: String,
+    pub command: Option<String>,
+    pub app: Option<String>,
+    pub target: Option<String>,
+    pub separator: Option<String>,
+    pub template: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

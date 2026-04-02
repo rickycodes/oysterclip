@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::rc::Rc;
 
 use crate::app::actions::{
-    adjacent_entry_id, confirm_and_clear_history, confirm_and_delete_entries,
+    adjacent_entry_id, aggregate_to_app, confirm_and_clear_history, confirm_and_delete_entries,
     confirm_and_delete_entry, copy_text_to_clipboard, set_status, DeleteActionState,
 };
 use crate::app::state::use_app_state;
@@ -95,6 +95,39 @@ pub fn App() -> Element {
         image_overlay_open.set(true);
     };
 
+    let handle_open_editor = {
+        let filtered_entries = filtered_entries.clone();
+        move |id: i64| {
+            let entry_to_edit = filtered_entries
+                .iter()
+                .find(|entry| {
+                    let entry_id = match entry {
+                        crate::data::entry::ClipboardEntry::Text { id, .. } => *id,
+                        crate::data::entry::ClipboardEntry::Image { id, .. } => *id,
+                    };
+                    entry_id == id
+                })
+                .cloned();
+
+            if let Some(entry) = entry_to_edit {
+                if let crate::data::entry::ClipboardEntry::Text { content, .. } = entry {
+                    aggregate_to_app(
+                        &[crate::data::entry::ClipboardEntry::Text {
+                            id,
+                            timestamp: 0,
+                            content,
+                            kind: None,
+                        }],
+                        "",
+                        None,
+                        "editor",
+                        action_status,
+                    );
+                }
+            }
+        }
+    };
+
     let source_for_delete = source.clone();
     let cache_for_delete = cache.clone();
     let source_for_delete_keys = source_for_delete.clone();
@@ -141,6 +174,33 @@ pub fn App() -> Element {
 
     let handle_clear_selection = move |_| {
         selected_ids.set(HashSet::new());
+    };
+
+    let handle_send_to_notepad = {
+        let filtered_entries = filtered_entries.clone();
+        let selected_ids_set = selected_ids();
+        move |_| {
+            let entries_to_send: Vec<_> = filtered_entries
+                .iter()
+                .filter(|entry| {
+                    let id = match entry {
+                        crate::data::entry::ClipboardEntry::Text { id, .. } => *id,
+                        crate::data::entry::ClipboardEntry::Image { id, .. } => *id,
+                    };
+                    selected_ids_set.contains(&id)
+                })
+                .cloned()
+                .collect();
+
+            aggregate_to_app(
+                &entries_to_send,
+                "\n---\n",
+                Some("[{timestamp}] {text}"),
+                "notepad",
+                action_status,
+            );
+            selected_ids.set(HashSet::new());
+        }
     };
 
     let source_for_watcher = source.clone();
@@ -394,6 +454,7 @@ pub fn App() -> Element {
                 on_clear: handle_clear,
                 on_delete_selected: handle_delete_selected,
                 on_clear_selection: handle_clear_selection,
+                on_send_to_notepad: handle_send_to_notepad,
             }
             DetailPane {
                 state: detail_state,
@@ -407,6 +468,7 @@ pub fn App() -> Element {
                 on_copy_text: handle_copy_text,
                 on_delete: handle_delete,
                 on_open_image: handle_open_image,
+                on_open_editor: handle_open_editor,
             }
         }
         if let Some(src) = overlay_image_src {
