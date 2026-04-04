@@ -10,10 +10,9 @@ use crate::data::format::{
     mask_password_preview, preview_text,
 };
 use crate::data::link_preview::LinkPreviewState;
-use crate::system::auth::AuthCache;
+use crate::system::auth::{authenticate_admin_action, AuthCache};
 use crate::ui::icon::Icon;
 use crate::ui::linkable_text::LinkableText;
-use crate::ui::password_confirm_modal::PasswordConfirmModal;
 
 #[derive(Clone, PartialEq)]
 pub enum DetailState {
@@ -29,7 +28,6 @@ pub fn DetailPane(
     state: DetailState,
     copy_status: Option<String>,
     show_password: Signal<bool>,
-    password_confirm_open: Signal<bool>,
     auth_cache: Signal<Arc<Mutex<AuthCache>>>,
     action_status: Signal<Option<String>>,
     link_previews: Signal<HashMap<String, LinkPreviewState>>,
@@ -192,7 +190,19 @@ pub fn DetailPane(
                                                 if show_password() {
                                                     show_password.set(false);
                                                 } else {
-                                                    password_confirm_open.set(true);
+                                                    if let Ok(mut cache_guard) = auth_cache().lock() {
+                                                        if cache_guard.is_authenticated() {
+                                                            show_password.set(true);
+                                                        } else {
+                                                            let auth_result = authenticate_admin_action();
+                                                            if auth_result.success {
+                                                                cache_guard.set_authenticated(true);
+                                                                show_password.set(true);
+                                                            } else {
+                                                                action_status.set(Some("Authentication failed".to_string()));
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                             },
                                             if show_password() {
@@ -312,16 +322,6 @@ pub fn DetailPane(
                     }
                 }
             }
-        }
-        PasswordConfirmModal {
-            is_open: password_confirm_open(),
-            on_confirm: move |_| {
-                show_password.set(true);
-                password_confirm_open.set(false);
-            },
-            on_cancel: move |_| {
-                password_confirm_open.set(false);
-            },
         }
     }
 }

@@ -2,7 +2,6 @@ pub mod detail_pane;
 pub mod help_modal;
 pub mod icon;
 pub mod linkable_text;
-pub mod password_confirm_modal;
 pub mod sidebar;
 pub mod theme;
 
