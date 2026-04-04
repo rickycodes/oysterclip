@@ -444,7 +444,11 @@ pub fn aggregate_to_app(
         // macOS and Linux: write to temp file and open
         let temp_file = std::env::temp_dir().join("clipboard_bulk_temp.txt");
         std::fs::write(&temp_file, &combined).and_then(|_| {
-            let opener = if cfg!(target_os = "macos") { "open" } else { "xdg-open" };
+            let opener = if cfg!(target_os = "macos") {
+                "open"
+            } else {
+                "xdg-open"
+            };
             std::process::Command::new(opener)
                 .arg(&temp_file)
                 .spawn()

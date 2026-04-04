@@ -1,13 +1,12 @@
 use dioxus::prelude::*;
 use std::rc::Rc;
 
+use crate::config::APP_NAME;
 use crate::data::entry::ClipboardEntry;
 use crate::data::format::{
     entry_icon_name, entry_label, extract_single_url, format_relative_timestamp, is_image_data_uri,
     is_password, preview_text,
 };
-
-pub const APP_NAME: &str = "OysterClip";
 
 fn get_entry_icon(name: &str) -> &'static str {
     match name {
