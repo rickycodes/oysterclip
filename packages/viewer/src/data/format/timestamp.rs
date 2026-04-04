@@ -15,19 +15,21 @@ pub fn format_relative_timestamp(timestamp: u64) -> String {
     if hours < 24 {
         return format!("{}h ago", hours);
     }
-    // For older entries, show a short date
+    // For older entries, show days/weeks in relative format
     if let Some(utc) = DateTime::<Utc>::from_timestamp(timestamp as i64, 0) {
         let local = utc.with_timezone(&Local);
         let today = Local::now().date_naive();
         let entry_date = local.date_naive();
         let days_ago = (today - entry_date).num_days();
-        if days_ago == 1 {
-            return "yesterday".to_string();
-        }
+        
         if days_ago < 7 {
-            return local.format("%A").to_string(); // e.g. "Monday"
+            return format!("{}d ago", days_ago);
         }
-        return local.format("%b %-d").to_string(); // e.g. "Mar 20"
+        let weeks_ago = days_ago / 7;
+        if weeks_ago < 4 {
+            return format!("{}w ago", weeks_ago);
+        }
+        return local.format("%b %-d").to_string(); // e.g. "Mar 20" for very old entries
     }
     timestamp.to_string()
 }
