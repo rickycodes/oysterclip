@@ -208,13 +208,38 @@ After the shared crate exists, add tests that exercise the full round-trip:
 ### ~~2.1 Password preview leaks in sidebar~~ *(not an issue)*
 Already correctly masked via `preview_text()` — no action needed.
 
-### 2.2 Watcher socket auto-recovery
+### 2.2 Password detection heuristic too weak
+Currently detects passwords only if text is **exactly 25 characters, no whitespace, no URLs**.
+This creates false positives (code snippets, truncated text) and false negatives (any password not 25 chars).
+
+**Current implementation:**
+```rust
+const PASSWORD_LEN: usize = 25;
+text.len() == PASSWORD_LEN && !text.contains(' ') && !text.contains("\n") && !has_urls(text)
+```
+
+**Approach:**
+- Evaluate entropy-based detection (shannon entropy > threshold)
+- Check common patterns (uppercase + lowercase + digits + symbols)
+- Length range (12–128 chars) instead of exact match
+- User-configurable threshold or explicit password marking
+- Consider leveraging password strength libraries
+
+**Status:** ⏳ Not started
+
+**Considerations:**
+- Balance between false positives and false negatives
+- Performance impact of entropy calculations
+- User frustration with misclassified entries
+- Allow manual override/marking as password
+
+### 2.3 Watcher socket auto-recovery
 If the viewer starts before the watcher, or the watcher restarts, the socket state goes
 `unavailable` and never recovers without restarting the viewer.
 - Treat `unavailable` as retriable on each poll cycle
 - Reconnect automatically when the socket becomes available again
 
-### ~~2.3 Link preview retry~~ ✅ COMPLETE
+### ~~2.4 Link preview retry~~ ✅ COMPLETE
 Retry failed link previews with exponential backoff to handle transient network failures.
 
 **Implementation:**
@@ -229,7 +254,7 @@ Retry failed link previews with exponential backoff to handle transient network 
 - ✅ Tests verify backoff timing and error handling
 - ✅ No clippy warnings
 
-### ~~2.4 URL detection edge cases~~ ✅ COMPLETE
+### ~~2.5 URL detection edge cases~~ ✅ COMPLETE
 
 The regex used for link detection and clickable URL rendering now handles edge cases.
 
@@ -247,14 +272,14 @@ The regex used for link detection and clickable URL rendering now handles edge c
 - `www.example.com/path` → detected and linkable
 - `https://example.com?q=rust&sort=stars` → query params preserved
 
-### ~~2.5 Watcher graceful shutdown~~ ✅ COMPLETE
+### ~~2.6 Watcher graceful shutdown~~ ✅ COMPLETE
 Signal handling for SIGTERM/SIGINT implemented with signal-hook crate.
 - ✅ Capture SIGTERM and SIGINT signals (background thread with atomic flag)
 - ✅ Stop the watch loop gracefully 
 - ✅ Print shutdown message before exit
 - ✅ Gated with #[cfg(unix)] for cross-platform compatibility
 
-### 2.6 Watcher logging framework
+### 2.7 Watcher logging framework
 Replace `println!` / `eprintln!` with structured logging for better observability.
 - Integrate `tracing` or `log` crate
 - Support verbosity levels: error, warn, info, debug, trace
@@ -262,21 +287,21 @@ Replace `println!` / `eprintln!` with structured logging for better observabilit
 - Include timestamps and structured context in logs
 - Easier for monitoring, debugging, and production support
 
-### 2.7 Watcher configuration validation
+### 2.8 Watcher configuration validation
 Configuration values are not validated at load time.
 - Validate database path is writable and parent directory exists
 - Validate image export directory is writable
 - Validate history retention count is > 0
 - Early errors on startup rather than silent failures during operation
 
-### 2.8 Watcher environment variable config overrides
+### 2.9 Watcher environment variable config overrides
 Support environment variables to override config file values for containerization.
 - `CLIPBOARD_WATCHER_DB_PATH` overrides database path
 - `CLIPBOARD_WATCHER_IMAGE_DIR` overrides image export directory
 - `CLIPBOARD_WATCHER_MAX_HISTORY` overrides retention limit
 - Follow XDG Base Directory spec for default paths
 
-### 2.9 Cross-platform watcher control (IPC)
+### 2.10 Cross-platform watcher control (IPC)
 Currently IPC is Unix-only (Unix sockets). Windows users can capture but not pause/resume.
 Implement cross-platform control mechanism for pause/resume/status.
 - Windows: Named pipes or HTTP control server on localhost
@@ -284,7 +309,7 @@ Implement cross-platform control mechanism for pause/resume/status.
 - Single CLI interface: `clipboard-watcher control --pause/--resume/--status`
 - Enables full feature parity across platforms
 
-### ~~2.10 Watcher code modularization~~ ✅ COMPLETE
+### ~~2.11 Watcher code modularization~~ ✅ COMPLETE
 Monolithic codebase refactored into domain-focused modules.
 - ✅ Split ipc.rs into ipc/{mod.rs, server.rs, client.rs}
 - ✅ Split history.rs into history/{mod.rs, crypto.rs, store.rs}
@@ -293,7 +318,7 @@ Monolithic codebase refactored into domain-focused modules.
 - ✅ Extracted watcher loop into watcher/mod.rs
 - ✅ Reduced cyclomatic complexity, improved testability and maintainability
 
-### ~~2.11 Watcher type-safe error handling~~ ✅ COMPLETE
+### ~~2.12 Watcher type-safe error handling~~ ✅ COMPLETE
 Replaced generic io::Error with semantic error types.
 - ✅ Created app/error.rs with AppError enum (8 semantic variants)
 - ✅ Type-safe error matching instead of string parsing
