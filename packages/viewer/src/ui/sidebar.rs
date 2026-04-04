@@ -203,13 +203,6 @@ pub fn Sidebar(
                                 div { class: "entry-title",
                                     svg { class: "entry-icon",
                                         view_box: "0 0 24 24",
-                                        width: "1em",
-                                        height: "1em",
-                                        stroke_width: "2",
-                                        stroke: "currentColor",
-                                        fill: "none",
-                                        stroke_linecap: "round",
-                                        stroke_linejoin: "round",
                                         dangerous_inner_html: get_entry_icon(entry_icon_name(entry))
                                     }
                                     span { "{entry_label(entry)}" }

@@ -284,6 +284,13 @@ body {
 .entry-icon {
   flex-shrink: 0;
   color: var(--mono-label);
+  width: 1em;
+  height: 1em;
+  stroke-width: 2;
+  stroke: currentColor;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .entry-preview {
@@ -489,7 +496,7 @@ body {
   gap: 10px;
 }
 
-.detail-copy-btn {
+.detail-copy-btn, .detail-notepad-btn {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-strong);
   background: var(--panel-strong);
