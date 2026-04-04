@@ -19,13 +19,6 @@ pub fn ImageOverlay(
                 svg {
                     class: "image-overlay-close-icon",
                     view_box: "0 0 24 24",
-                    width: "44",
-                    height: "44",
-                    stroke_width: "2",
-                    stroke: "currentColor",
-                    fill: "none",
-                    stroke_linecap: "round",
-                    stroke_linejoin: "round",
                     path {
                         d: "M18 6L6 18M6 6l12 12",
                     }
