@@ -1,5 +1,5 @@
 [workspace]
-members = ["packages/common", "packages/watcher", "packages/viewer"]
+members = ["packages/oysterclip-common", "packages/oysterclip-watcher", "packages/oysterclip-viewer"]
 resolver = "2"
 
 [workspace.package]
@@ -16,13 +16,13 @@ codegen-units = 1
 lto = "fat"
 
 # Viewer: UI app - prioritize responsiveness over size
-[profile.release.package.viewer]
+[profile.release.package.oysterclip-viewer]
 opt-level = 2
 
 # Watcher: Background daemon - prioritize size/efficiency
-[profile.release.package.watcher]
+[profile.release.package.oysterclip-watcher]
 opt-level = "z"
 
 # Common: Library used by both - maximize performance
-[profile.release.package.common]
+[profile.release.package.oysterclip-common]
 opt-level = 3

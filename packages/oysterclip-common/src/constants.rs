@@ -1,10 +1,8 @@
 pub const HISTORY_FILE: &str = ".clipboard_history.db";
 pub const CONFIG_FILE: &str = "config.toml";
 pub const SOCKET_FILE: &str = ".clipboard-watcher.sock";
-pub const APP_NAME: &str = "clipboard-manager";
-
-// Keyring IDs
-pub const ENCRYPTION_KEY_ID: &str = "clipboard-manager-encryption-key";
+pub const APP_NAME: &str = "oysterclip";
+pub const ENCRYPTION_KEY_ID: &str = "oysterclip-encryption-key";
 
 // Database schema
 pub const DB_SCHEMA: &str = r#"

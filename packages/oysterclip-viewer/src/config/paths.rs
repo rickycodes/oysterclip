@@ -1,5 +1,5 @@
-use common::constants::CONFIG_FILE;
-use common::paths as common_paths;
+use oysterclip_common::constants::CONFIG_FILE;
+use oysterclip_common::paths as common_paths;
 use std::io;
 use std::path::PathBuf;
 

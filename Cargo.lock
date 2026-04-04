@@ -859,19 +859,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "common"
-version = "0.1.0"
-dependencies = [
- "base64",
- "chacha20poly1305",
- "directories",
- "keyring",
- "rand 0.8.5",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "concurrent-queue"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4063,6 +4050,64 @@ dependencies = [
 ]
 
 [[package]]
+name = "oysterclip-common"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "chacha20poly1305",
+ "directories",
+ "keyring",
+ "rand 0.8.5",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "oysterclip-viewer"
+version = "0.1.0"
+dependencies = [
+ "arboard",
+ "base64",
+ "chacha20poly1305",
+ "chrono",
+ "clap",
+ "dioxus",
+ "directories",
+ "keyring",
+ "oysterclip-common",
+ "regex",
+ "reqwest",
+ "rfd 0.15.4",
+ "rusqlite",
+ "scraper",
+ "serde",
+ "serde_json",
+ "tokio",
+ "toml",
+ "url",
+]
+
+[[package]]
+name = "oysterclip-watcher"
+version = "0.1.0"
+dependencies = [
+ "arboard",
+ "base64",
+ "chacha20poly1305",
+ "clap",
+ "directories",
+ "image",
+ "keyring",
+ "oysterclip-common",
+ "rand 0.8.5",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "signal-hook",
+ "toml",
+]
+
+[[package]]
 name = "pango"
 version = "0.18.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6296,31 +6341,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
-name = "viewer"
-version = "0.1.0"
-dependencies = [
- "arboard",
- "base64",
- "chacha20poly1305",
- "chrono",
- "clap",
- "common",
- "dioxus",
- "directories",
- "keyring",
- "regex",
- "reqwest",
- "rfd 0.15.4",
- "rusqlite",
- "scraper",
- "serde",
- "serde_json",
- "tokio",
- "toml",
- "url",
-]
-
-[[package]]
 name = "waker-fn"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6497,26 +6517,6 @@ dependencies = [
  "hashbrown 0.15.5",
  "indexmap",
  "semver",
-]
-
-[[package]]
-name = "watcher"
-version = "0.1.0"
-dependencies = [
- "arboard",
- "base64",
- "chacha20poly1305",
- "clap",
- "common",
- "directories",
- "image",
- "keyring",
- "rand 0.8.5",
- "rusqlite",
- "serde",
- "serde_json",
- "signal-hook",
- "toml",
 ]
 
 [[package]]
