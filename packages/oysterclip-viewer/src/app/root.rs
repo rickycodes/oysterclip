@@ -11,7 +11,7 @@ use crate::config::settings::AppConfig;
 use crate::system::watcher_control;
 use crate::ui::help_modal::HelpModal;
 use crate::ui::theme::{load_theme, save_theme};
-use crate::ui::{DetailPane, Sidebar};
+use crate::ui::{DetailPane, ImageOverlay, Sidebar};
 
 const APP_STYLE: &str = include_str!("../../styles.css");
 
@@ -479,39 +479,10 @@ pub fn App() -> Element {
             }
         }
         if let Some(src) = overlay_image_src {
-            div {
-                class: if image_overlay_open() { "image-overlay is-open" } else { "image-overlay" },
-                onclick: move |_| image_overlay_open.set(false),
-                aria_hidden: if image_overlay_open() { "false" } else { "true" },
-                button {
-                    class: "image-overlay-close",
-                    onclick: move |_| image_overlay_open.set(false),
-                    aria_label: "Close image overlay",
-                    tabindex: if image_overlay_open() { "0" } else { "-1" },
-                    svg {
-                        class: "image-overlay-close-icon",
-                        view_box: "0 0 24 24",
-                        width: "44",
-                        height: "44",
-                        stroke_width: "2",
-                        stroke: "currentColor",
-                        fill: "none",
-                        stroke_linecap: "round",
-                        stroke_linejoin: "round",
-                        path {
-                            d: "M18 6L6 18M6 6l12 12",
-                        }
-                    }
-                }
-                div {
-                    class: "image-overlay-dialog",
-                    img {
-                        class: "image-overlay-image",
-                        src,
-                        alt: "Clipboard image expanded",
-                        onclick: move |event| event.stop_propagation(),
-                    }
-                }
+            ImageOverlay {
+                src,
+                is_open: image_overlay_open(),
+                on_close: move |_| image_overlay_open.set(false),
             }
         }
         HelpModal {
