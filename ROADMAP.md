@@ -8,7 +8,7 @@ adding high-value UX improvements.
 
 ## Architecture
 
-![Architecture diagram](clipboard-architecture.svg)
+![Architecture diagram](architecture.svg)
 
 ---
 
