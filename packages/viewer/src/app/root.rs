@@ -34,6 +34,7 @@ pub fn App() -> Element {
     let action_status = state.action_status;
     let mut show_password = state.show_password;
     let mut image_overlay_open = use_signal(|| false);
+    let password_confirm_open = use_signal(|| false);
     let mut help_open = use_signal(|| false);
     let mut theme = use_signal(load_theme);
     let mut focus_search = use_signal(|| 0u32);
@@ -469,6 +470,7 @@ pub fn App() -> Element {
                     if Some(id) == current_selected_id { Some(msg) } else { None }
                 }),
                 show_password,
+                password_confirm_open,
                 auth_cache,
                 action_status,
                 link_previews,

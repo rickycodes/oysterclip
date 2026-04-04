@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use crate::app::actions::{open_url, set_status};
+use crate::app::actions::open_url;
 use crate::data::entry::ClipboardEntry;
 use crate::data::format::{
     entry_icon_name, entry_label, extract_html_img_src, extract_single_url, format_timestamp,
@@ -10,8 +10,10 @@ use crate::data::format::{
     mask_password_preview, preview_text,
 };
 use crate::data::link_preview::LinkPreviewState;
-use crate::system::auth::{authenticate_admin_action, AuthCache};
+use crate::system::auth::AuthCache;
+use crate::ui::icon::Icon;
 use crate::ui::linkable_text::LinkableText;
+use crate::ui::password_confirm_modal::PasswordConfirmModal;
 
 #[derive(Clone, PartialEq)]
 pub enum DetailState {
@@ -22,35 +24,12 @@ pub enum DetailState {
     Entry(ClipboardEntry),
 }
 
-fn get_entry_icon(name: &str) -> &'static str {
-    match name {
-        "lock" => {
-            r#"<path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>"#
-        }
-        "link" => {
-            r#"<path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.658 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>"#
-        }
-        "file-text" => {
-            r#"<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>"#
-        }
-        "image" => {
-            r#"<path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>"#
-        }
-        "braces" => {
-            r#"<path stroke-linecap="round" stroke-linejoin="round" d="M7 4a2 2 0 00-2 2v3a2 2 0 01-2 2 2 2 0 012 2v3a2 2 0 002 2M17 4a2 2 0 012 2v3a2 2 0 002 2 2 2 0 00-2 2v3a2 2 0 01-2 2"></path>"#
-        }
-        "folder" => {
-            r#"<path stroke-linecap="round" stroke-linejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"></path>"#
-        }
-        _ => r#"<circle cx="12" cy="12" r="10"></circle>"#,
-    }
-}
-
 #[component]
 pub fn DetailPane(
     state: DetailState,
     copy_status: Option<String>,
     show_password: Signal<bool>,
+    password_confirm_open: Signal<bool>,
     auth_cache: Signal<Arc<Mutex<AuthCache>>>,
     action_status: Signal<Option<String>>,
     link_previews: Signal<HashMap<String, LinkPreviewState>>,
@@ -114,17 +93,10 @@ pub fn DetailPane(
                             div { class: "detail",
                                 div { class: "detail-meta",
                                     div { class: "detail-type-with-icon",
-                                        svg { class: "detail-icon",
-                                            view_box: "0 0 24 24",
-                                            width: "1em",
-                                            height: "1em",
-                                            stroke_width: "2",
-                                            stroke: "currentColor",
-                                            fill: "none",
-                                            stroke_linecap: "round",
-                                            stroke_linejoin: "round",
-                                            dangerous_inner_html: get_entry_icon(entry_icon_name(&ClipboardEntry::Text { id, timestamp, content: content.clone(), kind: kind.clone() }))
-                                        }
+                                    svg { class: "detail-icon",
+                                        view_box: "0 0 24 24",
+                                        Icon { name: entry_icon_name(&ClipboardEntry::Text { id, timestamp, content: content.clone(), kind: kind.clone() }) }
+                                    }
                                         span { class: "detail-type", "{detail_label}" }
                                     }
                                     span { class: "detail-ts", "Timestamp: {format_timestamp(timestamp)}" }
@@ -220,19 +192,7 @@ pub fn DetailPane(
                                                 if show_password() {
                                                     show_password.set(false);
                                                 } else {
-                                                    if let Ok(mut cache_guard) = auth_cache().lock() {
-                                                        if cache_guard.is_authenticated() {
-                                                            show_password.set(true);
-                                                        } else {
-                                                            let auth_result = authenticate_admin_action();
-                                                            if auth_result.success {
-                                                                cache_guard.set_authenticated(true);
-                                                                show_password.set(true);
-                                                            } else {
-                                                                set_status(action_status, "Authentication failed");
-                                                            }
-                                                        }
-                                                    }
+                                                    password_confirm_open.set(true);
                                                 }
                                             },
                                             if show_password() {
@@ -258,14 +218,7 @@ pub fn DetailPane(
                                 div { class: "detail-type-with-icon",
                                     svg { class: "detail-icon",
                                         view_box: "0 0 24 24",
-                                        width: "1em",
-                                        height: "1em",
-                                        stroke_width: "2",
-                                        stroke: "currentColor",
-                                        fill: "none",
-                                        stroke_linecap: "round",
-                                        stroke_linejoin: "round",
-                                        dangerous_inner_html: get_entry_icon("image")
+                                        Icon { name: "image" }
                                     }
                                     span { class: "detail-type", "Image" }
                                 }
@@ -359,6 +312,16 @@ pub fn DetailPane(
                     }
                 }
             }
+        }
+        PasswordConfirmModal {
+            is_open: password_confirm_open(),
+            on_confirm: move |_| {
+                show_password.set(true);
+                password_confirm_open.set(false);
+            },
+            on_cancel: move |_| {
+                password_confirm_open.set(false);
+            },
         }
     }
 }
