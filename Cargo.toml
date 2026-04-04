@@ -6,6 +6,9 @@ resolver = "2"
 version = "0.1.0"
 edition = "2021"
 
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
 [profile.release]
 strip = true
 opt-level = "z"
