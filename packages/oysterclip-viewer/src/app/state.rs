@@ -3,7 +3,8 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use crate::app::actions::{entry_id, matches_query};
+use crate::app::actions::entry_id;
+use crate::app::query::matches_query;
 use crate::config::source::ClipboardSource;
 use crate::data::entry::{CachedEntries, ClipboardEntry, ClipboardPayload};
 use crate::data::format::{entry_label, extract_single_url};
