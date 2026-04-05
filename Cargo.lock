@@ -859,6 +859,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "common"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "chacha20poly1305",
+ "directories",
+ "keyring",
+ "rand 0.8.5",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4050,19 +4063,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "oysterclip-common"
-version = "0.1.0"
-dependencies = [
- "base64",
- "chacha20poly1305",
- "directories",
- "keyring",
- "rand 0.8.5",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "oysterclip-viewer"
 version = "0.1.0"
 dependencies = [
@@ -4071,10 +4071,10 @@ dependencies = [
  "chacha20poly1305",
  "chrono",
  "clap",
+ "common",
  "dioxus",
  "directories",
  "keyring",
- "oysterclip-common",
  "regex",
  "reqwest",
  "rfd 0.15.4",
@@ -4095,10 +4095,10 @@ dependencies = [
  "base64",
  "chacha20poly1305",
  "clap",
+ "common",
  "directories",
  "image",
  "keyring",
- "oysterclip-common",
  "rand 0.8.5",
  "rusqlite",
  "serde",

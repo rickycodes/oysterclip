@@ -1,5 +1,5 @@
 [workspace]
-members = ["packages/oysterclip-common", "packages/oysterclip-watcher", "packages/oysterclip-viewer"]
+members = ["packages/common", "packages/oysterclip-watcher", "packages/oysterclip-viewer"]
 resolver = "2"
 
 [workspace.package]
@@ -24,5 +24,5 @@ opt-level = 2
 opt-level = "z"
 
 # Common: Library used by both - maximize performance
-[profile.release.package.oysterclip-common]
+[profile.release.package.common]
 opt-level = 3

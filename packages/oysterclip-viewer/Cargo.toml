@@ -9,7 +9,7 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-oysterclip-common = { path = "../oysterclip-common" }
+common = { path = "../common" }
 dioxus = { version = "0.7", features = ["desktop"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

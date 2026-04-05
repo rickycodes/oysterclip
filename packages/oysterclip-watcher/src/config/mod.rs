@@ -3,4 +3,4 @@ pub mod constants;
 pub mod settings;
 
 pub use cli::{Cli, Commands, ControlAction};
-pub use oysterclip_common::paths;
+pub use common::paths;

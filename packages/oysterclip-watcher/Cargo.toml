@@ -7,7 +7,7 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-oysterclip-common = { path = "../oysterclip-common" }
+common = { path = "../common" }
 arboard = "3"
 image = { version = "0.25", features = ["png"] }
 serde = { version = "1", features = ["derive"] }

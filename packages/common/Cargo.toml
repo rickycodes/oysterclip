@@ -1,5 +1,5 @@
 [package]
-name = "oysterclip-common"
+name = "common"
 version.workspace = true
 edition.workspace = true
 
