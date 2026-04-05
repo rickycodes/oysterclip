@@ -8,5 +8,6 @@ pub use url::{extract_single_url, has_urls, split_text_with_urls, TextSegment};
 
 mod classification;
 mod image;
+mod text_type;
 mod timestamp;
 mod url;

@@ -1,4 +1,4 @@
-use super::url::extract_single_url;
+use super::text_type::TextType;
 use crate::data::entry::ClipboardEntry;
 
 const PASSWORD_LEN: usize = 25;
@@ -7,17 +7,7 @@ const PASSWORD_PREVIEW_MASK_LEN: usize = 8;
 pub fn entry_label(entry: &ClipboardEntry) -> &'static str {
     match entry {
         ClipboardEntry::Text { content, kind, .. } => {
-            if is_password(content) {
-                "Pass"
-            } else if extract_single_url(content).is_some() {
-                "Link"
-            } else if kind.as_deref() == Some("json") {
-                "JSON"
-            } else if kind.as_deref() == Some("path") {
-                "Path"
-            } else {
-                "Text"
-            }
+            TextType::classify(content, kind.as_deref()).label()
         }
         ClipboardEntry::Image { .. } => "Image",
     }
@@ -26,17 +16,7 @@ pub fn entry_label(entry: &ClipboardEntry) -> &'static str {
 pub fn entry_icon_name(entry: &ClipboardEntry) -> &'static str {
     match entry {
         ClipboardEntry::Text { content, kind, .. } => {
-            if is_password(content) {
-                "lock"
-            } else if extract_single_url(content).is_some() {
-                "link"
-            } else if kind.as_deref() == Some("json") {
-                "braces"
-            } else if kind.as_deref() == Some("path") {
-                "folder"
-            } else {
-                "file-text"
-            }
+            TextType::classify(content, kind.as_deref()).icon()
         }
         ClipboardEntry::Image { .. } => "image",
     }
