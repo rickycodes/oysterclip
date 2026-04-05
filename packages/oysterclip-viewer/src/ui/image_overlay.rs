@@ -1,11 +1,7 @@
 use dioxus::prelude::*;
 
 #[component]
-pub fn ImageOverlay(
-    src: String,
-    is_open: bool,
-    on_close: EventHandler<()>,
-) -> Element {
+pub fn ImageOverlay(src: String, is_open: bool, on_close: EventHandler<()>) -> Element {
     rsx! {
         div {
             class: if is_open { "image-overlay is-open" } else { "image-overlay" },

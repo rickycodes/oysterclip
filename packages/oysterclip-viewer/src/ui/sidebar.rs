@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
-use std::rc::Rc;
 
 use super::icon::Icon;
+use super::search_bar::SearchBar;
 use crate::config::APP_NAME;
 use crate::data::entry::ClipboardEntry;
 use crate::data::format::{
@@ -27,20 +27,6 @@ pub fn Sidebar(
     on_send_to_notepad: EventHandler<()>,
     show_notepad_button: bool,
 ) -> Element {
-    let mut search_input: Signal<Option<Rc<MountedData>>> = use_signal(|| None);
-
-    use_effect(move || {
-        let count = focus_search();
-        if count > 0 {
-            let el = search_input();
-            if let Some(el) = el {
-                spawn(async move {
-                    let _ = el.set_focus(true).await;
-                });
-            }
-        }
-    });
-
     rsx! {
         aside { class: "sidebar",
             div { class: "sidebar-header",
@@ -54,29 +40,10 @@ pub fn Sidebar(
                     }
                 }
             }
-            div { class: "sidebar-search",
-                input {
-                    class: "sidebar-search-input",
-                    r#type: "search",
-                    placeholder: "Search history",
-                    value: "{query}",
-                    onmounted: move |e| search_input.set(Some(e.data())),
-                    oninput: move |event| on_query_input.call(event.value().to_string()),
-                    onkeydown: move |event| {
-                        if event.code() == Code::Escape {
-                            on_query_input.call(String::new());
-                            let el = search_input();
-                            if let Some(el) = el {
-                                spawn(async move {
-                                    let _ = el.set_focus(false).await;
-                                });
-                            }
-                        }
-                        // Stop propagation to prevent app-level shortcuts
-                        // while the search input is focused
-                        event.stop_propagation();
-                    },
-                }
+            SearchBar {
+                query: query.clone(),
+                focus_search,
+                on_query_input,
             }
             if let Some(err) = error {
                 div { class: "sidebar-error",

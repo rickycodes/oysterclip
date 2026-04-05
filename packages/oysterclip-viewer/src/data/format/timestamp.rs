@@ -21,7 +21,7 @@ pub fn format_relative_timestamp(timestamp: u64) -> String {
         let today = Local::now().date_naive();
         let entry_date = local.date_naive();
         let days_ago = (today - entry_date).num_days();
-        
+
         if days_ago < 7 {
             return format!("{}d ago", days_ago);
         }
