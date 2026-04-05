@@ -22,7 +22,3 @@ opt-level = 2
 # Watcher: Background daemon - prioritize size/efficiency
 [profile.release.package.oysterclip-watcher]
 opt-level = "z"
-
-# Common: Library used by both - maximize performance
-[profile.release.package.common]
-opt-level = 3
