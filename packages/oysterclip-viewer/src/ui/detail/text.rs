@@ -2,6 +2,7 @@ use dioxus::prelude::*;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+use super::text_type::TextDetailType;
 use crate::app::actions::open_url;
 use crate::data::entry::ClipboardEntry;
 use crate::data::format::{
@@ -45,6 +46,14 @@ pub fn TextDetail(
     let is_json = kind.as_deref() == Some("json");
     let is_path = kind.as_deref() == Some("path");
     let is_html_image = is_html_img_tag(&content);
+
+    let detail_type = TextDetailType::classify(
+        &content,
+        kind.as_deref(),
+        exact_url.is_some(),
+        is_html_image,
+    );
+    let detail_label = detail_type.label();
     let html_image_src = if is_html_image {
         extract_html_img_src(&content)
     } else {
@@ -56,19 +65,6 @@ pub fn TextDetail(
             .and_then(|v| serde_json::to_string_pretty(&v).ok())
     } else {
         None
-    };
-    let detail_label = if is_password_text {
-        "Password"
-    } else if is_html_image {
-        "HTML Image"
-    } else if exact_url.is_some() {
-        "Link"
-    } else if is_json {
-        "JSON"
-    } else if is_path {
-        "Path"
-    } else {
-        "Text"
     };
     let summary = if is_data_uri {
         Some(image_data_uri_summary(&content))

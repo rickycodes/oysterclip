@@ -1,6 +1,7 @@
 pub mod empty;
 pub mod image;
 pub mod text;
+pub mod text_type;
 
 use dioxus::prelude::*;
 use std::collections::HashMap;
