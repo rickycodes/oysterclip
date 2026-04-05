@@ -400,25 +400,25 @@ pub fn aggregate_to_app(
         return;
     }
 
-    let mut combined = String::new();
-
-    for (i, entry) in entries.iter().enumerate() {
-        if i > 0 {
-            combined.push_str(separator);
-        }
-
-        if let ClipboardEntry::Text { content, id, .. } = entry {
-            let formatted = if let Some(tmpl) = template {
-                let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-                tmpl.replace("{timestamp}", &now)
-                    .replace("{text}", content)
-                    .replace("{id}", &id.to_string())
+    let combined = entries
+        .iter()
+        .filter_map(|entry| {
+            if let ClipboardEntry::Text { content, id, .. } = entry {
+                let formatted = if let Some(tmpl) = template {
+                    let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+                    tmpl.replace("{timestamp}", &now)
+                        .replace("{text}", content)
+                        .replace("{id}", &id.to_string())
+                } else {
+                    content.clone()
+                };
+                Some(formatted)
             } else {
-                content.clone()
-            };
-            combined.push_str(&formatted);
-        }
-    }
+                None
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(separator);
 
     // Handle special "editor" app name to use system default editor
     let app_to_use = if app == "editor" {
