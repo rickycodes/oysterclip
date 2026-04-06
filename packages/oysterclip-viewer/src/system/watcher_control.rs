@@ -2,7 +2,7 @@ use std::io::{self, BufRead, BufReader, Write};
 use std::path::Path;
 
 use crate::config::source::ClipboardSource;
-use common::{ControlCommand, ControlRequest, ControlResponse};
+use common::{ControlCommand, ControlRequest, ControlResponse, SOCKET_FILE};
 
 #[derive(Clone, PartialEq)]
 pub struct WatcherStatus {
@@ -127,5 +127,5 @@ fn get_socket_path(db_path: &Path) -> io::Result<std::path::PathBuf> {
         )
     })?;
 
-    Ok(parent.join(".clipboard-watcher.sock"))
+    Ok(parent.join(SOCKET_FILE))
 }

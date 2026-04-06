@@ -9,6 +9,7 @@ use std::time::Duration;
 use crate::config::source::ClipboardSource;
 use crate::data::entry::{CachedEntries, ClipboardEntry};
 use crate::data::history::{clear_history, delete_entries, delete_entry};
+use common::TEMP_BULK_FILE;
 
 const STATUS_TIMEOUT_SECS: u64 = 5;
 const STATUS_TIMEOUT: Duration = Duration::from_secs(STATUS_TIMEOUT_SECS);
@@ -270,7 +271,7 @@ pub fn aggregate_to_app(
 
     // Cross-platform app launching
     let result = if cfg!(target_os = "windows") {
-        let temp_file = std::env::temp_dir().join("clipboard_bulk_temp.txt");
+        let temp_file = std::env::temp_dir().join(TEMP_BULK_FILE);
         std::fs::write(&temp_file, &combined).and_then(|_| {
             std::process::Command::new(app_to_use)
                 .arg(&temp_file)
@@ -279,7 +280,7 @@ pub fn aggregate_to_app(
         })
     } else {
         // macOS and Linux: write to temp file and open
-        let temp_file = std::env::temp_dir().join("clipboard_bulk_temp.txt");
+        let temp_file = std::env::temp_dir().join(TEMP_BULK_FILE);
         std::fs::write(&temp_file, &combined).and_then(|_| {
             let opener = if cfg!(target_os = "macos") {
                 "open"
