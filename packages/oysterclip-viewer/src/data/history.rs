@@ -8,11 +8,12 @@ use std::path::Path;
 use crate::config::source::ClipboardSource;
 use crate::data::entry::{CachedEntries, ClipboardEntry, ClipboardPayload, SourceStamp};
 use common::crypto::{decrypt_text, get_or_create_key};
+use common::ERR_OPEN_HISTORY_DB;
 
 pub fn delete_entry(source: &ClipboardSource, id: i64) -> Result<(), String> {
     let path = source.file_path()?;
     let conn =
-        Connection::open(path).map_err(|e| format!("Failed to open history database: {e}"))?;
+        Connection::open(path).map_err(|e| format!("{}: {e}", ERR_OPEN_HISTORY_DB))?;
     conn.execute("DELETE FROM entries WHERE id = ?1", [id])
         .map_err(|e| format!("Failed to delete history entry: {e}"))?;
     Ok(())
@@ -24,7 +25,7 @@ pub fn delete_entries(source: &ClipboardSource, ids: &[i64]) -> Result<(), Strin
     }
     let path = source.file_path()?;
     let conn =
-        Connection::open(path).map_err(|e| format!("Failed to open history database: {e}"))?;
+        Connection::open(path).map_err(|e| format!("{}: {e}", ERR_OPEN_HISTORY_DB))?;
     let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
     let sql = format!("DELETE FROM entries WHERE id IN ({placeholders})");
     conn.execute(&sql, rusqlite::params_from_iter(ids.iter()))
@@ -35,7 +36,7 @@ pub fn delete_entries(source: &ClipboardSource, ids: &[i64]) -> Result<(), Strin
 pub fn clear_history(source: &ClipboardSource) -> Result<(), String> {
     let path = source.file_path()?;
     let conn =
-        Connection::open(path).map_err(|e| format!("Failed to open history database: {e}"))?;
+        Connection::open(path).map_err(|e| format!("{}: {e}", ERR_OPEN_HISTORY_DB))?;
     conn.execute("DELETE FROM entries", [])
         .map_err(|e| format!("Failed to clear history: {e}"))?;
     Ok(())
@@ -118,7 +119,7 @@ fn load_entries(source: &ClipboardSource) -> Result<Vec<ClipboardEntry>, String>
 
 fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
     let conn =
-        Connection::open(path).map_err(|e| format!("Failed to open history database: {e}"))?;
+        Connection::open(path).map_err(|e| format!("{}: {e}", ERR_OPEN_HISTORY_DB))?;
     let has_image_blob = has_column(&conn, "entries", "image_png")?;
     let mut stmt = conn
         .prepare(

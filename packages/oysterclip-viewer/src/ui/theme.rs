@@ -4,6 +4,8 @@ pub enum Theme {
     Light,
 }
 
+use common::{THEME_DARK, THEME_LIGHT};
+
 impl Theme {
     pub fn class_name(&self) -> &'static str {
         match self {
@@ -34,7 +36,7 @@ pub fn load_theme() -> Theme {
             .and_then(|w| w.local_storage().ok())
             .and_then(|s| s.and_then(|storage| storage.get_item("theme").ok()))
         {
-            if stored == "light" {
+            if stored == THEME_LIGHT {
                 return Theme::Light;
             }
         }
@@ -44,14 +46,14 @@ pub fn load_theme() -> Theme {
     {
         // CLI arg takes priority over config file, but doesn't persist
         if let Some(t) = &crate::config::cli::args().theme {
-            return if t == "light" {
+            return if t == THEME_LIGHT {
                 Theme::Light
             } else {
                 Theme::Dark
             };
         }
 
-        if crate::config::AppConfig::load().theme.mode == "light" {
+        if crate::config::AppConfig::load().theme.mode == THEME_LIGHT {
             return Theme::Light;
         }
     }
@@ -66,9 +68,9 @@ pub fn save_theme(theme: Theme) {
             let _ = storage.set_item(
                 "theme",
                 if theme == Theme::Light {
-                    "light"
+                    THEME_LIGHT
                 } else {
-                    "dark"
+                    THEME_DARK
                 },
             );
         }
@@ -78,9 +80,9 @@ pub fn save_theme(theme: Theme) {
     {
         let mut config = crate::config::AppConfig::load();
         config.theme.mode = if theme == Theme::Light {
-            "light"
+            THEME_LIGHT
         } else {
-            "dark"
+            THEME_DARK
         }
         .to_string();
         config.save();

@@ -6,6 +6,17 @@ pub const APP_QUALIFIER: &str = "com";
 pub const APP_ORGANIZATION: &str = "rickycodes";
 pub const KEYRING_ACCOUNT: &str = "oysterclip-encryption-key";
 
+// Theme mode constants
+pub const THEME_LIGHT: &str = "light";
+pub const THEME_DARK: &str = "dark";
+
+// Authentication messages
+pub const AUTH_SUCCESS: &str = "Authentication successful";
+pub const AUTH_FAILED: &str = "Authentication failed or canceled";
+
+// Database error messages
+pub const ERR_OPEN_HISTORY_DB: &str = "Failed to open history database";
+
 // Text kind classification constants
 pub const TEXT_KIND_EMPTY: &str = "empty";
 pub const TEXT_KIND_IMAGE_DATA_URI: &str = "image-data-uri";

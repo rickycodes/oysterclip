@@ -1,5 +1,6 @@
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
+use common::{AUTH_FAILED, AUTH_SUCCESS};
 
 #[allow(dead_code)]
 pub struct AuthResult {
@@ -71,7 +72,7 @@ fn authenticate_linux() -> AuthResult {
     match pkexec_result {
         Ok(status) if status.success() => AuthResult {
             success: true,
-            message: "Authentication successful".to_string(),
+            message: AUTH_SUCCESS.to_string(),
         },
         _ => {
             let uid_result = Command::new("id").arg("-u").output();
@@ -86,7 +87,7 @@ fn authenticate_linux() -> AuthResult {
                 } else {
                     AuthResult {
                         success: false,
-                        message: "Authentication failed or canceled".to_string(),
+                        message: AUTH_FAILED.to_string(),
                     }
                 }
             } else {
@@ -114,11 +115,11 @@ fn authenticate_macos() -> AuthResult {
     match status {
         Ok(exit_status) if exit_status.success() => AuthResult {
             success: true,
-            message: "Authentication successful".to_string(),
+            message: AUTH_SUCCESS.to_string(),
         },
         Ok(_) => AuthResult {
             success: false,
-            message: "Authentication failed or canceled".to_string(),
+            message: AUTH_FAILED.to_string(),
         },
         Err(e) => AuthResult {
             success: false,
@@ -155,11 +156,11 @@ fn authenticate_windows() -> AuthResult {
     match status {
         Ok(exit_status) if exit_status.success() => AuthResult {
             success: true,
-            message: "Authentication successful".to_string(),
+            message: AUTH_SUCCESS.to_string(),
         },
         Ok(_) => AuthResult {
             success: false,
-            message: "Authentication failed or canceled".to_string(),
+            message: AUTH_FAILED.to_string(),
         },
         Err(e) => AuthResult {
             success: false,
