@@ -8,7 +8,7 @@ use clap::{Args, Parser, Subcommand};
 
 Storage:
   - Default base directory: the per-user app data directory for oysterclip
-  - Text history: stored in .clipboard_history.db
+  - Text history: stored in .oysterclip.db
     - Text content is encrypted using the OS keychain
   - Image history: optionally exported to clipboard_images/
   - Configuration: .clipboard-watcher.toml

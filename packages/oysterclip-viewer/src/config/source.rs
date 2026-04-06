@@ -96,6 +96,7 @@ fn default_history_path_from_env() -> Result<PathBuf, String> {
 mod tests {
     use super::ClipboardSource;
     use crate::config::paths::default_history_path;
+    use common::HISTORY_FILE;
     use std::path::PathBuf;
 
     #[test]
@@ -116,6 +117,6 @@ mod tests {
     #[test]
     fn canonical_default_history_path_has_expected_filename() {
         let path = default_history_path().unwrap();
-        assert_eq!(path.file_name().unwrap(), ".clipboard_history.db");
+        assert_eq!(path.file_name().unwrap(), HISTORY_FILE);
     }
 }

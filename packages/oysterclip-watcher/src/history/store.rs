@@ -187,7 +187,7 @@ mod tests {
         ));
         std::fs::create_dir_all(&temp_dir).unwrap();
 
-        let db_path = temp_dir.join(".clipboard_history.db");
+        let db_path = temp_dir.join(".oysterclip.db");
         let conn = Connection::open(&db_path).unwrap();
         conn.execute_batch(CREATE_ENTRIES_TABLE_SQL).unwrap();
         ensure_image_blob_column(&conn).unwrap();
