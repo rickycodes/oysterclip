@@ -1,5 +1,5 @@
 [workspace]
-members = ["packages/common", "packages/oysterclip-watcher", "packages/oysterclip-viewer"]
+members = ["packages/common", "packages/oysterclip-watcher", "packages/oysterclip-viewer", "packages/oysterclip-tui"]
 resolver = "2"
 
 [workspace.package]
