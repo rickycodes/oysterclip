@@ -9,11 +9,8 @@ use std::io;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use base64::{engine::general_purpose, Engine as _};
-use chacha20poly1305::aead::{Aead, KeyInit};
-use chacha20poly1305::{XChaCha20Poly1305, XNonce};
-use common::constants::{APP_NAME, APP_ORGANIZATION, APP_QUALIFIER, HISTORY_FILE, KEYRING_ACCOUNT};
-use keyring::Entry;
+use common::constants::{APP_NAME, APP_ORGANIZATION, APP_QUALIFIER, HISTORY_FILE};
+use common::crypto::{decrypt_text, get_or_create_key};
 
 struct App {
     entries: Vec<(i64, String)>,
@@ -189,7 +186,7 @@ fn load_entries() -> Result<Vec<(i64, String)>, String> {
         let (id, _kind, ciphertext, nonce) =
             row_result.map_err(|e| format!("Failed to read row: {}", e))?;
 
-        match decrypt_text(&ciphertext, &nonce, &key) {
+        match decrypt_wrapper(&ciphertext, &nonce, &key) {
             Ok(content) => {
                 let preview = content.replace('\n', " ↵ ");
                 entries.push((id, preview));
@@ -205,44 +202,11 @@ fn load_entries() -> Result<Vec<(i64, String)>, String> {
 }
 
 fn load_encryption_key() -> Result<[u8; 32], String> {
-    let entry = Entry::new(APP_NAME, KEYRING_ACCOUNT)
-        .map_err(|e| format!("Failed to access keyring: {}", e))?;
-
-    let key_str = entry
-        .get_password()
-        .map_err(|e| format!("Failed to retrieve encryption key from keyring: {}", e))?;
-
-    let decoded = general_purpose::STANDARD
-        .decode(&key_str)
-        .map_err(|e| format!("Failed to decode encryption key: {}", e))?;
-
-    if decoded.len() != 32 {
-        return Err(format!(
-            "Invalid encryption key length: expected 32 bytes, got {}",
-            decoded.len()
-        ));
-    }
-
-    let mut key = [0u8; 32];
-    key.copy_from_slice(&decoded);
-    Ok(key)
+    get_or_create_key().map_err(|e| e.to_string())
 }
 
-fn decrypt_text(ciphertext: &[u8], nonce: &[u8], key: &[u8; 32]) -> Result<String, String> {
-    if nonce.len() != 24 {
-        return Err(format!(
-            "Invalid text nonce length: expected 24 bytes, got {}",
-            nonce.len()
-        ));
-    }
-
-    let cipher = XChaCha20Poly1305::new(key.into());
-    let plaintext = cipher
-        .decrypt(XNonce::from_slice(nonce), ciphertext)
-        .map_err(|e| format!("Failed to decrypt clipboard text: {}", e))?;
-
-    String::from_utf8(plaintext)
-        .map_err(|e| format!("Failed to decode decrypted clipboard text: {}", e))
+fn decrypt_wrapper(ciphertext: &[u8], nonce: &[u8], key: &[u8; 32]) -> Result<String, String> {
+    decrypt_text(ciphertext, nonce, key).map_err(|e| e.to_string())
 }
 
 fn get_db_path() -> Result<PathBuf, String> {

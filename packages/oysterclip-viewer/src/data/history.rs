@@ -1,7 +1,5 @@
-use base64::{engine::general_purpose, Engine as _};
-use chacha20poly1305::aead::{Aead, KeyInit};
-use chacha20poly1305::{XChaCha20Poly1305, XNonce};
-use keyring::Entry;
+use base64::engine::general_purpose;
+use base64::Engine as _;
 use rusqlite::Connection;
 use std::fs;
 use std::hash::{Hash, Hasher};
@@ -9,7 +7,7 @@ use std::path::Path;
 
 use crate::config::source::ClipboardSource;
 use crate::data::entry::{CachedEntries, ClipboardEntry, ClipboardPayload, SourceStamp};
-use common::constants::{APP_NAME, KEYRING_ACCOUNT};
+use common::crypto::{decrypt_text, get_or_create_key};
 
 pub fn delete_entry(source: &ClipboardSource, id: i64) -> Result<(), String> {
     let path = source.file_path()?;
@@ -171,7 +169,8 @@ fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
                         .as_deref()
                         .ok_or_else(|| "Missing text nonce.".to_string())?,
                     &key,
-                )?;
+                )
+                .map_err(|e| format!("Failed to decrypt text: {e}"))?;
 
                 entries.push(ClipboardEntry::Text {
                     id,
@@ -214,42 +213,7 @@ fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
 }
 
 fn load_encryption_key() -> Result<[u8; 32], String> {
-    let entry = Entry::new(APP_NAME, KEYRING_ACCOUNT)
-        .map_err(|e| format!("Failed to access OS keychain entry: {e}"))?;
-    let encoded = entry
-        .get_password()
-        .map_err(|e| format!("Failed to read encryption key from OS keychain: {e}"))?;
-    let decoded = general_purpose::STANDARD
-        .decode(encoded)
-        .map_err(|e| format!("Failed to decode keychain encryption key: {e}"))?;
-
-    if decoded.len() != 32 {
-        return Err(format!(
-            "Invalid key length in keychain: expected 32 bytes, got {}",
-            decoded.len()
-        ));
-    }
-
-    let mut key = [0u8; 32];
-    key.copy_from_slice(&decoded);
-    Ok(key)
-}
-
-fn decrypt_text(ciphertext: &[u8], nonce: &[u8], key: &[u8; 32]) -> Result<String, String> {
-    if nonce.len() != 24 {
-        return Err(format!(
-            "Invalid text nonce length: expected 24 bytes, got {}",
-            nonce.len()
-        ));
-    }
-
-    let cipher = XChaCha20Poly1305::new(key.into());
-    let plaintext = cipher
-        .decrypt(XNonce::from_slice(nonce), ciphertext)
-        .map_err(|e| format!("Failed to decrypt clipboard text: {e}"))?;
-
-    String::from_utf8(plaintext)
-        .map_err(|e| format!("Failed to decode decrypted clipboard text: {e}"))
+    get_or_create_key().map_err(|e| e.to_string())
 }
 
 fn has_column(conn: &Connection, table_name: &str, column_name: &str) -> Result<bool, String> {

@@ -4,8 +4,7 @@ pub const SOCKET_FILE: &str = ".clipboard-watcher.sock";
 pub const APP_NAME: &str = "oysterclip";
 pub const APP_QUALIFIER: &str = "com";
 pub const APP_ORGANIZATION: &str = "rickycodes";
-pub const KEYRING_ACCOUNT: &str = "default-encryption-key";
-pub const ENCRYPTION_KEY_ID: &str = "oysterclip-encryption-key";
+pub const KEYRING_ACCOUNT: &str = "oysterclip-encryption-key";
 
 // Database schema
 pub const DB_SCHEMA: &str = r#"
