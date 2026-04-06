@@ -17,45 +17,11 @@ pub(crate) const TEXT_CAPTURED: &str = "captured";
 pub(crate) const APPEND_TEXT_HISTORY_FAILED: &str = "Failed to append text history";
 pub(crate) const IMAGE_SAVED: &str = "(image) saved";
 pub(crate) const APPEND_IMAGE_HISTORY_FAILED: &str = "Failed to append image history";
-pub(crate) const CREATE_ENTRIES_TABLE_SQL: &str = "\
-CREATE TABLE IF NOT EXISTS entries (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    created_at INTEGER NOT NULL,
-    entry_type TEXT NOT NULL CHECK (entry_type IN ('text', 'image')),
-    text_kind TEXT,
-    text_ciphertext BLOB,
-    text_nonce BLOB,
-    image_path TEXT,
-    image_png BLOB,
-    image_hash INTEGER,
-    content_hash TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_entries_created_at ON entries(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_entries_content_hash ON entries(content_hash);
-";
-pub(crate) const SELECT_EXISTING_TEXT_ENTRY_SQL: &str =
-    "SELECT id FROM entries WHERE entry_type = 'text' AND content_hash = ?1 LIMIT 1";
-pub(crate) const INSERT_TEXT_ENTRY_SQL: &str = "\
-INSERT INTO entries (
-    created_at,
-    entry_type,
-    text_kind,
-    text_ciphertext,
-    text_nonce,
-    content_hash
-) VALUES (?1, 'text', ?2, ?3, ?4, ?5)";
-pub(crate) const INSERT_IMAGE_ENTRY_SQL: &str = "\
-INSERT INTO entries (
-    created_at,
-    entry_type,
-    image_path,
-    image_png,
-    image_hash
-) VALUES (?1, 'image', ?2, ?3, ?4)";
-pub(crate) const DELETE_PRUNABLE_ENTRIES_SQL: &str = "\
-DELETE FROM entries
-WHERE id IN (
-    SELECT id FROM entries
-    ORDER BY created_at DESC, id DESC
-    LIMIT -1 OFFSET ?1
-)";
+
+// Re-export database queries from common
+pub(crate) use common::{
+    CREATE_ENTRIES_TABLE as CREATE_ENTRIES_TABLE_SQL, CREATE_INDICES,
+    DELETE_PRUNABLE_ENTRIES as DELETE_PRUNABLE_ENTRIES_SQL,
+    INSERT_IMAGE_ENTRY as INSERT_IMAGE_ENTRY_SQL, INSERT_TEXT_ENTRY as INSERT_TEXT_ENTRY_SQL,
+    SELECT_EXISTING_TEXT_ENTRY as SELECT_EXISTING_TEXT_ENTRY_SQL,
+};

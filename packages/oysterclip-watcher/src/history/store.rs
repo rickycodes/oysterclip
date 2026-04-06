@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 
 use super::crypto::{encrypt_text, load_or_create_encryption_key, text_content_hash};
 use crate::config::constants::{
-    CREATE_ENTRIES_TABLE_SQL, DELETE_PRUNABLE_ENTRIES_SQL, INSERT_IMAGE_ENTRY_SQL,
-    INSERT_TEXT_ENTRY_SQL, SELECT_EXISTING_TEXT_ENTRY_SQL,
+    CREATE_ENTRIES_TABLE_SQL, CREATE_INDICES, DELETE_PRUNABLE_ENTRIES_SQL,
+    INSERT_IMAGE_ENTRY_SQL, INSERT_TEXT_ENTRY_SQL, SELECT_EXISTING_TEXT_ENTRY_SQL,
 };
 use crate::data::entry::PasteEntry;
 
@@ -29,6 +29,10 @@ impl HistoryStore {
         let conn = store.connection()?;
         conn.execute_batch(CREATE_ENTRIES_TABLE_SQL)
             .map_err(|err| io_error(format!("failed to initialize history database: {err}")))?;
+        for index_sql in CREATE_INDICES {
+            conn.execute_batch(index_sql)
+                .map_err(|err| io_error(format!("failed to create index: {err}")))?;
+        }
         ensure_image_blob_column(&conn)?;
         Ok(store)
     }
