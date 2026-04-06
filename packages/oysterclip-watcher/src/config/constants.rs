@@ -1,6 +1,5 @@
 pub(crate) const INTERVAL_MS: u64 = 500;
 pub(crate) const MAX_HISTORY_ENTRIES: usize = 500;
-pub(crate) const CONTROL_SOCKET_FILE: &str = ".clipboard-watcher.sock";
 pub(crate) const CLIPBOARD_NOT_AVAILABLE: &str = "Clipboard not available";
 pub(crate) const FAILED_IMAGE_BUFFER: &str = "Failed to create image buffer";
 pub(crate) const TEXT_KIND_EMPTY: &str = "empty";
@@ -17,6 +16,10 @@ pub(crate) const TEXT_CAPTURED: &str = "captured";
 pub(crate) const APPEND_TEXT_HISTORY_FAILED: &str = "Failed to append text history";
 pub(crate) const IMAGE_SAVED: &str = "(image) saved";
 pub(crate) const APPEND_IMAGE_HISTORY_FAILED: &str = "Failed to append image history";
+
+// Re-export socket file from common
+#[allow(unused_imports)]
+pub(crate) use common::SOCKET_FILE;
 
 // Re-export database queries from common
 pub(crate) use common::{

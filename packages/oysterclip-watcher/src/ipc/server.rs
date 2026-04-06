@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use crate::config::constants::CONTROL_SOCKET_FILE;
+use crate::config::constants::SOCKET_FILE;
 use common::ControlRequest;
 
 #[cfg(unix)]
@@ -170,5 +170,5 @@ pub(crate) fn control_socket_path(db_path: &Path) -> io::Result<PathBuf> {
         )
     })?;
 
-    Ok(parent.join(CONTROL_SOCKET_FILE))
+    Ok(parent.join(SOCKET_FILE))
 }
