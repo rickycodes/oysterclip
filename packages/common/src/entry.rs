@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use crate::{ENTRY_TYPE_IMAGE, ENTRY_TYPE_TEXT};
 
 /// Entry type classification
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -12,15 +13,15 @@ pub enum EntryType {
 impl EntryType {
     pub fn as_str(&self) -> &'static str {
         match self {
-            EntryType::Text => "text",
-            EntryType::Image => "image",
+            EntryType::Text => ENTRY_TYPE_TEXT,
+            EntryType::Image => ENTRY_TYPE_IMAGE,
         }
     }
 
     pub fn parse(s: &str) -> Option<Self> {
         match s {
-            "text" => Some(EntryType::Text),
-            "image" => Some(EntryType::Image),
+            ENTRY_TYPE_TEXT => Some(EntryType::Text),
+            ENTRY_TYPE_IMAGE => Some(EntryType::Image),
             _ => None,
         }
     }

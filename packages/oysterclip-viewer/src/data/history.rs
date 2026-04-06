@@ -8,7 +8,7 @@ use std::path::Path;
 use crate::config::source::ClipboardSource;
 use crate::data::entry::{CachedEntries, ClipboardEntry, ClipboardPayload, SourceStamp};
 use common::crypto::{decrypt_text, get_or_create_key};
-use common::ERR_OPEN_HISTORY_DB;
+use common::{ERR_OPEN_HISTORY_DB, ENTRY_TYPE_TEXT, ENTRY_TYPE_IMAGE};
 
 pub fn delete_entry(source: &ClipboardSource, id: i64) -> Result<(), String> {
     let path = source.file_path()?;
@@ -152,7 +152,7 @@ fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
             .map_err(|e| format!("Failed to read entry type: {e}"))?;
 
         match entry_type.as_str() {
-            "text" => {
+            ENTRY_TYPE_TEXT => {
                 let kind: Option<String> = row
                     .get(3)
                     .map_err(|e| format!("Failed to read text kind: {e}"))?;
@@ -180,7 +180,7 @@ fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
                     kind,
                 });
             }
-            "image" => {
+            ENTRY_TYPE_IMAGE => {
                 let image_path: Option<String> = row
                     .get(6)
                     .map_err(|e| format!("Failed to read image path: {e}"))?;

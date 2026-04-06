@@ -1,4 +1,5 @@
 use chrono::{Datelike, Local, TimeZone, Utc};
+use common::{ENTRY_TYPE_IMAGE, ENTRY_TYPE_TEXT};
 
 use crate::data::entry::ClipboardEntry;
 
@@ -75,11 +76,11 @@ fn apply_filters(entry: &ClipboardEntry, filters: &[QueryFilter]) -> bool {
             "type" => {
                 let type_matches = match entry {
                     ClipboardEntry::Text { .. } => {
-                        filter.value == "text"
+                        filter.value == ENTRY_TYPE_TEXT
                             || filter.value == "pass"
                             || filter.value == "password"
                     }
-                    ClipboardEntry::Image { .. } => filter.value == "image",
+                    ClipboardEntry::Image { .. } => filter.value == ENTRY_TYPE_IMAGE,
                 };
                 if !type_matches {
                     return false;

@@ -17,6 +17,10 @@ pub const AUTH_FAILED: &str = "Authentication failed or canceled";
 // Database error messages
 pub const ERR_OPEN_HISTORY_DB: &str = "Failed to open history database";
 
+// Entry type constants
+pub const ENTRY_TYPE_TEXT: &str = "text";
+pub const ENTRY_TYPE_IMAGE: &str = "image";
+
 // Text kind classification constants
 pub const TEXT_KIND_EMPTY: &str = "empty";
 pub const TEXT_KIND_IMAGE_DATA_URI: &str = "image-data-uri";
