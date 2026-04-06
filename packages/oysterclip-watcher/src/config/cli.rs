@@ -12,7 +12,7 @@ Storage:
     - Text content is encrypted using the OS keychain
   - Image history: optionally exported to clipboard_images/
   - Configuration: .clipboard-watcher.toml
-  - Unix control socket: .clipboard-watcher.sock on unix targets
+  - Unix control socket: .oysterclip.sock on unix targets
 
 Default behavior:
   When run without any subcommand, clipboard-watcher will start monitoring your clipboard and storing new entries.

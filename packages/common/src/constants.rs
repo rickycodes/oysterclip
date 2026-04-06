@@ -1,6 +1,6 @@
 pub const HISTORY_FILE: &str = ".clipboard_history.db";
 pub const CONFIG_FILE: &str = "config.toml";
-pub const SOCKET_FILE: &str = ".clipboard-watcher.sock";
+pub const SOCKET_FILE: &str = ".oysterclip.sock";
 pub const IMAGE_DIR: &str = "clipboard_images";
 pub const APP_NAME: &str = "oysterclip";
 pub const APP_QUALIFIER: &str = "com";
