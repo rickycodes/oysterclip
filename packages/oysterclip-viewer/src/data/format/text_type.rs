@@ -8,6 +8,8 @@ pub enum TextType {
     Text,
 }
 
+use common::{TEXT_KIND_JSON, TEXT_KIND_PATH};
+
 impl TextType {
     /// Get display label for this text type (used in sidebar/list).
     pub fn label(self) -> &'static str {
@@ -37,8 +39,8 @@ impl TextType {
         match () {
             _ if super::classification::is_password(content) => Self::Password,
             _ if super::url::extract_single_url(content).is_some() => Self::Link,
-            _ if kind == Some("json") => Self::Json,
-            _ if kind == Some("path") => Self::Path,
+            _ if kind == Some(TEXT_KIND_JSON) => Self::Json,
+            _ if kind == Some(TEXT_KIND_PATH) => Self::Path,
             _ => Self::Text,
         }
     }

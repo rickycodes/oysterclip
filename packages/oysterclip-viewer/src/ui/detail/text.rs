@@ -13,6 +13,7 @@ use crate::data::link_preview::LinkPreviewState;
 use crate::system::auth::{authenticate_admin_action, AuthCache};
 use crate::ui::icon::Icon;
 use crate::ui::linkable_text::LinkableText;
+use common::{TEXT_KIND_JSON, TEXT_KIND_PATH};
 
 #[component]
 pub fn TextDetail(
@@ -42,8 +43,8 @@ pub fn TextDetail(
         .and_then(|url| link_previews().get(url).cloned());
     let is_data_uri = is_image_data_uri(&content);
     let is_password_text = is_password(&content);
-    let is_json = kind.as_deref() == Some("json");
-    let is_path = kind.as_deref() == Some("path");
+    let is_json = kind.as_deref() == Some(TEXT_KIND_JSON);
+    let is_path = kind.as_deref() == Some(TEXT_KIND_PATH);
     let is_html_image = is_html_img_tag(&content);
 
     let detail_type = TextDetailType::classify(

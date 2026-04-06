@@ -1,6 +1,7 @@
 use crate::data::format::{
     extract_html_img_src, image_data_uri_summary, is_html_img_tag, is_image_data_uri, preview_text,
 };
+use common::{TEXT_KIND_JSON, TEXT_KIND_PATH};
 
 /// Prepared display data for a text entry based on its type.
 #[derive(Debug, Clone)]
@@ -41,8 +42,8 @@ impl TextDetailType {
             _ if crate::data::format::is_password(content) => Self::Password,
             _ if is_html_image => Self::HtmlImage,
             _ if has_url => Self::Link,
-            _ if kind == Some("json") => Self::Json,
-            _ if kind == Some("path") => Self::Path,
+            _ if kind == Some(TEXT_KIND_JSON) => Self::Json,
+            _ if kind == Some(TEXT_KIND_PATH) => Self::Path,
             _ => Self::Text,
         }
     }

@@ -6,6 +6,15 @@ pub const APP_QUALIFIER: &str = "com";
 pub const APP_ORGANIZATION: &str = "rickycodes";
 pub const KEYRING_ACCOUNT: &str = "oysterclip-encryption-key";
 
+// Text kind classification constants
+pub const TEXT_KIND_EMPTY: &str = "empty";
+pub const TEXT_KIND_IMAGE_DATA_URI: &str = "image-data-uri";
+pub const TEXT_KIND_URL: &str = "url";
+pub const TEXT_KIND_JSON: &str = "json";
+pub const TEXT_KIND_MULTILINE: &str = "multiline";
+pub const TEXT_KIND_PATH: &str = "path";
+pub const TEXT_KIND_PLAIN: &str = "plain";
+
 // Database schema and queries
 pub const CREATE_ENTRIES_TABLE: &str = r#"
 CREATE TABLE IF NOT EXISTS entries (

@@ -8,6 +8,7 @@ use crate::data::format::{
     entry_icon_name, entry_label, extract_single_url, format_relative_timestamp, is_image_data_uri,
     is_password, preview_text,
 };
+use common::{TEXT_KIND_JSON, TEXT_KIND_PATH};
 
 #[component]
 pub fn Sidebar(
@@ -102,9 +103,9 @@ pub fn Sidebar(
                                     "entry-card-pass"
                                 } else if is_image_data_uri(content) {
                                     "entry-card-image"
-                                } else if kind.as_deref() == Some("json") {
+                                } else if kind.as_deref() == Some(TEXT_KIND_JSON) {
                                     "entry-card-json"
-                                } else if kind.as_deref() == Some("path") {
+                                } else if kind.as_deref() == Some(TEXT_KIND_PATH) {
                                     "entry-card-path"
                                 } else if extract_single_url(content).is_some() {
                                     "entry-card-url"
@@ -123,7 +124,7 @@ pub fn Sidebar(
                         }
                         let preview = match entry {
                             ClipboardEntry::Text { content, kind, .. } => {
-                                if kind.as_deref() == Some("json") {
+                                if kind.as_deref() == Some(TEXT_KIND_JSON) {
                                     // Minify JSON to a single line for sidebar preview
                                     let minified = content.split_whitespace().collect::<Vec<_>>().join(" ");
                                     preview_text(&minified, 56)
