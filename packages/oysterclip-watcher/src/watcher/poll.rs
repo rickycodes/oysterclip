@@ -79,8 +79,13 @@ pub fn poll_clipboard(
             if state.has_image_changed(hash) {
                 match encode_png(&bytes, img.width, img.height) {
                     Ok(png_bytes) => {
-                        let exported_path =
-                            export_image_if_enabled(&png_bytes, hash, save_images_to_disk, image_export_dir, &control_state);
+                        let exported_path = export_image_if_enabled(
+                            &png_bytes,
+                            hash,
+                            save_images_to_disk,
+                            image_export_dir,
+                            &control_state,
+                        );
 
                         match history_store.append_entry(&PasteEntry::Image {
                             timestamp: current_timestamp(),

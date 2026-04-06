@@ -2,6 +2,8 @@ pub const HISTORY_FILE: &str = ".clipboard_history.db";
 pub const CONFIG_FILE: &str = "config.toml";
 pub const SOCKET_FILE: &str = ".clipboard-watcher.sock";
 pub const APP_NAME: &str = "oysterclip";
+pub const APP_QUALIFIER: &str = "com";
+pub const APP_ORGANIZATION: &str = "rickycodes";
 pub const KEYRING_ACCOUNT: &str = "default-encryption-key";
 pub const ENCRYPTION_KEY_ID: &str = "oysterclip-encryption-key";
 

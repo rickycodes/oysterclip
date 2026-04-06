@@ -12,7 +12,7 @@ use std::time::Duration;
 use base64::{engine::general_purpose, Engine as _};
 use chacha20poly1305::aead::{Aead, KeyInit};
 use chacha20poly1305::{XChaCha20Poly1305, XNonce};
-use common::constants::{APP_NAME, HISTORY_FILE, KEYRING_ACCOUNT};
+use common::constants::{APP_NAME, APP_ORGANIZATION, APP_QUALIFIER, HISTORY_FILE, KEYRING_ACCOUNT};
 use keyring::Entry;
 
 struct App {
@@ -246,7 +246,7 @@ fn decrypt_text(ciphertext: &[u8], nonce: &[u8], key: &[u8; 32]) -> Result<Strin
 }
 
 fn get_db_path() -> Result<PathBuf, String> {
-    let dirs = directories::ProjectDirs::from("", "", APP_NAME)
+    let dirs = directories::ProjectDirs::from(APP_QUALIFIER, APP_ORGANIZATION, APP_NAME)
         .ok_or_else(|| "Could not determine project directories".to_string())?;
 
     Ok(dirs.data_local_dir().join(HISTORY_FILE))
