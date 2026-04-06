@@ -69,6 +69,7 @@ impl WatcherConfig {
 mod tests {
     use super::{RawWatcherConfig, WatcherConfig};
     use crate::config::constants::MAX_HISTORY_ENTRIES;
+    use common::IMAGE_DIR;
     use std::path::Path;
 
     #[test]
@@ -77,7 +78,7 @@ mod tests {
         let config = WatcherConfig::from_raw(
             config,
             Path::new("/tmp/config-dir"),
-            Path::new("clipboard_images"),
+            Path::new(IMAGE_DIR),
         );
         assert_eq!(config.max_history_entries, 250);
     }
@@ -91,12 +92,12 @@ mod tests {
                 image_export_dir: None,
             },
             Path::new("/tmp/config-dir"),
-            Path::new("clipboard_images"),
+            Path::new(IMAGE_DIR),
         );
 
         assert_eq!(config.max_history_entries, MAX_HISTORY_ENTRIES);
         assert!(!config.save_images_to_disk);
-        assert_eq!(config.image_export_dir, Path::new("clipboard_images"));
+        assert_eq!(config.image_export_dir, Path::new(IMAGE_DIR));
     }
 
     #[test]
@@ -106,7 +107,7 @@ mod tests {
         let config = WatcherConfig::from_raw(
             config,
             Path::new("/tmp/config-dir"),
-            Path::new("clipboard_images"),
+            Path::new(IMAGE_DIR),
         );
 
         assert!(config.save_images_to_disk);

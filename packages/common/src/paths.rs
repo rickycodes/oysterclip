@@ -2,7 +2,7 @@ use directories::ProjectDirs;
 use std::io;
 use std::path::PathBuf;
 
-use super::constants::{APP_NAME, APP_ORGANIZATION, APP_QUALIFIER, CONFIG_FILE, HISTORY_FILE};
+use super::constants::{APP_NAME, APP_ORGANIZATION, APP_QUALIFIER, CONFIG_FILE, HISTORY_FILE, ERR_RESOLVE_APP_DIR, IMAGE_DIR};
 
 #[derive(Clone, Debug)]
 pub struct AppPaths {
@@ -17,7 +17,7 @@ pub fn resolve_app_paths() -> io::Result<AppPaths> {
         ProjectDirs::from(APP_QUALIFIER, APP_ORGANIZATION, APP_NAME).ok_or_else(|| {
             io::Error::new(
                 io::ErrorKind::NotFound,
-                "failed to resolve application data directory",
+                ERR_RESOLVE_APP_DIR,
             )
         })?;
 
@@ -25,7 +25,7 @@ pub fn resolve_app_paths() -> io::Result<AppPaths> {
     Ok(AppPaths {
         db_path: base_dir.join(HISTORY_FILE),
         config_path: base_dir.join(CONFIG_FILE),
-        image_dir: base_dir.join("clipboard_images"),
+        image_dir: base_dir.join(IMAGE_DIR),
         base_dir,
     })
 }
@@ -39,7 +39,7 @@ pub fn config_dir() -> io::Result<PathBuf> {
         ProjectDirs::from(APP_QUALIFIER, APP_ORGANIZATION, APP_NAME).ok_or_else(|| {
             io::Error::new(
                 io::ErrorKind::NotFound,
-                "failed to resolve application data directory",
+                ERR_RESOLVE_APP_DIR,
             )
         })?;
     Ok(project_dirs.config_dir().to_path_buf())

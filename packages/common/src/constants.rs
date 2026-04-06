@@ -1,6 +1,7 @@
 pub const HISTORY_FILE: &str = ".clipboard_history.db";
 pub const CONFIG_FILE: &str = "config.toml";
 pub const SOCKET_FILE: &str = ".clipboard-watcher.sock";
+pub const IMAGE_DIR: &str = "clipboard_images";
 pub const APP_NAME: &str = "oysterclip";
 pub const APP_QUALIFIER: &str = "com";
 pub const APP_ORGANIZATION: &str = "rickycodes";
@@ -13,6 +14,9 @@ pub const THEME_DARK: &str = "dark";
 // Authentication messages
 pub const AUTH_SUCCESS: &str = "Authentication successful";
 pub const AUTH_FAILED: &str = "Authentication failed or canceled";
+
+// Path resolution error messages
+pub const ERR_RESOLVE_APP_DIR: &str = "failed to resolve application data directory";
 
 // Database error messages
 pub const ERR_OPEN_HISTORY_DB: &str = "Failed to open history database";
