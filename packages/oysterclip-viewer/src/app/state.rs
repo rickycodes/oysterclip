@@ -5,9 +5,10 @@ use std::time::Duration;
 
 use crate::app::actions::entry_id;
 use crate::app::query::matches_query;
+use crate::app::selection::SelectionSnapshot;
 use crate::config::source::ClipboardSource;
 use crate::data::entry::{CachedEntries, ClipboardEntry, ClipboardPayload};
-use crate::data::format::{entry_label, extract_single_url};
+use crate::data::format::extract_single_url;
 use crate::data::history::get_clipboard_entries;
 use crate::data::link_preview::{fetch_link_preview, LinkPreviewState};
 use crate::system::auth::AuthCache;
@@ -161,43 +162,13 @@ pub fn use_app_state() -> AppState {
 
     let current_entries = entries();
     let current_query = query();
-    let filtered_entries: Vec<ClipboardEntry> = current_entries
-        .iter()
-        .filter(|entry| matches_query(entry, &current_query))
-        .cloned()
-        .collect();
     let current_selected_id = selected_id();
-    let detail = current_selected_id.and_then(|id| {
-        filtered_entries
-            .iter()
-            .find(|entry| entry_id(entry) == id)
-            .cloned()
-    });
-    let selected_text = current_selected_id.and_then(|id| {
-        filtered_entries.iter().find_map(|entry| match entry {
-            ClipboardEntry::Text {
-                id: entry_id,
-                content,
-                ..
-            } if *entry_id == id => Some(content.clone()),
-            _ => None,
-        })
-    });
-    let selected_label = current_selected_id
-        .and_then(|id| filtered_entries.iter().find(|e| entry_id(e) == id))
-        .map(|e| entry_label(e))
-        .unwrap_or("Text");
-    let detail_state = if let Some(message) = error() {
-        DetailState::Error(message)
-    } else if current_entries.is_empty() {
-        DetailState::EmptyHistory
-    } else if filtered_entries.is_empty() {
-        DetailState::EmptySearch(current_query.clone())
-    } else if let Some(entry) = detail {
-        DetailState::Entry(entry)
-    } else {
-        DetailState::Unselected
-    };
+    let snapshot = SelectionSnapshot::compute(
+        &current_entries,
+        &current_query,
+        current_selected_id,
+        error().as_deref(),
+    );
 
     AppState {
         source,
@@ -213,13 +184,13 @@ pub fn use_app_state() -> AppState {
         auth_cache,
         watcher_status,
         link_previews,
-        filtered_entries,
-        current_selected_id,
+        filtered_entries: snapshot.filtered_entries,
+        current_selected_id: snapshot.current_selected_id,
         current_query,
         total_entries: current_entries.len(),
-        detail_state,
-        selected_text,
-        selected_label,
+        detail_state: snapshot.detail_state,
+        selected_text: snapshot.selected_text,
+        selected_label: snapshot.selected_label,
         current_watcher_status: watcher_status(),
     }
 }
