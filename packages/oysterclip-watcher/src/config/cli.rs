@@ -7,7 +7,7 @@ use clap::{Args, Parser, Subcommand};
     long_about = "A clipboard monitoring tool that automatically captures and stores text and image clipboard entries to a local SQLite database.
 
 Storage:
-  - Default base directory: the per-user app data directory for clipboard-manager
+  - Default base directory: the per-user app data directory for oysterclip
   - Text history: stored in .clipboard_history.db
     - Text content is encrypted using the OS keychain
   - Image history: optionally exported to clipboard_images/

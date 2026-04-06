@@ -9,9 +9,7 @@ use std::path::Path;
 
 use crate::config::source::ClipboardSource;
 use crate::data::entry::{CachedEntries, ClipboardEntry, ClipboardPayload, SourceStamp};
-
-const KEYRING_SERVICE: &str = "clipboard-manager";
-const KEYRING_ACCOUNT: &str = "default-encryption-key";
+use common::constants::{PROJECT_NAME, KEYRING_ACCOUNT};
 
 pub fn delete_entry(source: &ClipboardSource, id: i64) -> Result<(), String> {
     let path = source.file_path()?;
@@ -216,7 +214,7 @@ fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
 }
 
 fn load_encryption_key() -> Result<[u8; 32], String> {
-    let entry = Entry::new(KEYRING_SERVICE, KEYRING_ACCOUNT)
+    let entry = Entry::new(PROJECT_NAME, KEYRING_ACCOUNT)
         .map_err(|e| format!("Failed to access OS keychain entry: {e}"))?;
     let encoded = entry
         .get_password()
