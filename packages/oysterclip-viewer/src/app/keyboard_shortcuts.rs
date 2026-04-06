@@ -10,7 +10,7 @@ use common::{MSG_WATCHER_PAUSED, MSG_WATCHER_RESUMED};
 use super::actions::{copy_text_to_clipboard, confirm_and_delete_entry, confirm_and_delete_entries, set_status, DeleteActionState, adjacent_entry_id};
 
 /// Factory function that creates a keyboard event handler closure
-/// Factory function that creates a keyboard event handler closure
+#[allow(clippy::too_many_arguments)]
 pub fn create_handler(
     filtered_entries: Vec<ClipboardEntry>,
     current_selected_id: Option<i64>,

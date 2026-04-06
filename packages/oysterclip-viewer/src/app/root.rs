@@ -37,7 +37,7 @@ pub fn App() -> Element {
     let mut image_overlay_open = use_signal(|| false);
     let mut help_open = use_signal(|| false);
     let mut theme = use_signal(load_theme);
-    let mut focus_search = use_signal(|| 0u32);
+    let focus_search = use_signal(|| 0u32);
     let mut main_ref: Signal<Option<Rc<MountedData>>> = use_signal(|| None);
 
     use_effect(move || {

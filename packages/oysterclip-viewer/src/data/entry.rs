@@ -46,22 +46,6 @@ impl ClipboardEntry {
             ClipboardEntry::Image { id, .. } => *id,
         }
     }
-
-    /// Get the timestamp of this entry
-    pub fn timestamp(&self) -> u64 {
-        match self {
-            ClipboardEntry::Text { timestamp, .. } => *timestamp,
-            ClipboardEntry::Image { timestamp, .. } => *timestamp,
-        }
-    }
-
-    /// Get the entry type
-    pub fn entry_type(&self) -> common::EntryType {
-        match self {
-            ClipboardEntry::Text { .. } => common::EntryType::Text,
-            ClipboardEntry::Image { .. } => common::EntryType::Image,
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq)]
