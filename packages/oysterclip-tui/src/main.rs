@@ -1,17 +1,19 @@
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
+use crossterm::terminal::{
+    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+};
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Wrap};
-use std::io;
-use std::time::Duration;
 use rusqlite::Connection;
+use std::io;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use base64::{engine::general_purpose, Engine as _};
 use chacha20poly1305::aead::{Aead, KeyInit};
 use chacha20poly1305::{XChaCha20Poly1305, XNonce};
+use common::constants::{APP_NAME, HISTORY_FILE, KEYRING_ACCOUNT};
 use keyring::Entry;
-use common::constants::{HISTORY_FILE, KEYRING_ACCOUNT, APP_NAME};
 
 struct App {
     entries: Vec<(i64, String)>,
@@ -21,10 +23,9 @@ struct App {
 
 impl App {
     fn new() -> io::Result<Self> {
-        let entries = load_entries().map_err(|e| {
-            io::Error::other(format!("Failed to load entries: {}", e))
-        })?;
-        
+        let entries = load_entries()
+            .map_err(|e| io::Error::other(format!("Failed to load entries: {}", e)))?;
+
         Ok(Self {
             selected_index: 0,
             running: true,
@@ -68,7 +69,7 @@ impl App {
             .borders(Borders::ALL)
             .title("History (↑↓ Navigate, q Quit)");
         f.render_widget(list_block, list_detail[0]);
-        
+
         let list_area = Rect {
             x: list_detail[0].x + 1,
             y: list_detail[0].y + 1,
@@ -92,7 +93,7 @@ impl App {
                 } else {
                     preview.clone()
                 };
-                
+
                 let style = if idx == self.selected_index {
                     Style::default().fg(Color::Black).bg(Color::Cyan)
                 } else {
@@ -163,18 +164,17 @@ impl App {
 
 fn load_entries() -> Result<Vec<(i64, String)>, String> {
     let db_path = get_db_path()?;
-    let conn = Connection::open(&db_path)
-        .map_err(|e| format!("Failed to open database: {}", e))?;
-    
+    let conn = Connection::open(&db_path).map_err(|e| format!("Failed to open database: {}", e))?;
+
     let query = "SELECT id, text_kind, text_ciphertext, text_nonce FROM entries WHERE entry_type = 'text' ORDER BY id DESC LIMIT 100";
-    
+
     let mut stmt = conn
         .prepare(query)
         .map_err(|e| format!("Failed to prepare statement: {}", e))?;
-    
+
     let key = load_encryption_key()?;
     let mut entries = Vec::new();
-    
+
     let rows = stmt
         .query_map([], |row| {
             let id: i64 = row.get(0)?;
@@ -184,11 +184,11 @@ fn load_entries() -> Result<Vec<(i64, String)>, String> {
             Ok((id, text_kind, ciphertext, nonce))
         })
         .map_err(|e| format!("Failed to query entries: {}", e))?;
-    
+
     for row_result in rows {
-        let (id, _kind, ciphertext, nonce) = row_result
-            .map_err(|e| format!("Failed to read row: {}", e))?;
-        
+        let (id, _kind, ciphertext, nonce) =
+            row_result.map_err(|e| format!("Failed to read row: {}", e))?;
+
         match decrypt_text(&ciphertext, &nonce, &key) {
             Ok(content) => {
                 let preview = content.replace('\n', " ↵ ");
@@ -200,26 +200,29 @@ fn load_entries() -> Result<Vec<(i64, String)>, String> {
             }
         }
     }
-    
+
     Ok(entries)
 }
 
 fn load_encryption_key() -> Result<[u8; 32], String> {
     let entry = Entry::new(APP_NAME, KEYRING_ACCOUNT)
         .map_err(|e| format!("Failed to access keyring: {}", e))?;
-    
+
     let key_str = entry
         .get_password()
         .map_err(|e| format!("Failed to retrieve encryption key from keyring: {}", e))?;
-    
+
     let decoded = general_purpose::STANDARD
         .decode(&key_str)
         .map_err(|e| format!("Failed to decode encryption key: {}", e))?;
-    
+
     if decoded.len() != 32 {
-        return Err(format!("Invalid encryption key length: expected 32 bytes, got {}", decoded.len()));
+        return Err(format!(
+            "Invalid encryption key length: expected 32 bytes, got {}",
+            decoded.len()
+        ));
     }
-    
+
     let mut key = [0u8; 32];
     key.copy_from_slice(&decoded);
     Ok(key)
@@ -242,11 +245,10 @@ fn decrypt_text(ciphertext: &[u8], nonce: &[u8], key: &[u8; 32]) -> Result<Strin
         .map_err(|e| format!("Failed to decode decrypted clipboard text: {}", e))
 }
 
-
 fn get_db_path() -> Result<PathBuf, String> {
     let dirs = directories::ProjectDirs::from("", "", APP_NAME)
         .ok_or_else(|| "Could not determine project directories".to_string())?;
-    
+
     Ok(dirs.data_local_dir().join(HISTORY_FILE))
 }
 

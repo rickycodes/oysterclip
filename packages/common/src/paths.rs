@@ -2,7 +2,7 @@ use directories::ProjectDirs;
 use std::io;
 use std::path::PathBuf;
 
-use super::constants::{CONFIG_FILE, HISTORY_FILE, APP_NAME};
+use super::constants::{APP_NAME, CONFIG_FILE, HISTORY_FILE};
 
 #[derive(Clone, Debug)]
 pub struct AppPaths {

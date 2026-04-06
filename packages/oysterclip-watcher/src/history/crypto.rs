@@ -6,7 +6,7 @@ use rand::rngs::OsRng;
 use rand::RngCore;
 use std::io;
 
-use common::constants::{KEYRING_ACCOUNT, APP_NAME};
+use common::constants::{APP_NAME, KEYRING_ACCOUNT};
 
 pub(crate) struct EncryptedText {
     pub(crate) ciphertext: Vec<u8>,
