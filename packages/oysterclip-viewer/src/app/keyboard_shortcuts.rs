@@ -74,10 +74,7 @@ pub fn create_handler(
             // Jump to first entry: Home
             Code::Home => {
                 event.prevent_default();
-                if let Some(id) = filtered_entries.first().map(|entry| match entry {
-                    crate::data::entry::ClipboardEntry::Text { id, .. }
-                    | crate::data::entry::ClipboardEntry::Image { id, .. } => *id,
-                }) {
+                if let Some(id) = filtered_entries.first().map(|entry| entry.id()) {
                     selected_id.set(Some(id));
                     show_password.set(false);
                     image_overlay_open.set(false);
@@ -86,10 +83,7 @@ pub fn create_handler(
             // Jump to last entry: End
             Code::End => {
                 event.prevent_default();
-                if let Some(id) = filtered_entries.last().map(|entry| match entry {
-                    crate::data::entry::ClipboardEntry::Text { id, .. }
-                    | crate::data::entry::ClipboardEntry::Image { id, .. } => *id,
-                }) {
+                if let Some(id) = filtered_entries.last().map(|entry| entry.id()) {
                     selected_id.set(Some(id));
                     show_password.set(false);
                     image_overlay_open.set(false);

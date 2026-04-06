@@ -91,9 +91,7 @@ pub fn Sidebar(
                 }
                 for entry in entries.iter() {
                     {
-                        let entry_id = match entry {
-                            ClipboardEntry::Text { id, .. } | ClipboardEntry::Image { id, .. } => *id,
-                        };
+                        let entry_id = entry.id();
                         let is_active = Some(entry_id) == selected_id;
                         let is_checked = selected_ids.contains(&entry_id);
                         let type_class = match entry {

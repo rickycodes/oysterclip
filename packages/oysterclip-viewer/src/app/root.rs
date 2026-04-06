@@ -107,13 +107,7 @@ pub fn App() -> Element {
         move |id: i64| {
             if let Some(crate::data::entry::ClipboardEntry::Text { content, .. }) = filtered_entries
                 .iter()
-                .find(|entry| {
-                    let entry_id = match entry {
-                        crate::data::entry::ClipboardEntry::Text { id, .. } => *id,
-                        crate::data::entry::ClipboardEntry::Image { id, .. } => *id,
-                    };
-                    entry_id == id
-                })
+                .find(|entry| entry.id() == id)
                 .cloned()
             {
                 aggregate_to_app(
@@ -188,13 +182,7 @@ pub fn App() -> Element {
             if let Some(handler) = handler.clone() {
                 let entries_to_send: Vec<_> = filtered_entries
                     .iter()
-                    .filter(|entry| {
-                        let id = match entry {
-                            crate::data::entry::ClipboardEntry::Text { id, .. } => *id,
-                            crate::data::entry::ClipboardEntry::Image { id, .. } => *id,
-                        };
-                        selected_ids_set.contains(&id)
-                    })
+                    .filter(|entry| selected_ids_set.contains(&entry.id()))
                     .cloned()
                     .collect();
 

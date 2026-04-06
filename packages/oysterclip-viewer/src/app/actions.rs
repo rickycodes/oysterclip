@@ -24,9 +24,7 @@ pub struct DeleteActionState {
 }
 
 pub fn entry_id(entry: &ClipboardEntry) -> i64 {
-    match entry {
-        ClipboardEntry::Text { id, .. } | ClipboardEntry::Image { id, .. } => *id,
-    }
+    entry.id()
 }
 
 pub fn adjacent_entry_id(

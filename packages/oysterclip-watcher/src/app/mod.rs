@@ -10,6 +10,7 @@ use crate::ipc::{
     new_control_state, print_control_response, send_control_command, start_control_server,
 };
 use crate::watcher::start_watching;
+use common::ControlCommand;
 use error::{AppError, Result};
 
 const INTERVAL_MS: u64 = 500;
@@ -58,11 +59,11 @@ fn handle_command(command: Commands, app_paths: &crate::config::paths::AppPaths)
         }
         Commands::Control(control) => {
             let cmd = match control.action {
-                ControlAction::Pause => "pause",
-                ControlAction::Resume => "resume",
-                ControlAction::Status => "status",
+                ControlAction::Pause => ControlCommand::Pause,
+                ControlAction::Resume => ControlCommand::Resume,
+                ControlAction::Status => ControlCommand::Status,
             };
-            send_control_command(&app_paths.db_path, cmd)
+            send_control_command(&app_paths.db_path, cmd.as_str())
                 .map(|response| print_control_response(&response))
                 .map_err(|err| AppError::ControlSocketFailed(err.to_string()))
         }
