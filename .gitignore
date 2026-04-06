@@ -11,10 +11,10 @@
 .DS_Store
 
 # Workspace-level runtime files
-.clipboard-watcher.toml
-.clipboard-watcher.sock
-.clipboard_history.db
-.clipboard_history.json.gpg
+.oysterclip.toml
+.oysterclip.sock
+.oysterclip.db
+.oysterclip.json.gpg
 clipboard_images/
 notes.txt
 

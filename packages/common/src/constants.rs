@@ -1,5 +1,5 @@
 pub const HISTORY_FILE: &str = ".oysterclip.db";
-pub const CONFIG_FILE: &str = "config.toml";
+pub const CONFIG_FILE: &str = ".oysterclip.toml";
 pub const SOCKET_FILE: &str = ".oysterclip.sock";
 pub const IMAGE_DIR: &str = "clipboard_images";
 pub const TEMP_BULK_FILE: &str = "clipboard_bulk_temp.txt";

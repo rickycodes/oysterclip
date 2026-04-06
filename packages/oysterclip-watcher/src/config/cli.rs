@@ -11,7 +11,7 @@ Storage:
   - Text history: stored in .oysterclip.db
     - Text content is encrypted using the OS keychain
   - Image history: optionally exported to clipboard_images/
-  - Configuration: .clipboard-watcher.toml
+  - Configuration: .oysterclip.toml
   - Unix control socket: .oysterclip.sock on unix targets
 
 Default behavior:
