@@ -6,7 +6,7 @@ use std::thread;
 use std::time::Duration;
 
 use crate::config::constants::SOCKET_FILE;
-use common::ControlRequest;
+use common::{ControlRequest, MSG_WATCHER_PAUSED, MSG_WATCHER_RESUMED};
 
 #[cfg(unix)]
 use std::os::unix::net::{UnixListener, UnixStream};
@@ -123,11 +123,11 @@ fn handle_client(stream: UnixStream, state: &SharedControlState) -> io::Result<(
             }
             "pause" => {
                 guard.paused = true;
-                build_response(&guard, true, "Watcher paused")
+                build_response(&guard, true, MSG_WATCHER_PAUSED)
             }
             "resume" => {
                 guard.paused = false;
-                build_response(&guard, true, "Watcher resumed")
+                build_response(&guard, true, MSG_WATCHER_RESUMED)
             }
             other => build_response(&guard, false, format!("unknown command: {other}")),
         }

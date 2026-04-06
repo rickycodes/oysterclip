@@ -12,6 +12,6 @@ pub use constants::{
 };
 pub use crypto::{decrypt_text, encrypt_text, get_or_create_key, text_content_hash, EncryptedData};
 pub use entry::{CommonEntry, EntryType, StorageEntry};
-pub use ipc::{socket_path, ControlCommand, ControlRequest, ControlResponse};
+pub use ipc::{socket_path, ControlCommand, ControlRequest, ControlResponse, MSG_WATCHER_PAUSED, MSG_WATCHER_RESUMED};
 pub use paths::{ensure_app_dir, resolve_app_paths, AppPaths};
 pub use storage::StorageConfig;

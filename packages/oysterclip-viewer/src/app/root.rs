@@ -12,6 +12,7 @@ use crate::system::watcher_control;
 use crate::ui::help_modal::HelpModal;
 use crate::ui::theme::{load_theme, save_theme};
 use crate::ui::{DetailPane, ImageOverlay, Sidebar};
+use common::{MSG_WATCHER_PAUSED, MSG_WATCHER_RESUMED};
 
 const APP_STYLE: &str = include_str!("../../styles.css");
 
@@ -221,9 +222,9 @@ pub fn App() -> Element {
         match result {
             Ok(next_status) => {
                 let message = if next_status.paused {
-                    "Watcher paused"
+                    MSG_WATCHER_PAUSED
                 } else {
-                    "Watcher resumed"
+                    MSG_WATCHER_RESUMED
                 };
                 watcher_status.set(next_status);
                 set_status(action_status, message);
@@ -343,9 +344,9 @@ pub fn App() -> Element {
                     match result {
                         Ok(next_status) => {
                             let message = if next_status.paused {
-                                "Watcher paused"
+                                MSG_WATCHER_PAUSED
                             } else {
-                                "Watcher resumed"
+                                MSG_WATCHER_RESUMED
                             };
                             watcher_status.set(next_status);
                             set_status(action_status, message);

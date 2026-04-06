@@ -9,6 +9,10 @@ const CMD_STATUS: &str = "status";
 const CMD_PAUSE: &str = "pause";
 const CMD_RESUME: &str = "resume";
 
+// Status message constants
+pub const MSG_WATCHER_PAUSED: &str = "Watcher paused";
+pub const MSG_WATCHER_RESUMED: &str = "Watcher resumed";
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ControlCommand {
     Status,
