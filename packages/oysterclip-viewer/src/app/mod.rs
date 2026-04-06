@@ -1,4 +1,5 @@
 pub mod actions;
+pub mod keyboard_shortcuts;
 pub mod query;
 pub mod root;
 pub mod selection;
