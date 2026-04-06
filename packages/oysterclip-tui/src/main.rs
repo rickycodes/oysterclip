@@ -11,7 +11,7 @@ use base64::{engine::general_purpose, Engine as _};
 use chacha20poly1305::aead::{Aead, KeyInit};
 use chacha20poly1305::{XChaCha20Poly1305, XNonce};
 use keyring::Entry;
-use common::constants::{HISTORY_FILE, KEYRING_ACCOUNT, PROJECT_NAME};
+use common::constants::{HISTORY_FILE, KEYRING_ACCOUNT, APP_NAME};
 
 struct App {
     entries: Vec<(i64, String)>,
@@ -166,13 +166,7 @@ fn load_entries() -> Result<Vec<(i64, String)>, String> {
     let conn = Connection::open(&db_path)
         .map_err(|e| format!("Failed to open database: {}", e))?;
     
-    let has_image_blob = has_column(&conn, "entries", "image_png")?;
-    
-    let query = if has_image_blob {
-        "SELECT id, text_kind, text_ciphertext, text_nonce FROM entries WHERE entry_type = 'text' ORDER BY id DESC LIMIT 100"
-    } else {
-        "SELECT id, text_kind, text_ciphertext, text_nonce FROM entries WHERE entry_type = 'text' ORDER BY id DESC LIMIT 100"
-    };
+    let query = "SELECT id, text_kind, text_ciphertext, text_nonce FROM entries WHERE entry_type = 'text' ORDER BY id DESC LIMIT 100";
     
     let mut stmt = conn
         .prepare(query)
@@ -211,7 +205,7 @@ fn load_entries() -> Result<Vec<(i64, String)>, String> {
 }
 
 fn load_encryption_key() -> Result<[u8; 32], String> {
-    let entry = Entry::new(PROJECT_NAME, KEYRING_ACCOUNT)
+    let entry = Entry::new(APP_NAME, KEYRING_ACCOUNT)
         .map_err(|e| format!("Failed to access keyring: {}", e))?;
     
     let key_str = entry
@@ -248,32 +242,9 @@ fn decrypt_text(ciphertext: &[u8], nonce: &[u8], key: &[u8; 32]) -> Result<Strin
         .map_err(|e| format!("Failed to decode decrypted clipboard text: {}", e))
 }
 
-fn has_column(conn: &Connection, table_name: &str, column_name: &str) -> Result<bool, String> {
-    let mut stmt = conn
-        .prepare(&format!("PRAGMA table_info({table_name})"))
-        .map_err(|e| format!("Failed to inspect schema: {}", e))?;
-    
-    let mut rows = stmt
-        .query([])
-        .map_err(|e| format!("Failed to query schema: {}", e))?;
-
-    while let Some(row) = rows
-        .next()
-        .map_err(|e| format!("Failed to iterate schema: {}", e))?
-    {
-        let name: String = row
-            .get(1)
-            .map_err(|e| format!("Failed to read column name: {}", e))?;
-        if name == column_name {
-            return Ok(true);
-        }
-    }
-
-    Ok(false)
-}
 
 fn get_db_path() -> Result<PathBuf, String> {
-    let dirs = directories::ProjectDirs::from("", "", PROJECT_NAME)
+    let dirs = directories::ProjectDirs::from("", "", APP_NAME)
         .ok_or_else(|| "Could not determine project directories".to_string())?;
     
     Ok(dirs.data_local_dir().join(HISTORY_FILE))

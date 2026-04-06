@@ -2,7 +2,7 @@ use directories::ProjectDirs;
 use std::io;
 use std::path::PathBuf;
 
-use super::constants::{CONFIG_FILE, HISTORY_FILE, PROJECT_NAME};
+use super::constants::{CONFIG_FILE, HISTORY_FILE, APP_NAME};
 
 #[derive(Clone, Debug)]
 pub struct AppPaths {
@@ -13,7 +13,7 @@ pub struct AppPaths {
 }
 
 pub fn resolve_app_paths() -> io::Result<AppPaths> {
-    let project_dirs = ProjectDirs::from("", "", PROJECT_NAME).ok_or_else(|| {
+    let project_dirs = ProjectDirs::from("", "", APP_NAME).ok_or_else(|| {
         io::Error::new(
             io::ErrorKind::NotFound,
             "failed to resolve application data directory",
@@ -34,7 +34,7 @@ pub fn ensure_app_dir(paths: &AppPaths) -> io::Result<()> {
 }
 
 pub fn config_dir() -> io::Result<PathBuf> {
-    let project_dirs = ProjectDirs::from("", "", PROJECT_NAME).ok_or_else(|| {
+    let project_dirs = ProjectDirs::from("", "", APP_NAME).ok_or_else(|| {
         io::Error::new(
             io::ErrorKind::NotFound,
             "failed to resolve application data directory",

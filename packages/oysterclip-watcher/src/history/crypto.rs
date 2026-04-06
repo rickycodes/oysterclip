@@ -6,7 +6,7 @@ use rand::rngs::OsRng;
 use rand::RngCore;
 use std::io;
 
-use common::constants::{KEYRING_ACCOUNT, PROJECT_NAME};
+use common::constants::{KEYRING_ACCOUNT, APP_NAME};
 
 pub(crate) struct EncryptedText {
     pub(crate) ciphertext: Vec<u8>,
@@ -14,7 +14,7 @@ pub(crate) struct EncryptedText {
 }
 
 pub(crate) fn load_or_create_encryption_key() -> io::Result<[u8; 32]> {
-    let entry = Entry::new(PROJECT_NAME, KEYRING_ACCOUNT)
+    let entry = Entry::new(APP_NAME, KEYRING_ACCOUNT)
         .map_err(|err| io::Error::other(format!("failed to access OS keychain entry: {err}")))?;
 
     match entry.get_password() {
