@@ -6,9 +6,8 @@ use super::text_type::TextDetailType;
 use crate::app::actions::open_url;
 use crate::data::entry::ClipboardEntry;
 use crate::data::format::{
-    entry_icon_name, entry_label, extract_html_img_src, extract_single_url, format_timestamp,
-    has_urls, image_data_uri_summary, is_html_img_tag, is_image_data_uri, is_password,
-    mask_password_preview, preview_text,
+    entry_icon_name, entry_label, extract_single_url, format_timestamp, has_urls, is_html_img_tag,
+    is_image_data_uri, is_password, mask_password_preview,
 };
 use crate::data::link_preview::LinkPreviewState;
 use crate::system::auth::{authenticate_admin_action, AuthCache};
@@ -54,28 +53,7 @@ pub fn TextDetail(
         is_html_image,
     );
     let detail_label = detail_type.label();
-    let html_image_src = if is_html_image {
-        extract_html_img_src(&content)
-    } else {
-        None
-    };
-    let pretty_json = if is_json {
-        serde_json::from_str::<serde_json::Value>(&content)
-            .ok()
-            .and_then(|v| serde_json::to_string_pretty(&v).ok())
-    } else {
-        None
-    };
-    let summary = if is_data_uri {
-        Some(image_data_uri_summary(&content))
-    } else {
-        None
-    };
-    let display_text = if is_data_uri {
-        preview_text(&content, 96)
-    } else {
-        content.clone()
-    };
+    let display_data = detail_type.extract_display_data(&content);
 
     rsx! {
         div { class: "detail",
@@ -119,7 +97,7 @@ pub fn TextDetail(
                     }
                 }
             }
-            if let Some(summary) = summary {
+            if let Some(summary) = &display_data.summary {
                 div { class: "detail-note", "{summary}. Copy still uses the full value." }
             }
             if is_password_text {
@@ -131,10 +109,10 @@ pub fn TextDetail(
                     }
                 }
             } else if is_data_uri {
-                pre { class: "detail-text detail-text-truncated detail-data-uri", "{display_text}" }
+                pre { class: "detail-text detail-text-truncated detail-data-uri", "{display_data.display_text}" }
             } else if is_json {
                 pre { class: "detail-text detail-json",
-                    "{pretty_json.as_deref().unwrap_or(&content)}"
+                    "{display_data.pretty_json.as_deref().unwrap_or(&content)}"
                 }
             } else if is_path {
                 pre { class: "detail-text detail-path",
@@ -150,7 +128,7 @@ pub fn TextDetail(
                         }
                     }
                 }
-            } else if let Some(image_src) = html_image_src {
+            } else if let Some(image_src) = &display_data.html_image_src {
                 div { class: "detail-image-wrap",
                     img { class: "detail-image", src: "{image_src}", alt: "Extracted HTML image" }
                 }
