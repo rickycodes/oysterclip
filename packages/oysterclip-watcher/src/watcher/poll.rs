@@ -79,22 +79,8 @@ pub fn poll_clipboard(
             if state.has_image_changed(hash) {
                 match encode_png(&bytes, img.width, img.height) {
                     Ok(png_bytes) => {
-                        let exported_path = if save_images_to_disk {
-                            match save_png(&png_bytes, hash, image_export_dir) {
-                                Ok(path) => {
-                                    println!("{IMAGE_SAVED}: {path}");
-                                    Some(path)
-                                }
-                                Err(err) => {
-                                    let message = format!("Failed to export image: {err}");
-                                    eprintln!("{message}");
-                                    set_last_error(&control_state, message);
-                                    None
-                                }
-                            }
-                        } else {
-                            None
-                        };
+                        let exported_path =
+                            export_image_if_enabled(&png_bytes, hash, save_images_to_disk, image_export_dir, &control_state);
 
                         match history_store.append_entry(&PasteEntry::Image {
                             timestamp: current_timestamp(),
@@ -129,15 +115,53 @@ fn is_paused(state: &SharedControlState) -> bool {
     state.lock().map(|guard| guard.paused).unwrap_or(false)
 }
 
-fn mark_capture_success(state: &SharedControlState) {
+/// Updates control state by applying a mutable closure.
+/// Silently ignores lock failures.
+fn update_control_state<F>(state: &SharedControlState, update: F)
+where
+    F: FnOnce(&mut crate::ipc::ControlState),
+{
     if let Ok(mut guard) = state.lock() {
-        guard.last_capture_at = Some(current_timestamp());
-        guard.last_error = None;
+        update(&mut guard);
     }
 }
 
+fn mark_capture_success(state: &SharedControlState) {
+    update_control_state(state, |guard| {
+        guard.last_capture_at = Some(current_timestamp());
+        guard.last_error = None;
+    });
+}
+
 fn set_last_error(state: &SharedControlState, message: String) {
-    if let Ok(mut guard) = state.lock() {
+    update_control_state(state, |guard| {
         guard.last_error = Some(message);
+    });
+}
+
+/// Attempts to export image to disk if enabled, returns the optional path.
+/// Handles all error logging and control state updates internally.
+fn export_image_if_enabled(
+    png_bytes: &[u8],
+    hash: u64,
+    enabled: bool,
+    export_dir: &std::path::Path,
+    control_state: &SharedControlState,
+) -> Option<String> {
+    if !enabled {
+        return None;
+    }
+
+    match save_png(png_bytes, hash, export_dir) {
+        Ok(path) => {
+            println!("{IMAGE_SAVED}: {path}");
+            Some(path)
+        }
+        Err(err) => {
+            let message = format!("Failed to export image: {err}");
+            eprintln!("{message}");
+            set_last_error(control_state, message);
+            None
+        }
     }
 }
