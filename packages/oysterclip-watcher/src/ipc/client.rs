@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::Path;
 
@@ -7,11 +6,7 @@ use std::os::unix::net::UnixStream;
 
 use super::server::control_socket_path;
 use super::ControlResponse;
-
-#[derive(Debug, Serialize, Deserialize)]
-struct ControlRequest {
-    cmd: String,
-}
+use common::ControlRequest;
 
 #[cfg(unix)]
 pub(crate) fn send_control_command(db_path: &Path, cmd: &str) -> io::Result<ControlResponse> {

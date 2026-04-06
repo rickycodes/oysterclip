@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -7,16 +6,12 @@ use std::thread;
 use std::time::Duration;
 
 use crate::config::constants::CONTROL_SOCKET_FILE;
+use common::ControlRequest;
 
 #[cfg(unix)]
 use std::os::unix::net::{UnixListener, UnixStream};
 
 use super::{ControlResponse, ControlState, SharedControlState};
-
-#[derive(Debug, Serialize, Deserialize)]
-struct ControlRequest {
-    cmd: String,
-}
 
 pub(crate) struct ControlSocketGuard {
     socket_path: PathBuf,

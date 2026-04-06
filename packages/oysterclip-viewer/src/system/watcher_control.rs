@@ -1,10 +1,8 @@
-use serde::{Deserialize, Serialize};
 use std::io::{self, BufRead, BufReader, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::config::source::ClipboardSource;
-
-const CONTROL_SOCKET_FILE: &str = ".clipboard-watcher.sock";
+use common::{ControlCommand, ControlRequest, ControlResponse};
 
 #[derive(Clone, PartialEq)]
 pub struct WatcherStatus {
@@ -29,38 +27,21 @@ impl WatcherStatus {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct ControlRequest {
-    cmd: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct ControlResponse {
-    ok: bool,
-    message: String,
-    paused: bool,
-    started_at: u64,
-    last_capture_at: Option<u64>,
-    last_error: Option<String>,
-    db_path: String,
-    image_dir: String,
-}
-
 pub fn get_status(source: &ClipboardSource) -> WatcherStatus {
-    match send_control_command(source, "status") {
+    match send_control_command(source, ControlCommand::Status) {
         Ok(response) => from_response(response),
         Err(err) => WatcherStatus::unavailable(err.to_string()),
     }
 }
 
 pub fn pause(source: &ClipboardSource) -> Result<WatcherStatus, String> {
-    send_control_command(source, "pause")
+    send_control_command(source, ControlCommand::Pause)
         .map(from_response)
         .map_err(|err| err.to_string())
 }
 
 pub fn resume(source: &ClipboardSource) -> Result<WatcherStatus, String> {
-    send_control_command(source, "resume")
+    send_control_command(source, ControlCommand::Resume)
         .map(from_response)
         .map_err(|err| err.to_string())
 }
@@ -82,9 +63,12 @@ fn from_response(response: ControlResponse) -> WatcherStatus {
     }
 }
 
-fn send_control_command(source: &ClipboardSource, cmd: &str) -> io::Result<ControlResponse> {
+fn send_control_command(
+    source: &ClipboardSource,
+    cmd: ControlCommand,
+) -> io::Result<ControlResponse> {
     let db_path = source.file_path().map_err(io::Error::other)?;
-    let socket_path = control_socket_path(db_path)?;
+    let socket_path = get_socket_path(db_path)?;
 
     #[cfg(unix)]
     {
@@ -100,9 +84,7 @@ fn send_control_command(source: &ClipboardSource, cmd: &str) -> io::Result<Contr
             )
         })?;
 
-        let request = ControlRequest {
-            cmd: cmd.to_string(),
-        };
+        let request = ControlRequest::new(cmd);
         serde_json::to_writer(&mut stream, &request).map_err(io::Error::other)?;
         stream.write_all(b"\n")?;
         stream.flush()?;
@@ -127,7 +109,8 @@ fn send_control_command(source: &ClipboardSource, cmd: &str) -> io::Result<Contr
     }
 }
 
-fn control_socket_path(db_path: &Path) -> io::Result<PathBuf> {
+/// Get socket path from database path (handles both absolute and relative paths)
+fn get_socket_path(db_path: &Path) -> io::Result<std::path::PathBuf> {
     let absolute_db_path = if db_path.is_absolute() {
         db_path.to_path_buf()
     } else {
@@ -144,5 +127,5 @@ fn control_socket_path(db_path: &Path) -> io::Result<PathBuf> {
         )
     })?;
 
-    Ok(parent.join(CONTROL_SOCKET_FILE))
+    Ok(parent.join(".clipboard-watcher.sock"))
 }

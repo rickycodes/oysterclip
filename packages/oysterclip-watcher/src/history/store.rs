@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 
 use super::crypto::{encrypt_text, load_or_create_encryption_key, text_content_hash};
 use crate::config::constants::{
-    CREATE_ENTRIES_TABLE_SQL, CREATE_INDICES, DELETE_PRUNABLE_ENTRIES_SQL,
-    INSERT_IMAGE_ENTRY_SQL, INSERT_TEXT_ENTRY_SQL, SELECT_EXISTING_TEXT_ENTRY_SQL,
+    CREATE_ENTRIES_TABLE_SQL, CREATE_INDICES, DELETE_PRUNABLE_ENTRIES_SQL, INSERT_IMAGE_ENTRY_SQL,
+    INSERT_TEXT_ENTRY_SQL, SELECT_EXISTING_TEXT_ENTRY_SQL,
 };
 use crate::data::entry::PasteEntry;
 
