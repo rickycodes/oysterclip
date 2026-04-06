@@ -4,6 +4,11 @@ use std::path::PathBuf;
 use super::constants::SOCKET_FILE;
 use super::paths;
 
+// Command string constants
+const CMD_STATUS: &str = "status";
+const CMD_PAUSE: &str = "pause";
+const CMD_RESUME: &str = "resume";
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ControlCommand {
     Status,
@@ -14,17 +19,17 @@ pub enum ControlCommand {
 impl ControlCommand {
     pub fn as_str(&self) -> &'static str {
         match self {
-            ControlCommand::Status => "status",
-            ControlCommand::Pause => "pause",
-            ControlCommand::Resume => "resume",
+            ControlCommand::Status => CMD_STATUS,
+            ControlCommand::Pause => CMD_PAUSE,
+            ControlCommand::Resume => CMD_RESUME,
         }
     }
 
     pub fn parse(s: &str) -> Option<Self> {
         match s {
-            "status" => Some(ControlCommand::Status),
-            "pause" => Some(ControlCommand::Pause),
-            "resume" => Some(ControlCommand::Resume),
+            CMD_STATUS => Some(ControlCommand::Status),
+            CMD_PAUSE => Some(ControlCommand::Pause),
+            CMD_RESUME => Some(ControlCommand::Resume),
             _ => None,
         }
     }
