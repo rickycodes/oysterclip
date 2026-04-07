@@ -68,16 +68,10 @@ enum FetchError {
 async fn try_fetch_preview(url: &Url) -> Result<LinkPreview, FetchError> {
     let response = send_request(url).await?;
     validate_response(&response)?;
-    
+    validate_host_safety(&response)?;
+    validate_content_type(&response)?;
+
     let final_url = response.url().clone();
-    if !is_safe_preview_host(&final_url) {
-        return Err(FetchError::Permanent);
-    }
-
-    if !is_html_content(&response) {
-        return Err(FetchError::Permanent);
-    }
-
     let html = response.text().await.map_err(|_| FetchError::Transient)?;
     parse_link_preview(&final_url, &html).ok_or(FetchError::Permanent)
 }
@@ -102,6 +96,22 @@ fn validate_response(response: &reqwest::Response) -> Result<(), FetchError> {
         });
     }
     Ok(())
+}
+
+fn validate_host_safety(response: &reqwest::Response) -> Result<(), FetchError> {
+    if is_safe_preview_host(response.url()) {
+        Ok(())
+    } else {
+        Err(FetchError::Permanent)
+    }
+}
+
+fn validate_content_type(response: &reqwest::Response) -> Result<(), FetchError> {
+    if is_html_content(response) {
+        Ok(())
+    } else {
+        Err(FetchError::Permanent)
+    }
 }
 
 fn is_html_content(response: &reqwest::Response) -> bool {
@@ -130,17 +140,69 @@ fn parse_link_preview(final_url: &Url, html: &str) -> Option<LinkPreview> {
         image_url,
         display_url: final_url
             .host_str()
-            .unwrap_or(raw_host(final_url))
+            .unwrap_or(final_url.as_str())
             .to_string(),
     })
 }
 
 fn parse_title(document: &Html) -> Option<String> {
-    meta_content(document, "property", "og:title")
-        .or_else(|| meta_content(document, "name", "twitter:title"))
-        .or_else(|| extract_title_tag(document))
-        .map(clean_text)
-        .filter(|value| !value.is_empty())
+    parse_meta_or_fallback(
+        document,
+        vec![
+            ("property", "og:title"),
+            ("name", "twitter:title"),
+        ],
+        || extract_title_tag(document),
+    )
+}
+
+fn parse_description(document: &Html) -> Option<String> {
+    parse_meta_or_fallback(
+        document,
+        vec![
+            ("property", "og:description"),
+            ("name", "twitter:description"),
+            ("name", "description"),
+        ],
+        || None,
+    )
+}
+
+fn parse_site_name(document: &Html, final_url: &Url) -> Option<String> {
+    parse_meta_option(document, "property", "og:site_name")
+        .or_else(|| final_url.host_str().map(str::to_string))
+}
+
+fn parse_image_url(document: &Html, final_url: &Url) -> Option<String> {
+    parse_meta_or_fallback(
+        document,
+        vec![
+            ("property", "og:image"),
+            ("name", "twitter:image"),
+        ],
+        || None,
+    )
+    .and_then(|value| final_url.join(value.trim()).ok().map(|url| url.to_string()))
+}
+
+fn parse_meta_or_fallback<F>(
+    document: &Html,
+    attrs: Vec<(&str, &str)>,
+    fallback: F,
+) -> Option<String>
+where
+    F: Fn() -> Option<String>,
+{
+    for (attr_name, attr_value) in attrs {
+        if let Some(content) = parse_meta_option(document, attr_name, attr_value) {
+            return Some(clean_text(content));
+        }
+    }
+    fallback().map(clean_text)
+}
+
+fn parse_meta_option(document: &Html, attr_name: &str, attr_value: &str) -> Option<String> {
+    meta_content(document, attr_name, attr_value)
 }
 
 fn extract_title_tag(document: &Html) -> Option<String> {
@@ -148,27 +210,6 @@ fn extract_title_tag(document: &Html) -> Option<String> {
         .select(&TITLE_SELECTOR)
         .next()
         .map(|node| node.text().collect())
-}
-
-fn parse_description(document: &Html) -> Option<String> {
-    meta_content(document, "property", "og:description")
-        .or_else(|| meta_content(document, "name", "twitter:description"))
-        .or_else(|| meta_content(document, "name", "description"))
-        .map(clean_text)
-        .filter(|value| !value.is_empty())
-}
-
-fn parse_site_name(document: &Html, final_url: &Url) -> Option<String> {
-    meta_content(document, "property", "og:site_name")
-        .map(clean_text)
-        .filter(|value| !value.is_empty())
-        .or_else(|| final_url.host_str().map(str::to_string))
-}
-
-fn parse_image_url(document: &Html, final_url: &Url) -> Option<String> {
-    meta_content(document, "property", "og:image")
-        .or_else(|| meta_content(document, "name", "twitter:image"))
-        .and_then(|value| final_url.join(value.trim()).ok().map(|url| url.to_string()))
 }
 
 fn meta_content(document: &Html, attr_name: &str, attr_value: &str) -> Option<String> {
@@ -203,15 +244,12 @@ fn validate_preview_url(raw_url: &str) -> Option<Url> {
 }
 
 fn is_safe_preview_host(url: &Url) -> bool {
-    let host = match url.host_str() {
-        Some(host) => host,
-        None => return false,
-    };
-
-    if is_localhost(host) {
+    let host = url.host_str().unwrap_or_default();
+    
+    if host.is_empty() || is_localhost(host) {
         return false;
     }
-
+    
     is_safe_ip_address(host)
 }
 
@@ -220,17 +258,18 @@ fn is_localhost(host: &str) -> bool {
 }
 
 fn is_safe_ip_address(host: &str) -> bool {
-    match host.parse::<IpAddr>() {
-        Ok(IpAddr::V4(ip)) => {
-            !(ip.is_private() || ip.is_loopback() || ip.is_link_local() || ip.is_unspecified())
-        }
-        Ok(IpAddr::V6(ip)) => !(ip.is_loopback() || ip.is_unspecified()),
-        Err(_) => true,
-    }
+    host.parse::<IpAddr>()
+        .map(|ip| is_safe_addr(&ip))
+        .unwrap_or(true)
 }
 
-fn raw_host(url: &Url) -> &str {
-    url.as_str()
+fn is_safe_addr(ip: &IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(ipv4) => {
+            !(ipv4.is_private() || ipv4.is_loopback() || ipv4.is_link_local() || ipv4.is_unspecified())
+        }
+        IpAddr::V6(ipv6) => !(ipv6.is_loopback() || ipv6.is_unspecified()),
+    }
 }
 
 #[cfg(test)]
