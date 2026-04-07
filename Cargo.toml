@@ -22,3 +22,7 @@ opt-level = 2
 # Watcher: Background daemon - prioritize size/efficiency
 [profile.release.package.oysterclip-watcher]
 opt-level = "z"
+
+# TUI: Terminal UI - prioritize responsiveness (similar to viewer)
+[profile.release.package.oysterclip-tui]
+opt-level = 2
