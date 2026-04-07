@@ -71,54 +71,52 @@ fn parse_query_filters(query: &str) -> (Vec<QueryFilter>, String) {
 }
 
 fn apply_filters(entry: &ClipboardEntry, filters: &[QueryFilter]) -> bool {
-    for filter in filters {
-        match filter.key.as_str() {
-            "type" => {
-                let type_matches = match entry {
-                    ClipboardEntry::Text { .. } => {
-                        filter.value == ENTRY_TYPE_TEXT
-                            || filter.value == "pass"
-                            || filter.value == "password"
-                    }
-                    ClipboardEntry::Image { .. } => filter.value == ENTRY_TYPE_IMAGE,
-                };
-                if !type_matches {
-                    return false;
-                }
-            }
-            "kind" => {
-                let kind_matches = match entry {
-                    ClipboardEntry::Text { kind, content, .. } => {
-                        let entry_kind = if is_password(content) {
-                            "password"
-                        } else if let Some(k) = kind {
-                            k.as_str()
-                        } else {
-                            "text"
-                        };
-                        entry_kind.to_lowercase().contains(&filter.value)
-                    }
-                    ClipboardEntry::Image { .. } => false,
-                };
-                if !kind_matches {
-                    return false;
-                }
-            }
-            "since" => {
-                if let Some(cutoff) = parse_since_cutoff(&filter.value) {
-                    let ts = match entry {
-                        ClipboardEntry::Text { timestamp, .. }
-                        | ClipboardEntry::Image { timestamp, .. } => *timestamp,
-                    };
-                    if ts < cutoff {
-                        return false;
-                    }
-                }
-            }
-            _ => {}
+    filters.iter().all(|filter| match filter.key.as_str() {
+        "type" => apply_type_filter(entry, filter),
+        "kind" => apply_kind_filter(entry, filter),
+        "since" => apply_since_filter(entry, filter),
+        _ => true,
+    })
+}
+
+fn apply_type_filter(entry: &ClipboardEntry, filter: &QueryFilter) -> bool {
+    match entry {
+        ClipboardEntry::Text { .. } => {
+            filter.value == ENTRY_TYPE_TEXT
+                || filter.value == "pass"
+                || filter.value == "password"
         }
+        ClipboardEntry::Image { .. } => filter.value == ENTRY_TYPE_IMAGE,
     }
-    true
+}
+
+fn apply_kind_filter(entry: &ClipboardEntry, filter: &QueryFilter) -> bool {
+    match entry {
+        ClipboardEntry::Text { kind, content, .. } => {
+            let entry_kind = if is_password(content) {
+                "password"
+            } else if let Some(k) = kind {
+                k.as_str()
+            } else {
+                "text"
+            };
+            entry_kind.to_lowercase().contains(&filter.value)
+        }
+        ClipboardEntry::Image { .. } => false,
+    }
+}
+
+fn apply_since_filter(entry: &ClipboardEntry, filter: &QueryFilter) -> bool {
+    match parse_since_cutoff(&filter.value) {
+        Some(cutoff) => {
+            let ts = match entry {
+                ClipboardEntry::Text { timestamp, .. }
+                | ClipboardEntry::Image { timestamp, .. } => *timestamp,
+            };
+            ts >= cutoff
+        }
+        None => true,
+    }
 }
 
 /// Parse a `since:` value into a UTC unix timestamp cutoff.
