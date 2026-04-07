@@ -126,17 +126,21 @@ struct RowData {
     image_hash: Option<i64>,
 }
 
+fn build_entries_query(has_image_blob: bool) -> String {
+    if has_image_blob {
+        "SELECT id, created_at, entry_type, text_kind, text_ciphertext, text_nonce, image_path, image_png, image_hash FROM entries ORDER BY id ASC".to_string()
+    } else {
+        "SELECT id, created_at, entry_type, text_kind, text_ciphertext, text_nonce, image_path, image_hash FROM entries ORDER BY id ASC".to_string()
+    }
+}
+
 fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
     let conn = Connection::open(path).map_err(|e| format!("{}: {e}", ERR_OPEN_HISTORY_DB))?;
     let has_image_blob = has_column(&conn, "entries", "image_png")?;
+    
+    let sql = build_entries_query(has_image_blob);
     let mut stmt = conn
-        .prepare(
-            if has_image_blob {
-                "SELECT id, created_at, entry_type, text_kind, text_ciphertext, text_nonce, image_path, image_png, image_hash FROM entries ORDER BY id ASC"
-            } else {
-                "SELECT id, created_at, entry_type, text_kind, text_ciphertext, text_nonce, image_path, image_hash FROM entries ORDER BY id ASC"
-            },
-        )
+        .prepare(&sql)
         .map_err(|e| format!("Failed to prepare history query: {e}"))?;
     let mut rows = stmt
         .query([])
@@ -150,61 +154,57 @@ fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
         .next()
         .map_err(|e| format!("Failed to iterate history rows: {e}"))?
     {
-        let row_data = read_row_data(&row, has_image_blob)?;
-        let entry = match row_data.entry_type.as_str() {
-            ENTRY_TYPE_TEXT => parse_text_entry(&row_data, &key)?,
-            ENTRY_TYPE_IMAGE => parse_image_entry(&row_data, base_dir)?,
-            other => return Err(format!("Unknown history entry type: {other}")),
-        };
+        let row_data = RowDataReader::from_row(row, has_image_blob)?;
+        let entry = parse_entry(&row_data, &key, base_dir)?;
         entries.push(entry);
     }
 
     Ok(entries)
 }
 
-fn read_row_data(row: &rusqlite::Row, has_image_blob: bool) -> Result<RowData, String> {
-    let id: i64 = row
-        .get(0)
-        .map_err(|e| format!("Failed to read entry id: {e}"))?;
-    let timestamp: i64 = row
-        .get(1)
-        .map_err(|e| format!("Failed to read entry timestamp: {e}"))?;
-    let entry_type: String = row
-        .get(2)
-        .map_err(|e| format!("Failed to read entry type: {e}"))?;
-    let text_kind: Option<String> = row
-        .get(3)
-        .map_err(|e| format!("Failed to read text kind: {e}"))?;
-    let text_ciphertext: Option<Vec<u8>> = row
-        .get(4)
-        .map_err(|e| format!("Failed to read encrypted text content: {e}"))?;
-    let text_nonce: Option<Vec<u8>> = row
-        .get(5)
-        .map_err(|e| format!("Failed to read text nonce: {e}"))?;
-    let image_path: Option<String> = row
-        .get(6)
-        .map_err(|e| format!("Failed to read image path: {e}"))?;
-    let image_png: Option<Vec<u8>> = if has_image_blob {
-        row.get(7)
-            .map_err(|e| format!("Failed to read image blob: {e}"))?
-    } else {
-        None
-    };
-    let image_hash: Option<i64> = row
-        .get(if has_image_blob { 8 } else { 7 })
-        .map_err(|e| format!("Failed to read image hash: {e}"))?;
+struct RowDataReader;
 
-    Ok(RowData {
-        id,
-        timestamp,
-        entry_type,
-        text_kind,
-        text_ciphertext,
-        text_nonce,
-        image_path,
-        image_png,
-        image_hash,
-    })
+impl RowDataReader {
+    fn from_row(row: &rusqlite::Row, has_image_blob: bool) -> Result<RowData, String> {
+        let image_hash_idx = if has_image_blob { 8 } else { 7 };
+        
+        Ok(RowData {
+            id: Self::get_field(row, 0, "entry id")?,
+            timestamp: Self::get_field(row, 1, "entry timestamp")?,
+            entry_type: Self::get_field(row, 2, "entry type")?,
+            text_kind: Self::get_field(row, 3, "text kind")?,
+            text_ciphertext: Self::get_field(row, 4, "encrypted text content")?,
+            text_nonce: Self::get_field(row, 5, "text nonce")?,
+            image_path: Self::get_field(row, 6, "image path")?,
+            image_png: if has_image_blob {
+                Self::get_field(row, 7, "image blob")?
+            } else {
+                None
+            },
+            image_hash: Self::get_field(row, image_hash_idx, "image hash")?,
+        })
+    }
+
+    fn get_field<T: rusqlite::types::FromSql>(
+        row: &rusqlite::Row,
+        idx: usize,
+        field_name: &str,
+    ) -> Result<T, String> {
+        row.get(idx)
+            .map_err(|e| format!("Failed to read {field_name}: {e}"))
+    }
+}
+
+fn parse_entry(
+    row_data: &RowData,
+    key: &[u8; 32],
+    base_dir: Option<&Path>,
+) -> Result<ClipboardEntry, String> {
+    match row_data.entry_type.as_str() {
+        ENTRY_TYPE_TEXT => parse_text_entry(row_data, key),
+        ENTRY_TYPE_IMAGE => parse_image_entry(row_data, base_dir),
+        other => Err(format!("Unknown history entry type: {other}")),
+    }
 }
 
 fn parse_text_entry(row_data: &RowData, key: &[u8; 32]) -> Result<ClipboardEntry, String> {
