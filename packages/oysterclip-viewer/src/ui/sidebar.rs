@@ -12,10 +12,10 @@ use common::{TEXT_KIND_JSON, TEXT_KIND_PATH};
 
 /// Check if content is a valid JSON object or array (not just a string).
 fn is_valid_json_object_or_array(content: &str) -> bool {
-    match serde_json::from_str::<serde_json::Value>(content) {
-        Ok(serde_json::Value::Object(_)) | Ok(serde_json::Value::Array(_)) => true,
-        _ => false,
-    }
+    matches!(
+        serde_json::from_str::<serde_json::Value>(content),
+        Ok(serde_json::Value::Object(_)) | Ok(serde_json::Value::Array(_))
+    )
 }
 
 #[component]

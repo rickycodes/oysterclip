@@ -46,10 +46,10 @@ fn is_image_data_url(text: &str) -> bool {
 }
 
 fn is_json_object_or_array(text: &str) -> bool {
-    match serde_json::from_str::<serde_json::Value>(text) {
-        Ok(serde_json::Value::Object(_)) | Ok(serde_json::Value::Array(_)) => true,
-        _ => false,
-    }
+    matches!(
+        serde_json::from_str::<serde_json::Value>(text),
+        Ok(serde_json::Value::Object(_)) | Ok(serde_json::Value::Array(_))
+    )
 }
 
 fn is_file_path(text: &str) -> bool {
