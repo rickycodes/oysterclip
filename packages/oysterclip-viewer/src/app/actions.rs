@@ -53,22 +53,16 @@ pub fn confirm_and_clear_history(
     cache: Arc<Mutex<Option<CachedEntries>>>,
     mut state: DeleteActionState,
 ) {
-    let confirmed = MessageDialog::new()
-        .set_level(MessageLevel::Warning)
-        .set_title("Clear clipboard history?")
-        .set_description("This will permanently delete all clipboard history entries.")
-        .set_buttons(MessageButtons::OkCancel)
-        .show();
-
-    if !matches!(confirmed, MessageDialogResult::Ok) {
+    if !show_confirmation_dialog(
+        "Clear clipboard history?",
+        "This will permanently delete all clipboard history entries.",
+    ) {
         return;
     }
 
     match clear_history(&source) {
         Ok(_) => {
-            if let Ok(mut cache_guard) = cache.lock() {
-                *cache_guard = None;
-            }
+            invalidate_cache(&cache);
             state.entries.set(Vec::new());
             state.selected_id.set(None);
             state.selected_ids.set(HashSet::new());
@@ -88,27 +82,18 @@ pub fn confirm_and_delete_entry(
     mut state: DeleteActionState,
     id: i64,
 ) {
-    let confirmed = MessageDialog::new()
-        .set_level(MessageLevel::Warning)
-        .set_title("Delete clipboard entry?")
-        .set_description("This will permanently delete the selected clipboard entry.")
-        .set_buttons(MessageButtons::OkCancel)
-        .show();
-
-    if !matches!(confirmed, MessageDialogResult::Ok) {
+    if !show_confirmation_dialog(
+        "Delete clipboard entry?",
+        "This will permanently delete the selected clipboard entry.",
+    ) {
         return;
     }
 
     match delete_entry(&source, id) {
         Ok(_) => {
-            if let Ok(mut cache_guard) = cache.lock() {
-                *cache_guard = None;
-            }
+            invalidate_cache(&cache);
             let mut next_entries = (state.entries)();
-            next_entries.retain(|entry| match entry {
-                ClipboardEntry::Text { id: entry_id, .. }
-                | ClipboardEntry::Image { id: entry_id, .. } => entry_id != &id,
-            });
+            next_entries.retain(|entry| entry_id(entry) != id);
             state.entries.set(next_entries);
             state.selected_id.set(None);
             state.error.set(None);
@@ -129,24 +114,17 @@ pub fn confirm_and_delete_entries(
 ) {
     let count = ids.len();
     let noun = if count == 1 { "entry" } else { "entries" };
-    let confirmed = MessageDialog::new()
-        .set_level(MessageLevel::Warning)
-        .set_title(format!("Delete {count} {noun}?"))
-        .set_description(format!(
-            "This will permanently delete {count} selected clipboard {noun}."
-        ))
-        .set_buttons(MessageButtons::OkCancel)
-        .show();
-
-    if !matches!(confirmed, MessageDialogResult::Ok) {
+    
+    if !show_confirmation_dialog(
+        &format!("Delete {count} {noun}?"),
+        &format!("This will permanently delete {count} selected clipboard {noun}."),
+    ) {
         return;
     }
 
     match delete_entries(&source, &ids) {
         Ok(_) => {
-            if let Ok(mut cache_guard) = cache.lock() {
-                *cache_guard = None;
-            }
+            invalidate_cache(&cache);
             let id_set: HashSet<i64> = ids.iter().cloned().collect();
             let mut next_entries = (state.entries)();
             next_entries.retain(|e| !id_set.contains(&entry_id(e)));
@@ -160,6 +138,24 @@ pub fn confirm_and_delete_entries(
             state.error.set(Some(err));
             set_status(state.action_status, "Delete failed");
         }
+    }
+}
+
+fn show_confirmation_dialog(title: &str, description: &str) -> bool {
+    matches!(
+        MessageDialog::new()
+            .set_level(MessageLevel::Warning)
+            .set_title(title)
+            .set_description(description)
+            .set_buttons(MessageButtons::OkCancel)
+            .show(),
+        MessageDialogResult::Ok
+    )
+}
+
+fn invalidate_cache(cache: &Arc<Mutex<Option<CachedEntries>>>) {
+    if let Ok(mut cache_guard) = cache.lock() {
+        *cache_guard = None;
     }
 }
 
@@ -212,6 +208,30 @@ pub fn open_url(url: &str) {
     let _ = std::process::Command::new("sh").arg("-c").arg(cmd).spawn();
 }
 
+fn get_system_editor() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "notepad"
+    } else {
+        "nano"
+    }
+}
+
+fn get_file_opener() -> &'static str {
+    if cfg!(target_os = "macos") {
+        "open"
+    } else {
+        "xdg-open"
+    }
+}
+
+fn write_and_open_file(path: &std::path::Path, content: &str, opener: &str) -> std::io::Result<()> {
+    std::fs::write(path, content)?;
+    std::process::Command::new(opener)
+        .arg(path)
+        .spawn()
+        .map(|_| ())
+}
+
 /// Aggregate multiple selected clipboard entries and send to a target app (e.g., notepad).
 ///
 /// Config example:
@@ -256,20 +276,14 @@ pub fn aggregate_to_app(
         .collect::<Vec<_>>()
         .join(separator);
 
-    // Handle special "editor" app name to use system default editor
     let app_to_use = if app == "editor" {
-        if cfg!(target_os = "windows") {
-            "notepad"
-        } else {
-            "nano"
-        }
+        get_system_editor()
     } else {
         app
     };
 
-    // Cross-platform app launching
+    let temp_file = std::env::temp_dir().join(TEMP_BULK_FILE);
     let result = if cfg!(target_os = "windows") {
-        let temp_file = std::env::temp_dir().join(TEMP_BULK_FILE);
         std::fs::write(&temp_file, &combined).and_then(|_| {
             std::process::Command::new(app_to_use)
                 .arg(&temp_file)
@@ -277,19 +291,7 @@ pub fn aggregate_to_app(
                 .map(|_| ())
         })
     } else {
-        // macOS and Linux: write to temp file and open
-        let temp_file = std::env::temp_dir().join(TEMP_BULK_FILE);
-        std::fs::write(&temp_file, &combined).and_then(|_| {
-            let opener = if cfg!(target_os = "macos") {
-                "open"
-            } else {
-                "xdg-open"
-            };
-            std::process::Command::new(opener)
-                .arg(&temp_file)
-                .spawn()
-                .map(|_| ())
-        })
+        write_and_open_file(&temp_file, &combined, get_file_opener())
     };
 
     match result {
