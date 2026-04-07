@@ -10,6 +10,14 @@ use crate::data::format::{
 };
 use common::{TEXT_KIND_JSON, TEXT_KIND_PATH};
 
+/// Check if content is a valid JSON object or array (not just a string).
+fn is_valid_json_object_or_array(content: &str) -> bool {
+    match serde_json::from_str::<serde_json::Value>(content) {
+        Ok(serde_json::Value::Object(_)) | Ok(serde_json::Value::Array(_)) => true,
+        _ => false,
+    }
+}
+
 #[component]
 pub fn Sidebar(
     entries: Vec<ClipboardEntry>,
@@ -101,7 +109,7 @@ pub fn Sidebar(
                                     "entry-card-pass"
                                 } else if is_image_data_uri(content) {
                                     "entry-card-image"
-                                } else if kind.as_deref() == Some(TEXT_KIND_JSON) {
+                                } else if kind.as_deref() == Some(TEXT_KIND_JSON) && is_valid_json_object_or_array(content) {
                                     "entry-card-json"
                                 } else if kind.as_deref() == Some(TEXT_KIND_PATH) {
                                     "entry-card-path"
@@ -120,9 +128,9 @@ pub fn Sidebar(
                         if is_checked {
                             class.push_str(" entry-card-checked");
                         }
-                        let preview = match entry {
+                         let preview = match entry {
                             ClipboardEntry::Text { content, kind, .. } => {
-                                if kind.as_deref() == Some(TEXT_KIND_JSON) {
+                                if kind.as_deref() == Some(TEXT_KIND_JSON) && is_valid_json_object_or_array(content) {
                                     // Minify JSON to a single line for sidebar preview
                                     let minified = content.split_whitespace().collect::<Vec<_>>().join(" ");
                                     preview_text(&minified, 56)

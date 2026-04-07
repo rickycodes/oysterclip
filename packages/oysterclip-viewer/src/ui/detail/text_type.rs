@@ -3,6 +3,14 @@ use crate::data::format::{
 };
 use common::{TEXT_KIND_JSON, TEXT_KIND_PATH};
 
+/// Check if content is a valid JSON object or array (not just a string).
+fn is_valid_json_object_or_array(content: &str) -> bool {
+    match serde_json::from_str::<serde_json::Value>(content) {
+        Ok(serde_json::Value::Object(_)) | Ok(serde_json::Value::Array(_)) => true,
+        _ => false,
+    }
+}
+
 /// Prepared display data for a text entry based on its type.
 #[derive(Debug, Clone)]
 pub struct TextDisplayData {
@@ -42,7 +50,7 @@ impl TextDetailType {
             _ if crate::data::format::is_password(content) => Self::Password,
             _ if is_html_image => Self::HtmlImage,
             _ if has_url => Self::Link,
-            _ if kind == Some(TEXT_KIND_JSON) => Self::Json,
+            _ if kind == Some(TEXT_KIND_JSON) && is_valid_json_object_or_array(content) => Self::Json,
             _ if kind == Some(TEXT_KIND_PATH) => Self::Path,
             _ => Self::Text,
         }
@@ -70,7 +78,7 @@ impl TextDetailType {
             } else {
                 None
             },
-            pretty_json: if is_json {
+            pretty_json: if is_json && is_valid_json_object_or_array(content) {
                 serde_json::from_str::<serde_json::Value>(content)
                     .ok()
                     .and_then(|v| serde_json::to_string_pretty(&v).ok())

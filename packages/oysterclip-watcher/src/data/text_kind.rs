@@ -33,7 +33,7 @@ impl TextKind {
             _ if trimmed.is_empty() => Self::Empty,
             _ if is_image_data_url(trimmed) => Self::ImageDataUri,
             _ if trimmed.starts_with("http://") || trimmed.starts_with("https://") => Self::Url,
-            _ if serde_json::from_str::<serde_json::Value>(trimmed).is_ok() => Self::Json,
+            _ if is_json_object_or_array(trimmed) => Self::Json,
             _ if trimmed.contains('\n') || trimmed.contains('\r') => Self::Multiline,
             _ if is_file_path(trimmed) => Self::Path,
             _ => Self::Plain,
@@ -43,6 +43,13 @@ impl TextKind {
 
 fn is_image_data_url(text: &str) -> bool {
     text.starts_with("data:image/") && text.contains(";base64,")
+}
+
+fn is_json_object_or_array(text: &str) -> bool {
+    match serde_json::from_str::<serde_json::Value>(text) {
+        Ok(serde_json::Value::Object(_)) | Ok(serde_json::Value::Array(_)) => true,
+        _ => false,
+    }
 }
 
 fn is_file_path(text: &str) -> bool {
