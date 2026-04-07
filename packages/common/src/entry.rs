@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::{ENTRY_TYPE_IMAGE, ENTRY_TYPE_TEXT};
+use serde::{Deserialize, Serialize};
 
 /// Entry type classification
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

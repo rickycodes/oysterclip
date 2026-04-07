@@ -3,11 +3,14 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::Mutex;
 
+use super::actions::{
+    adjacent_entry_id, confirm_and_delete_entries, confirm_and_delete_entry,
+    copy_text_to_clipboard, set_status, DeleteActionState,
+};
+use crate::config::source::ClipboardSource;
 use crate::data::entry::{CachedEntries, ClipboardEntry};
 use crate::system::watcher_control::{self, WatcherStatus};
-use crate::config::source::ClipboardSource;
 use common::{MSG_WATCHER_PAUSED, MSG_WATCHER_RESUMED};
-use super::actions::{copy_text_to_clipboard, confirm_and_delete_entry, confirm_and_delete_entries, set_status, DeleteActionState, adjacent_entry_id};
 
 /// Factory function that creates a keyboard event handler closure
 #[allow(clippy::too_many_arguments)]
@@ -107,12 +110,7 @@ pub fn create_handler(
                 if let Some(text) = selected_text.clone() {
                     event.prevent_default();
                     if let Some(id) = current_selected_id {
-                        copy_text_to_clipboard(
-                            copy_status,
-                            id,
-                            text,
-                            selected_label,
-                        );
+                        copy_text_to_clipboard(copy_status, id, text, selected_label);
                     }
                 }
             }

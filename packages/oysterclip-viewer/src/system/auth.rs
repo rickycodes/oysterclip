@@ -1,6 +1,6 @@
+use common::{AUTH_FAILED, AUTH_SUCCESS};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
-use common::{AUTH_FAILED, AUTH_SUCCESS};
 
 #[allow(dead_code)]
 pub struct AuthResult {

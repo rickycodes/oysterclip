@@ -8,12 +8,11 @@ use std::path::Path;
 use crate::config::source::ClipboardSource;
 use crate::data::entry::{CachedEntries, ClipboardEntry, ClipboardPayload, SourceStamp};
 use common::crypto::{decrypt_text, get_or_create_key};
-use common::{ERR_OPEN_HISTORY_DB, ENTRY_TYPE_TEXT, ENTRY_TYPE_IMAGE};
+use common::{ENTRY_TYPE_IMAGE, ENTRY_TYPE_TEXT, ERR_OPEN_HISTORY_DB};
 
 pub fn delete_entry(source: &ClipboardSource, id: i64) -> Result<(), String> {
     let path = source.file_path()?;
-    let conn =
-        Connection::open(path).map_err(|e| format!("{}: {e}", ERR_OPEN_HISTORY_DB))?;
+    let conn = Connection::open(path).map_err(|e| format!("{}: {e}", ERR_OPEN_HISTORY_DB))?;
     conn.execute("DELETE FROM entries WHERE id = ?1", [id])
         .map_err(|e| format!("Failed to delete history entry: {e}"))?;
     Ok(())
@@ -24,8 +23,7 @@ pub fn delete_entries(source: &ClipboardSource, ids: &[i64]) -> Result<(), Strin
         return Ok(());
     }
     let path = source.file_path()?;
-    let conn =
-        Connection::open(path).map_err(|e| format!("{}: {e}", ERR_OPEN_HISTORY_DB))?;
+    let conn = Connection::open(path).map_err(|e| format!("{}: {e}", ERR_OPEN_HISTORY_DB))?;
     let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
     let sql = format!("DELETE FROM entries WHERE id IN ({placeholders})");
     conn.execute(&sql, rusqlite::params_from_iter(ids.iter()))
@@ -35,8 +33,7 @@ pub fn delete_entries(source: &ClipboardSource, ids: &[i64]) -> Result<(), Strin
 
 pub fn clear_history(source: &ClipboardSource) -> Result<(), String> {
     let path = source.file_path()?;
-    let conn =
-        Connection::open(path).map_err(|e| format!("{}: {e}", ERR_OPEN_HISTORY_DB))?;
+    let conn = Connection::open(path).map_err(|e| format!("{}: {e}", ERR_OPEN_HISTORY_DB))?;
     conn.execute("DELETE FROM entries", [])
         .map_err(|e| format!("Failed to clear history: {e}"))?;
     Ok(())
@@ -130,8 +127,7 @@ struct RowData {
 }
 
 fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
-    let conn =
-        Connection::open(path).map_err(|e| format!("{}: {e}", ERR_OPEN_HISTORY_DB))?;
+    let conn = Connection::open(path).map_err(|e| format!("{}: {e}", ERR_OPEN_HISTORY_DB))?;
     let has_image_blob = has_column(&conn, "entries", "image_png")?;
     let mut stmt = conn
         .prepare(
@@ -167,7 +163,9 @@ fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
 }
 
 fn read_row_data(row: &rusqlite::Row, has_image_blob: bool) -> Result<RowData, String> {
-    let id: i64 = row.get(0).map_err(|e| format!("Failed to read entry id: {e}"))?;
+    let id: i64 = row
+        .get(0)
+        .map_err(|e| format!("Failed to read entry id: {e}"))?;
     let timestamp: i64 = row
         .get(1)
         .map_err(|e| format!("Failed to read entry timestamp: {e}"))?;
@@ -219,8 +217,8 @@ fn parse_text_entry(row_data: &RowData, key: &[u8; 32]) -> Result<ClipboardEntry
         .as_deref()
         .ok_or_else(|| "Missing text nonce.".to_string())?;
 
-    let content = decrypt_text(ciphertext, nonce, key)
-        .map_err(|e| format!("Failed to decrypt text: {e}"))?;
+    let content =
+        decrypt_text(ciphertext, nonce, key).map_err(|e| format!("Failed to decrypt text: {e}"))?;
 
     Ok(ClipboardEntry::Text {
         id: row_data.id,
@@ -230,7 +228,10 @@ fn parse_text_entry(row_data: &RowData, key: &[u8; 32]) -> Result<ClipboardEntry
     })
 }
 
-fn parse_image_entry(row_data: &RowData, base_dir: Option<&Path>) -> Result<ClipboardEntry, String> {
+fn parse_image_entry(
+    row_data: &RowData,
+    base_dir: Option<&Path>,
+) -> Result<ClipboardEntry, String> {
     let hash = row_data
         .image_hash
         .ok_or_else(|| "Missing image hash.".to_string())? as u64;
@@ -239,9 +240,7 @@ fn parse_image_entry(row_data: &RowData, base_dir: Option<&Path>) -> Result<Clip
         .image_png
         .as_ref()
         .map(|bytes| data_url_from_png(bytes.clone()))
-        .or_else(|| {
-            load_image_data_url_from_path(base_dir, row_data.image_path.as_deref())
-        });
+        .or_else(|| load_image_data_url_from_path(base_dir, row_data.image_path.as_deref()));
 
     Ok(ClipboardEntry::Image {
         id: row_data.id,

@@ -75,11 +75,8 @@ mod tests {
     #[test]
     fn watcher_config_reads_max_history_entries() {
         let config: RawWatcherConfig = toml::from_str("max_history_entries = 250").unwrap();
-        let config = WatcherConfig::from_raw(
-            config,
-            Path::new("/tmp/config-dir"),
-            Path::new(IMAGE_DIR),
-        );
+        let config =
+            WatcherConfig::from_raw(config, Path::new("/tmp/config-dir"), Path::new(IMAGE_DIR));
         assert_eq!(config.max_history_entries, 250);
     }
 
@@ -104,11 +101,8 @@ mod tests {
     fn watcher_config_resolves_relative_image_export_dir_from_config_dir() {
         let config: RawWatcherConfig =
             toml::from_str("save_images_to_disk = true\nimage_export_dir = \"exports\"").unwrap();
-        let config = WatcherConfig::from_raw(
-            config,
-            Path::new("/tmp/config-dir"),
-            Path::new(IMAGE_DIR),
-        );
+        let config =
+            WatcherConfig::from_raw(config, Path::new("/tmp/config-dir"), Path::new(IMAGE_DIR));
 
         assert!(config.save_images_to_disk);
         assert_eq!(
