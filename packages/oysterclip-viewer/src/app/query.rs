@@ -72,23 +72,23 @@ fn parse_query_filters(query: &str) -> (Vec<QueryFilter>, String) {
 
 fn apply_filters(entry: &ClipboardEntry, filters: &[QueryFilter]) -> bool {
     filters.iter().all(|filter| match filter.key.as_str() {
-        "type" => apply_type_filter(entry, filter),
-        "kind" => apply_kind_filter(entry, filter),
-        "since" => apply_since_filter(entry, filter),
+        "type" => matches_type_filter(entry, &filter.value),
+        "kind" => matches_kind_filter(entry, &filter.value),
+        "since" => matches_since_filter(entry, &filter.value),
         _ => true,
     })
 }
 
-fn apply_type_filter(entry: &ClipboardEntry, filter: &QueryFilter) -> bool {
+fn matches_type_filter(entry: &ClipboardEntry, filter_value: &str) -> bool {
     match entry {
         ClipboardEntry::Text { .. } => {
-            filter.value == ENTRY_TYPE_TEXT || filter.value == "pass" || filter.value == "password"
+            filter_value == ENTRY_TYPE_TEXT || filter_value == "pass" || filter_value == "password"
         }
-        ClipboardEntry::Image { .. } => filter.value == ENTRY_TYPE_IMAGE,
+        ClipboardEntry::Image { .. } => filter_value == ENTRY_TYPE_IMAGE,
     }
 }
 
-fn apply_kind_filter(entry: &ClipboardEntry, filter: &QueryFilter) -> bool {
+fn matches_kind_filter(entry: &ClipboardEntry, filter_value: &str) -> bool {
     match entry {
         ClipboardEntry::Text { kind, content, .. } => {
             let entry_kind = if is_password(content) {
@@ -98,14 +98,14 @@ fn apply_kind_filter(entry: &ClipboardEntry, filter: &QueryFilter) -> bool {
             } else {
                 "text"
             };
-            entry_kind.to_lowercase().contains(&filter.value)
+            entry_kind.to_lowercase().contains(filter_value)
         }
         ClipboardEntry::Image { .. } => false,
     }
 }
 
-fn apply_since_filter(entry: &ClipboardEntry, filter: &QueryFilter) -> bool {
-    match parse_since_cutoff(&filter.value) {
+fn matches_since_filter(entry: &ClipboardEntry, filter_value: &str) -> bool {
+    match parse_since_cutoff(filter_value) {
         Some(cutoff) => {
             let ts = match entry {
                 ClipboardEntry::Text { timestamp, .. }
@@ -122,43 +122,59 @@ fn apply_since_filter(entry: &ClipboardEntry, filter: &QueryFilter) -> bool {
 fn parse_since_cutoff(value: &str) -> Option<u64> {
     let now = Utc::now();
 
-    if value == "today" {
-        let local = Local::now();
-        let start = Local
-            .with_ymd_and_hms(local.year(), local.month(), local.day(), 0, 0, 0)
-            .single()?;
-        return Some(start.with_timezone(&Utc).timestamp() as u64);
+    // Try relative date shortcuts first
+    if let Some(cutoff) = parse_relative_date(value) {
+        return Some(cutoff);
     }
 
-    if value == "yesterday" {
-        let local = Local::now() - chrono::Duration::days(1);
-        let start = Local
-            .with_ymd_and_hms(local.year(), local.month(), local.day(), 0, 0, 0)
-            .single()?;
-        return Some(start.with_timezone(&Utc).timestamp() as u64);
-    }
+    // Try duration formats (e.g., 30m, 2h, 7d, 2w)
+    parse_duration_offset(value, now)
+}
 
-    if let Some(n) = value.strip_suffix('m') {
-        let minutes: i64 = n.parse().ok()?;
-        return Some((now - chrono::Duration::minutes(minutes)).timestamp() as u64);
+fn parse_relative_date(value: &str) -> Option<u64> {
+    match value {
+        "today" => {
+            let local = Local::now();
+            let start = Local
+                .with_ymd_and_hms(local.year(), local.month(), local.day(), 0, 0, 0)
+                .single()?;
+            Some(start.with_timezone(&Utc).timestamp() as u64)
+        }
+        "yesterday" => {
+            let local = Local::now() - chrono::Duration::days(1);
+            let start = Local
+                .with_ymd_and_hms(local.year(), local.month(), local.day(), 0, 0, 0)
+                .single()?;
+            Some(start.with_timezone(&Utc).timestamp() as u64)
+        }
+        _ => None,
     }
+}
 
-    if let Some(n) = value.strip_suffix('h') {
-        let hours: i64 = n.parse().ok()?;
-        return Some((now - chrono::Duration::hours(hours)).timestamp() as u64);
+fn parse_duration_offset(value: &str, now: chrono::DateTime<Utc>) -> Option<u64> {
+    let (n, suffix) = extract_duration_parts(value)?;
+    let cutoff = match suffix {
+        'm' => now - chrono::Duration::minutes(n),
+        'h' => now - chrono::Duration::hours(n),
+        'd' => now - chrono::Duration::days(n),
+        'w' => now - chrono::Duration::weeks(n),
+        _ => return None,
+    };
+    Some(cutoff.timestamp() as u64)
+}
+
+fn extract_duration_parts(value: &str) -> Option<(i64, char)> {
+    if value.is_empty() {
+        return None;
     }
-
-    if let Some(n) = value.strip_suffix('d') {
-        let days: i64 = n.parse().ok()?;
-        return Some((now - chrono::Duration::days(days)).timestamp() as u64);
+    let last_char = value.chars().last()?;
+    if matches!(last_char, 'm' | 'h' | 'd' | 'w') {
+        let num_str = &value[..value.len() - 1];
+        let n = num_str.parse::<i64>().ok()?;
+        Some((n, last_char))
+    } else {
+        None
     }
-
-    if let Some(n) = value.strip_suffix('w') {
-        let weeks: i64 = n.parse().ok()?;
-        return Some((now - chrono::Duration::weeks(weeks)).timestamp() as u64);
-    }
-
-    None
 }
 
 fn is_password(content: &str) -> bool {
