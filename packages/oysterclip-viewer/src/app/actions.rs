@@ -63,16 +63,10 @@ pub fn confirm_and_clear_history(
     match clear_history(&source) {
         Ok(_) => {
             invalidate_cache(&cache);
-            state.entries.set(Vec::new());
-            state.selected_id.set(None);
-            state.selected_ids.set(HashSet::new());
-            state.error.set(None);
+            reset_delete_state(&mut state);
             set_status(state.action_status, "History cleared");
         }
-        Err(err) => {
-            state.error.set(Some(err));
-            set_status(state.action_status, "Clear failed");
-        }
+        Err(err) => handle_delete_error(&mut state, err),
     }
 }
 
@@ -99,10 +93,7 @@ pub fn confirm_and_delete_entry(
             state.error.set(None);
             set_status(state.action_status, "Entry deleted");
         }
-        Err(err) => {
-            state.error.set(Some(err));
-            set_status(state.action_status, "Delete failed");
-        }
+        Err(err) => handle_delete_error(&mut state, err),
     }
 }
 
@@ -134,10 +125,7 @@ pub fn confirm_and_delete_entries(
             state.error.set(None);
             set_status(state.action_status, format!("{count} {noun} deleted"));
         }
-        Err(err) => {
-            state.error.set(Some(err));
-            set_status(state.action_status, "Delete failed");
-        }
+        Err(err) => handle_delete_error(&mut state, err),
     }
 }
 
@@ -151,6 +139,18 @@ fn show_confirmation_dialog(title: &str, description: &str) -> bool {
             .show(),
         MessageDialogResult::Ok
     )
+}
+
+fn reset_delete_state(state: &mut DeleteActionState) {
+    state.entries.set(Vec::new());
+    state.selected_id.set(None);
+    state.selected_ids.set(HashSet::new());
+    state.error.set(None);
+}
+
+fn handle_delete_error(state: &mut DeleteActionState, err: String) {
+    state.error.set(Some(err));
+    set_status(state.action_status, "Delete failed");
 }
 
 fn invalidate_cache(cache: &Arc<Mutex<Option<CachedEntries>>>) {
@@ -197,15 +197,23 @@ pub fn set_status(mut status: Signal<Option<String>>, message: impl Into<String>
 }
 
 pub fn open_url(url: &str) {
-    let cmd = if cfg!(target_os = "windows") {
-        format!("start {}", url)
-    } else if cfg!(target_os = "macos") {
-        format!("open {}", url)
-    } else {
-        format!("xdg-open {}", url)
-    };
-
+    let cmd = build_url_open_command(url);
     let _ = std::process::Command::new("sh").arg("-c").arg(cmd).spawn();
+}
+
+fn build_url_open_command(url: &str) -> String {
+    #[cfg(target_os = "windows")]
+    {
+        format!("start {}", url)
+    }
+    #[cfg(target_os = "macos")]
+    {
+        format!("open {}", url)
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    {
+        format!("xdg-open {}", url)
+    }
 }
 
 fn get_system_editor() -> &'static str {
@@ -256,7 +264,34 @@ pub fn aggregate_to_app(
         return;
     }
 
-    let combined = entries
+    let combined = format_entries(entries, separator, template);
+    let app_to_use = if app == "editor" {
+        get_system_editor()
+    } else {
+        app
+    };
+
+    let temp_file = std::env::temp_dir().join(TEMP_BULK_FILE);
+    let result = open_in_app(&temp_file, &combined, app_to_use);
+
+    match result {
+        Ok(_) => set_status(
+            action_status,
+            format!(
+                "Sent {} entries to {}",
+                entries.len(),
+                if app == "editor" { "editor" } else { app }
+            ),
+        ),
+        Err(e) => set_status(
+            action_status,
+            format!("Failed to open {}: {}", app_to_use, e),
+        ),
+    }
+}
+
+fn format_entries(entries: &[ClipboardEntry], separator: &str, template: Option<&str>) -> String {
+    entries
         .iter()
         .filter_map(|entry| {
             if let ClipboardEntry::Text { content, id, .. } = entry {
@@ -274,38 +309,22 @@ pub fn aggregate_to_app(
             }
         })
         .collect::<Vec<_>>()
-        .join(separator);
+        .join(separator)
+}
 
-    let app_to_use = if app == "editor" {
-        get_system_editor()
-    } else {
-        app
-    };
-
-    let temp_file = std::env::temp_dir().join(TEMP_BULK_FILE);
-    let result = if cfg!(target_os = "windows") {
-        std::fs::write(&temp_file, &combined).and_then(|_| {
-            std::process::Command::new(app_to_use)
-                .arg(&temp_file)
+fn open_in_app(temp_file: &std::path::Path, content: &str, app: &str) -> std::io::Result<()> {
+    #[cfg(target_os = "windows")]
+    {
+        std::fs::write(temp_file, content).and_then(|_| {
+            std::process::Command::new(app)
+                .arg(temp_file)
                 .spawn()
                 .map(|_| ())
         })
-    } else {
-        write_and_open_file(&temp_file, &combined, get_file_opener())
-    };
-
-    match result {
-        Ok(_) => set_status(
-            action_status,
-            format!(
-                "Sent {} entries to {}",
-                entries.len(),
-                if app == "editor" { "editor" } else { app }
-            ),
-        ),
-        Err(e) => set_status(
-            action_status,
-            format!("Failed to open {}: {}", app_to_use, e),
-        ),
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = app;
+        write_and_open_file(temp_file, content, get_file_opener())
     }
 }
