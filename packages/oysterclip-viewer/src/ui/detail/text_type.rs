@@ -50,7 +50,9 @@ impl TextDetailType {
             _ if crate::data::format::is_password(content) => Self::Password,
             _ if is_html_image => Self::HtmlImage,
             _ if has_url => Self::Link,
-            _ if kind == Some(TEXT_KIND_JSON) && is_valid_json_object_or_array(content) => Self::Json,
+            _ if kind == Some(TEXT_KIND_JSON) && is_valid_json_object_or_array(content) => {
+                Self::Json
+            }
             _ if kind == Some(TEXT_KIND_PATH) => Self::Path,
             _ => Self::Text,
         }

@@ -82,9 +82,7 @@ fn apply_filters(entry: &ClipboardEntry, filters: &[QueryFilter]) -> bool {
 fn apply_type_filter(entry: &ClipboardEntry, filter: &QueryFilter) -> bool {
     match entry {
         ClipboardEntry::Text { .. } => {
-            filter.value == ENTRY_TYPE_TEXT
-                || filter.value == "pass"
-                || filter.value == "password"
+            filter.value == ENTRY_TYPE_TEXT || filter.value == "pass" || filter.value == "password"
         }
         ClipboardEntry::Image { .. } => filter.value == ENTRY_TYPE_IMAGE,
     }

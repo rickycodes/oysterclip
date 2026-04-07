@@ -114,7 +114,7 @@ pub fn confirm_and_delete_entries(
 ) {
     let count = ids.len();
     let noun = if count == 1 { "entry" } else { "entries" };
-    
+
     if !show_confirmation_dialog(
         &format!("Delete {count} {noun}?"),
         &format!("This will permanently delete {count} selected clipboard {noun}."),

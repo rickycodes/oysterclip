@@ -137,7 +137,7 @@ fn build_entries_query(has_image_blob: bool) -> String {
 fn load_entries_from_db(path: &Path) -> Result<Vec<ClipboardEntry>, String> {
     let conn = Connection::open(path).map_err(|e| format!("{}: {e}", ERR_OPEN_HISTORY_DB))?;
     let has_image_blob = has_column(&conn, "entries", "image_png")?;
-    
+
     let sql = build_entries_query(has_image_blob);
     let mut stmt = conn
         .prepare(&sql)
@@ -167,7 +167,7 @@ struct RowDataReader;
 impl RowDataReader {
     fn from_row(row: &rusqlite::Row, has_image_blob: bool) -> Result<RowData, String> {
         let image_hash_idx = if has_image_blob { 8 } else { 7 };
-        
+
         Ok(RowData {
             id: Self::get_field(row, 0, "entry id")?,
             timestamp: Self::get_field(row, 1, "entry timestamp")?,

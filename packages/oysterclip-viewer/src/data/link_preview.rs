@@ -126,7 +126,7 @@ fn is_html_content(response: &reqwest::Response) -> bool {
 
 fn parse_link_preview(final_url: &Url, html: &str) -> Option<LinkPreview> {
     let document = Html::parse_document(html);
-    
+
     let title = parse_title(&document)?;
     let description = parse_description(&document);
     let site_name = parse_site_name(&document, final_url);
@@ -148,10 +148,7 @@ fn parse_link_preview(final_url: &Url, html: &str) -> Option<LinkPreview> {
 fn parse_title(document: &Html) -> Option<String> {
     parse_meta_or_fallback(
         document,
-        vec![
-            ("property", "og:title"),
-            ("name", "twitter:title"),
-        ],
+        vec![("property", "og:title"), ("name", "twitter:title")],
         || extract_title_tag(document),
     )
 }
@@ -176,10 +173,7 @@ fn parse_site_name(document: &Html, final_url: &Url) -> Option<String> {
 fn parse_image_url(document: &Html, final_url: &Url) -> Option<String> {
     parse_meta_or_fallback(
         document,
-        vec![
-            ("property", "og:image"),
-            ("name", "twitter:image"),
-        ],
+        vec![("property", "og:image"), ("name", "twitter:image")],
         || None,
     )
     .and_then(|value| final_url.join(value.trim()).ok().map(|url| url.to_string()))
@@ -245,11 +239,11 @@ fn validate_preview_url(raw_url: &str) -> Option<Url> {
 
 fn is_safe_preview_host(url: &Url) -> bool {
     let host = url.host_str().unwrap_or_default();
-    
+
     if host.is_empty() || is_localhost(host) {
         return false;
     }
-    
+
     is_safe_ip_address(host)
 }
 
@@ -266,7 +260,10 @@ fn is_safe_ip_address(host: &str) -> bool {
 fn is_safe_addr(ip: &IpAddr) -> bool {
     match ip {
         IpAddr::V4(ipv4) => {
-            !(ipv4.is_private() || ipv4.is_loopback() || ipv4.is_link_local() || ipv4.is_unspecified())
+            !(ipv4.is_private()
+                || ipv4.is_loopback()
+                || ipv4.is_link_local()
+                || ipv4.is_unspecified())
         }
         IpAddr::V6(ipv6) => !(ipv6.is_loopback() || ipv6.is_unspecified()),
     }
