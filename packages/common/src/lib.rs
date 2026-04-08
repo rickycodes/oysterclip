@@ -1,3 +1,4 @@
+pub mod classification;
 pub mod constants;
 pub mod crypto;
 pub mod entry;

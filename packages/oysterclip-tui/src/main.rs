@@ -9,12 +9,15 @@ use std::io;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use common::classification::is_password;
 use common::constants::{APP_NAME, APP_ORGANIZATION, APP_QUALIFIER, HISTORY_FILE};
 use common::crypto::{decrypt_text, get_or_create_key};
 
 struct App {
     entries: Vec<(i64, String)>,
     selected_index: usize,
+    scroll_offset: usize,
+    list_viewport_height: usize,
     running: bool,
 }
 
@@ -25,6 +28,8 @@ impl App {
 
         Ok(Self {
             selected_index: 0,
+            scroll_offset: 0,
+            list_viewport_height: 15,
             running: true,
             entries,
         })
@@ -42,7 +47,7 @@ impl App {
         Ok(())
     }
 
-    fn draw(&self, f: &mut Frame) {
+    fn draw(&mut self, f: &mut Frame) {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(1)
@@ -64,7 +69,7 @@ impl App {
         // List view
         let list_block = Block::default()
             .borders(Borders::ALL)
-            .title("History (↑↓ Navigate, q Quit)");
+            .title("History (↑↓ Navigate, PgUp/PgDn Scroll, q Quit)");
         f.render_widget(list_block, list_detail[0]);
 
         let list_area = Rect {
@@ -79,25 +84,33 @@ impl App {
         self.render_detail(f, list_detail[1]);
     }
 
-    fn render_list(&self, f: &mut Frame, area: Rect) {
+    fn render_list(&mut self, f: &mut Frame, area: Rect) {
+        self.list_viewport_height = area.height as usize;
+
         let items: Vec<ListItem> = self
             .entries
             .iter()
+            .skip(self.scroll_offset)
             .enumerate()
             .map(|(idx, (_, preview))| {
-                let text = if preview.len() > 45 {
-                    format!("{}...", &preview[..45])
+                let actual_idx = idx + self.scroll_offset;
+                let display_text = if is_password(preview) {
+                    "•".repeat(8)
                 } else {
-                    preview.clone()
+                    if preview.len() > 45 {
+                        format!("{}...", &preview[..45])
+                    } else {
+                        preview.clone()
+                    }
                 };
 
-                let style = if idx == self.selected_index {
+                let style = if actual_idx == self.selected_index {
                     Style::default().fg(Color::Black).bg(Color::Cyan)
                 } else {
                     Style::default()
                 };
 
-                ListItem::new(format!("{:3} {}", idx + 1, text)).style(style)
+                ListItem::new(format!("{:3} {}", actual_idx + 1, display_text)).style(style)
             })
             .collect();
 
@@ -147,14 +160,34 @@ impl App {
                 } else {
                     self.selected_index - 1
                 };
+                self.ensure_selection_visible();
             }
             KeyCode::Down => {
                 if self.entries.is_empty() {
                     return;
                 }
                 self.selected_index = (self.selected_index + 1) % self.entries.len();
+                self.ensure_selection_visible();
+            }
+            KeyCode::PageUp => {
+                if self.scroll_offset >= 5 {
+                    self.scroll_offset -= 5;
+                } else {
+                    self.scroll_offset = 0;
+                }
+            }
+            KeyCode::PageDown => {
+                self.scroll_offset = self.scroll_offset.saturating_add(5);
             }
             _ => {}
+        }
+    }
+
+    fn ensure_selection_visible(&mut self) {
+        if self.selected_index < self.scroll_offset {
+            self.scroll_offset = self.selected_index;
+        } else if self.selected_index >= self.scroll_offset + self.list_viewport_height {
+            self.scroll_offset = self.selected_index - self.list_viewport_height + 1;
         }
     }
 }
