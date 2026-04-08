@@ -8,7 +8,7 @@ use rusqlite::Connection;
 use std::io;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use common::classification::is_password;
 use common::constants::{
@@ -26,6 +26,7 @@ struct App {
     show_password: bool,
     auth_cache: Arc<Mutex<AuthCache>>,
     status_message: Option<String>,
+    status_message_time: Option<Instant>,
 }
 
 impl App {
@@ -42,6 +43,7 @@ impl App {
             show_password: false,
             auth_cache: Arc::new(Mutex::new(AuthCache::new(5))),
             status_message: None,
+            status_message_time: None,
         })
     }
 
@@ -96,11 +98,22 @@ impl App {
 
         // Status message
         let status_text = if let Some(msg) = &self.status_message {
-            // Truncate to prevent overflow
-            if msg.len() > (chunks[1].width as usize).saturating_sub(2) {
-                &msg[..chunks[1].width as usize - 5]
+            // Check if message has expired (2 second timeout)
+            if let Some(time) = self.status_message_time {
+                if time.elapsed() >= Duration::from_secs(2) {
+                    self.status_message = None;
+                    self.status_message_time = None;
+                    ""
+                } else {
+                    // Truncate to prevent overflow
+                    if msg.len() > (chunks[1].width as usize).saturating_sub(2) {
+                        &msg[..chunks[1].width as usize - 5]
+                    } else {
+                        msg.as_str()
+                    }
+                }
             } else {
-                msg.as_str()
+                ""
             }
         } else {
             ""
@@ -112,9 +125,6 @@ impl App {
                 Style::default()
             });
         f.render_widget(status_widget, chunks[1]);
-
-        // Clear status message after rendering
-        self.status_message = None;
     }
 
     fn render_list(&mut self, f: &mut Frame, area: Rect) {
@@ -209,27 +219,32 @@ impl App {
                             // Simple toggle: just hide it
                             self.show_password = false;
                             self.status_message = Some("Password masked".to_string());
+                            self.status_message_time = Some(Instant::now());
                         } else {
                             // Try to show: authenticate first
                             if let Ok(mut cache_guard) = self.auth_cache.lock() {
                                 if cache_guard.is_authenticated() {
                                     self.show_password = true;
                                     self.status_message = Some("Password revealed".to_string());
+                                    self.status_message_time = Some(Instant::now());
                                 } else {
                                     let auth_result = authenticate_admin_action();
                                     if auth_result.success {
                                         cache_guard.set_authenticated(true);
                                         self.show_password = true;
                                         self.status_message = Some("Password revealed".to_string());
+                                        self.status_message_time = Some(Instant::now());
                                     } else {
                                         self.status_message =
                                             Some("Authentication failed".to_string());
+                                        self.status_message_time = Some(Instant::now());
                                     }
                                 }
                             }
                         }
                     } else {
                         self.status_message = Some("This entry is not a password".to_string());
+                        self.status_message_time = Some(Instant::now());
                     }
                 }
             }
@@ -239,9 +254,11 @@ impl App {
                     match common::copy_to_clipboard(content.clone()) {
                         Ok(msg) => {
                             self.status_message = Some(msg);
+                            self.status_message_time = Some(Instant::now());
                         }
                         Err(msg) => {
                             self.status_message = Some(msg);
+                            self.status_message_time = Some(Instant::now());
                         }
                     }
                 }
@@ -304,6 +321,7 @@ impl App {
                     self.scroll_offset = 0;
                     self.show_password = false;
                     self.status_message = Some("New entry added".to_string());
+                    self.status_message_time = Some(Instant::now());
                 } else if self.selected_index >= self.entries.len() {
                     // Selection out of bounds, reset
                     self.selected_index = 0;
