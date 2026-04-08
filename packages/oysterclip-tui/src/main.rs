@@ -80,7 +80,7 @@ impl App {
         // List view
         let list_block = Block::default()
             .borders(Borders::ALL)
-            .title("History (↑↓ Navigate, PgUp/PgDn Scroll, m Mask, q Quit)");
+            .title("History (↑↓ Navigate, Enter/y Copy, m Mask, q Quit)");
         f.render_widget(list_block, list_detail[0]);
 
         let list_area = Rect {
@@ -96,15 +96,21 @@ impl App {
 
         // Status message
         let status_text = if let Some(msg) = &self.status_message {
-            msg.as_str()
+            // Truncate to prevent overflow
+            if msg.len() > (chunks[1].width as usize).saturating_sub(2) {
+                &msg[..chunks[1].width as usize - 5]
+            } else {
+                msg.as_str()
+            }
         } else {
             ""
         };
-        let status_widget = Paragraph::new(status_text).style(if self.status_message.is_some() {
-            Style::default().fg(Color::Yellow)
-        } else {
-            Style::default()
-        });
+        let status_widget = Paragraph::new(status_text)
+            .style(if self.status_message.is_some() {
+                Style::default().fg(Color::Yellow)
+            } else {
+                Style::default()
+            });
         f.render_widget(status_widget, chunks[1]);
 
         // Clear status message after rendering
@@ -224,6 +230,19 @@ impl App {
                         }
                     } else {
                         self.status_message = Some("This entry is not a password".to_string());
+                    }
+                }
+            }
+            KeyCode::Enter | KeyCode::Char('y') => {
+                // Copy selected entry to clipboard
+                if let Some((_, content)) = self.entries.get(self.selected_index) {
+                    match common::copy_to_clipboard(content.clone()) {
+                        Ok(msg) => {
+                            self.status_message = Some(msg);
+                        }
+                        Err(msg) => {
+                            self.status_message = Some(msg);
+                        }
                     }
                 }
             }

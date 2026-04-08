@@ -883,6 +883,7 @@ dependencies = [
 name = "common"
 version = "0.1.0"
 dependencies = [
+ "arboard",
  "base64",
  "chacha20poly1305",
  "directories",
@@ -4203,6 +4204,7 @@ dependencies = [
 name = "oysterclip-tui"
 version = "0.1.0"
 dependencies = [
+ "arboard",
  "base64",
  "chacha20poly1305",
  "chrono",
