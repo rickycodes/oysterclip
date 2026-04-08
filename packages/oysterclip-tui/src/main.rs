@@ -17,6 +17,10 @@ use common::constants::{
 use common::crypto::{decrypt_text, get_or_create_key};
 use common::{authenticate_admin_action, AuthCache};
 
+const COLOR_CYAN: Color = Color::Rgb(52, 224, 224);
+const COLOR_GREEN: Color = Color::Rgb(135, 175, 95);
+const COLOR_WHITE: Color = Color::Rgb(215, 215, 175);
+
 struct App {
     entries: Vec<(i64, String)>,
     selected_index: usize,
@@ -84,7 +88,7 @@ impl App {
         // List view
         let list_block = Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Rgb(88, 91, 112)));
+            .border_style(Style::default().fg(COLOR_CYAN));
         f.render_widget(list_block, list_detail[0]);
 
         let list_area = Rect {
@@ -121,8 +125,7 @@ impl App {
             ""
         };
         let status_widget = Paragraph::new(status_text).style(if self.status_message.is_some() {
-            // Status messages in a soft green (success color)
-            Style::default().fg(Color::Rgb(166, 227, 161))
+            Style::default().fg(COLOR_GREEN)
         } else {
             Style::default()
         });
@@ -150,11 +153,9 @@ impl App {
                 };
 
                 let style = if actual_idx == self.selected_index {
-                    // Selected: bright cyan on darker background (Catppuccin Mocha: Crust)
-                    Style::default().fg(Color::Cyan).bg(Color::Rgb(49, 50, 68))
+                    Style::default().fg(COLOR_CYAN).bg(Color::Black)
                 } else {
-                    // Normal text: light text color
-                    Style::default().fg(Color::Rgb(205, 214, 244))
+                    Style::default().fg(COLOR_WHITE)
                 };
 
                 ListItem::new(format!("{:3} {}", actual_idx + 1, display_text)).style(style)
@@ -188,18 +189,18 @@ impl App {
                 Line::from(""),
                 Line::from(Span::styled(
                     format!("Content:{}", mask_hint),
-                    Style::default().fg(Color::Rgb(137, 180, 250)), // Blue for headers
+                    Style::default().fg(COLOR_CYAN),
                 )),
                 Line::from("─".repeat(40)),
                 Line::from(Span::styled(
                     display_content,
-                    Style::default().fg(Color::Rgb(205, 214, 244)), // Light text
+                    Style::default().fg(COLOR_WHITE),
                 )),
             ]
         } else {
             vec![Line::from(Span::styled(
                 "No entry selected",
-                Style::default().fg(Color::Rgb(136, 192, 208)), // Muted blue
+                Style::default().fg(COLOR_GREEN),
             ))]
         };
 
@@ -207,7 +208,7 @@ impl App {
             .block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::Rgb(88, 91, 112))),
+                    .border_style(Style::default().fg(COLOR_CYAN)),
             )
             .wrap(Wrap { trim: true });
 
