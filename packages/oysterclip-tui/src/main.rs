@@ -60,23 +60,16 @@ impl App {
             .direction(Direction::Vertical)
             .margin(1)
             .constraints([
-                Constraint::Length(3),
                 Constraint::Min(10),
                 Constraint::Length(1),
             ])
             .split(f.area());
 
-        // Title
-        let title = Paragraph::new("OysterClip TUI - Clipboard History")
-            .block(Block::default().borders(Borders::ALL))
-            .style(Style::default().fg(Color::Cyan).bold());
-        f.render_widget(title, chunks[0]);
-
         // Split list and detail
         let list_detail = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
-            .split(chunks[1]);
+            .split(chunks[0]);
 
         // List view
         let list_block = Block::default()
@@ -106,7 +99,7 @@ impl App {
         } else {
             Style::default()
         });
-        f.render_widget(status_widget, chunks[2]);
+        f.render_widget(status_widget, chunks[1]);
 
         // Clear status message after rendering
         self.status_message = None;
