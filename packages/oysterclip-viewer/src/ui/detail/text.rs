@@ -147,11 +147,6 @@ pub fn TextDetail(
                     onclick: move |_| on_copy_text.call((id, text.clone(), type_label)),
                     "Copy"
                 }
-                button {
-                    class: "detail-notepad-btn",
-                    onclick: move |_| on_open_editor.call(id),
-                    "Notepad"
-                }
                 if is_password_text {
                     button {
                         class: "detail-password-btn",
@@ -180,6 +175,12 @@ pub fn TextDetail(
                             "Show"
                         }
                     }
+                }
+                button {
+                    class: "detail-notepad-btn",
+                    disabled: is_password_text && !show_password(),
+                    onclick: move |_| on_open_editor.call(id),
+                    "Notepad"
                 }
                 button { class: "detail-delete-btn", onclick: move |_| on_delete.call(id), "Delete" }
                 if let Some(status) = copy_status.clone() {

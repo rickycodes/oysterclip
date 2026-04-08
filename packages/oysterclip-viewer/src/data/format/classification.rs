@@ -1,7 +1,6 @@
 use super::text_type::TextType;
 use crate::data::entry::ClipboardEntry;
-use common::classification::is_password as common_is_password;
-pub use common::classification::mask_password_preview;
+use common::classification::{is_password, mask_password_preview};
 
 pub fn entry_label(entry: &ClipboardEntry) -> &'static str {
     match entry {
@@ -19,10 +18,6 @@ pub fn entry_icon_name(entry: &ClipboardEntry) -> &'static str {
         }
         ClipboardEntry::Image { .. } => "image",
     }
-}
-
-pub fn is_password(text: &str) -> bool {
-    common_is_password(text) && !super::url::has_urls(text)
 }
 
 pub fn preview_text(content: &str, limit: usize) -> String {

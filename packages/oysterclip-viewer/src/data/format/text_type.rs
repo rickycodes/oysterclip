@@ -8,7 +8,7 @@ pub enum TextType {
     Text,
 }
 
-use common::{TEXT_KIND_JSON, TEXT_KIND_PATH};
+use common::{classification::is_password, TEXT_KIND_JSON, TEXT_KIND_PATH};
 
 impl TextType {
     /// Get display label for this text type (used in sidebar/list).
@@ -37,7 +37,7 @@ impl TextType {
     /// Priority order matters: check more specific types first.
     pub fn classify(content: &str, kind: Option<&str>) -> Self {
         match () {
-            _ if super::classification::is_password(content) => Self::Password,
+            _ if is_password(content) => Self::Password,
             _ if super::url::extract_single_url(content).is_some() => Self::Link,
             _ if kind == Some(TEXT_KIND_JSON) => Self::Json,
             _ if kind == Some(TEXT_KIND_PATH) => Self::Path,

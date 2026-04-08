@@ -532,6 +532,11 @@ body {
   background: var(--danger-bg-hover);
 }
 
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .detail-copy-status {
   font-size: 12px;
   color: var(--ink-soft);

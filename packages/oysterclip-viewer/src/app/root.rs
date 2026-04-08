@@ -8,6 +8,7 @@ use crate::app::actions::{
 };
 use crate::app::state::use_app_state;
 use crate::config::settings::AppConfig;
+use crate::data::format::is_password;
 use crate::system::watcher_control;
 use crate::ui::help_modal::HelpModal;
 use crate::ui::theme::{load_theme, save_theme};
@@ -250,6 +251,20 @@ pub fn App() -> Element {
         source_for_watcher_key.clone(),
     );
 
+    // Check if any selected entry is a password
+    let selected_contains_password = current_selected_ids.iter().any(|id| {
+        entries()
+            .iter()
+            .find(|e| e.id() == *id)
+            .and_then(|e| match e {
+                crate::data::entry::ClipboardEntry::Text { content, .. } => {
+                    Some(is_password(content))
+                }
+                _ => None,
+            })
+            .unwrap_or(false)
+    });
+
     rsx! {
         style { "{APP_STYLE}" }
         if image_overlay_open() || help_open() {
@@ -280,6 +295,7 @@ pub fn App() -> Element {
                 on_clear_selection: handle_clear_selection,
                 on_send_to_notepad: handle_send_to_notepad,
                 show_notepad_button: notepad_handler.is_some(),
+                notepad_button_disabled: selected_contains_password,
             }
             DetailPane {
                 state: detail_state,

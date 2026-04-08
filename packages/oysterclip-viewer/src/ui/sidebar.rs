@@ -35,6 +35,7 @@ pub fn Sidebar(
     on_clear_selection: EventHandler<()>,
     on_send_to_notepad: EventHandler<()>,
     show_notepad_button: bool,
+    #[props(default)] notepad_button_disabled: bool,
 ) -> Element {
     rsx! {
         aside { class: "sidebar",
@@ -71,6 +72,7 @@ pub fn Sidebar(
                     if show_notepad_button {
                         button {
                             class: "selection-notepad-btn",
+                            disabled: notepad_button_disabled,
                             onclick: move |_| on_send_to_notepad.call(()),
                             "Notepad"
                         }

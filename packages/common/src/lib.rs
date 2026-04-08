@@ -9,6 +9,7 @@ pub mod paths;
 pub mod storage;
 
 pub use auth::{authenticate_admin_action, AuthCache, AuthResult};
+pub use classification::{is_password, mask_password_preview};
 pub use clipboard::copy_to_clipboard;
 pub use constants::{
     APP_NAME, APP_ORGANIZATION, APP_QUALIFIER, AUTH_FAILED, AUTH_SUCCESS, CONFIG_FILE,
