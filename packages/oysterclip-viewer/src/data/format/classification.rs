@@ -1,7 +1,7 @@
-pub use common::classification::mask_password_preview;
 use super::text_type::TextType;
 use crate::data::entry::ClipboardEntry;
 use common::classification::is_password as common_is_password;
+pub use common::classification::mask_password_preview;
 
 pub fn entry_label(entry: &ClipboardEntry) -> &'static str {
     match entry {

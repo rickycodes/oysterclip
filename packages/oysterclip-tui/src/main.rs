@@ -7,11 +7,13 @@ use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Wrap};
 use rusqlite::Connection;
 use std::io;
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use common::classification::is_password;
 use common::constants::{APP_NAME, APP_ORGANIZATION, APP_QUALIFIER, HISTORY_FILE};
 use common::crypto::{decrypt_text, get_or_create_key};
+use common::{authenticate_admin_action, AuthCache};
 
 struct App {
     entries: Vec<(i64, String)>,
@@ -19,6 +21,9 @@ struct App {
     scroll_offset: usize,
     list_viewport_height: usize,
     running: bool,
+    show_password: bool,
+    auth_cache: Arc<Mutex<AuthCache>>,
+    status_message: Option<String>,
 }
 
 impl App {
@@ -32,6 +37,9 @@ impl App {
             list_viewport_height: 15,
             running: true,
             entries,
+            show_password: false,
+            auth_cache: Arc::new(Mutex::new(AuthCache::new(5))),
+            status_message: None,
         })
     }
 
@@ -51,7 +59,11 @@ impl App {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(1)
-            .constraints([Constraint::Length(3), Constraint::Min(10)])
+            .constraints([
+                Constraint::Length(3),
+                Constraint::Min(10),
+                Constraint::Length(1),
+            ])
             .split(f.area());
 
         // Title
@@ -69,7 +81,7 @@ impl App {
         // List view
         let list_block = Block::default()
             .borders(Borders::ALL)
-            .title("History (↑↓ Navigate, PgUp/PgDn Scroll, q Quit)");
+            .title("History (↑↓ Navigate, PgUp/PgDn Scroll, m Mask, q Quit)");
         f.render_widget(list_block, list_detail[0]);
 
         let list_area = Rect {
@@ -82,6 +94,22 @@ impl App {
 
         // Detail view
         self.render_detail(f, list_detail[1]);
+
+        // Status message
+        let status_text = if let Some(msg) = &self.status_message {
+            msg.as_str()
+        } else {
+            ""
+        };
+        let status_widget = Paragraph::new(status_text).style(if self.status_message.is_some() {
+            Style::default().fg(Color::Yellow)
+        } else {
+            Style::default()
+        });
+        f.render_widget(status_widget, chunks[2]);
+
+        // Clear status message after rendering
+        self.status_message = None;
     }
 
     fn render_list(&mut self, f: &mut Frame, area: Rect) {
@@ -120,11 +148,28 @@ impl App {
 
     fn render_detail(&self, f: &mut Frame, area: Rect) {
         let content = if let Some((_, preview)) = self.entries.get(self.selected_index) {
+            let is_password_content = is_password(preview);
+            let display_content = if is_password_content && !self.show_password {
+                "•".repeat(20)
+            } else {
+                preview.clone()
+            };
+
+            let mask_hint = if is_password_content {
+                if self.show_password {
+                    " (Press 'm' to mask)"
+                } else {
+                    " (Press 'm' to unmask)"
+                }
+            } else {
+                ""
+            };
+
             vec![
                 Line::from(""),
-                Line::from("Content:"),
+                Line::from(format!("Content:{}", mask_hint)),
                 Line::from("─".repeat(40)),
-                Line::from(preview.clone()),
+                Line::from(display_content),
             ]
         } else {
             vec![Line::from("No entry selected")]
@@ -151,6 +196,38 @@ impl App {
     fn handle_key(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Char('q') | KeyCode::Esc => self.running = false,
+            KeyCode::Char('m') => {
+                // Toggle password masking with authentication
+                if let Some((_, preview)) = self.entries.get(self.selected_index) {
+                    if is_password(preview) {
+                        if self.show_password {
+                            // Simple toggle: just hide it
+                            self.show_password = false;
+                            self.status_message = Some("Password masked".to_string());
+                        } else {
+                            // Try to show: authenticate first
+                            if let Ok(mut cache_guard) = self.auth_cache.lock() {
+                                if cache_guard.is_authenticated() {
+                                    self.show_password = true;
+                                    self.status_message = Some("Password revealed".to_string());
+                                } else {
+                                    let auth_result = authenticate_admin_action();
+                                    if auth_result.success {
+                                        cache_guard.set_authenticated(true);
+                                        self.show_password = true;
+                                        self.status_message = Some("Password revealed".to_string());
+                                    } else {
+                                        self.status_message =
+                                            Some("Authentication failed".to_string());
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        self.status_message = Some("This entry is not a password".to_string());
+                    }
+                }
+            }
             KeyCode::Up => {
                 if self.entries.is_empty() {
                     return;
@@ -160,6 +237,7 @@ impl App {
                 } else {
                     self.selected_index - 1
                 };
+                self.show_password = false;
                 self.ensure_selection_visible();
             }
             KeyCode::Down => {
@@ -167,6 +245,7 @@ impl App {
                     return;
                 }
                 self.selected_index = (self.selected_index + 1) % self.entries.len();
+                self.show_password = false;
                 self.ensure_selection_visible();
             }
             KeyCode::PageUp => {

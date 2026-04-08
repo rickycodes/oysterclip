@@ -12,7 +12,7 @@ use self::image::ImageDetail;
 use self::text::TextDetail;
 use crate::data::entry::ClipboardEntry;
 use crate::data::link_preview::LinkPreviewState;
-use crate::system::auth::AuthCache;
+use common::AuthCache;
 
 #[derive(Clone, PartialEq)]
 pub enum DetailState {

@@ -1,4 +1,4 @@
-use common::{AUTH_FAILED, AUTH_SUCCESS};
+use crate::constants::{AUTH_FAILED, AUTH_SUCCESS};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 

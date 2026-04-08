@@ -11,9 +11,9 @@ use crate::data::entry::{CachedEntries, ClipboardEntry, ClipboardPayload};
 use crate::data::format::extract_single_url;
 use crate::data::history::get_clipboard_entries;
 use crate::data::link_preview::{fetch_link_preview, LinkPreviewState};
-use crate::system::auth::AuthCache;
 use crate::system::watcher_control::{self, WatcherStatus};
 use crate::ui::DetailState;
+use common::AuthCache;
 
 const PREFETCH_URL_LIMIT: usize = 16;
 const PREFETCH_IDLE_MS: u64 = 800;

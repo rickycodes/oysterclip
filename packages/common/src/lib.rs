@@ -1,3 +1,4 @@
+pub mod auth;
 pub mod classification;
 pub mod constants;
 pub mod crypto;
@@ -6,6 +7,7 @@ pub mod ipc;
 pub mod paths;
 pub mod storage;
 
+pub use auth::{authenticate_admin_action, AuthCache, AuthResult};
 pub use constants::{
     APP_NAME, APP_ORGANIZATION, APP_QUALIFIER, AUTH_FAILED, AUTH_SUCCESS, CONFIG_FILE,
     CREATE_ENTRIES_TABLE, CREATE_INDICES, DELETE_PRUNABLE_ENTRIES, ENTRY_TYPE_IMAGE,

@@ -10,9 +10,9 @@ use crate::data::format::{
     is_image_data_uri, is_password, mask_password_preview,
 };
 use crate::data::link_preview::LinkPreviewState;
-use crate::system::auth::{authenticate_admin_action, AuthCache};
 use crate::ui::icon::Icon;
 use crate::ui::linkable_text::LinkableText;
+use common::{authenticate_admin_action, AuthCache};
 use common::{TEXT_KIND_JSON, TEXT_KIND_PATH};
 
 #[component]
