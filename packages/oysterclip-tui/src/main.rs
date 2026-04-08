@@ -11,7 +11,9 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use common::classification::is_password;
-use common::constants::{APP_NAME, APP_ORGANIZATION, APP_QUALIFIER, HISTORY_FILE};
+use common::constants::{
+    APP_NAME, APP_ORGANIZATION, APP_QUALIFIER, HISTORY_FILE, UI_REFRESH_INTERVAL_MS,
+};
 use common::crypto::{decrypt_text, get_or_create_key};
 use common::{authenticate_admin_action, AuthCache};
 
@@ -45,10 +47,17 @@ impl App {
 
     fn run(&mut self) -> io::Result<()> {
         let mut terminal = setup_terminal()?;
+        let mut last_check = std::time::Instant::now();
 
         while self.running {
             terminal.draw(|f| self.draw(f))?;
             self.handle_events()?;
+
+            // Check for new entries every UI_REFRESH_INTERVAL_MS
+            if last_check.elapsed() >= Duration::from_millis(UI_REFRESH_INTERVAL_MS) {
+                self.reload_entries_if_changed();
+                last_check = std::time::Instant::now();
+            }
         }
 
         restore_terminal(&mut terminal)?;
@@ -59,10 +68,7 @@ impl App {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(1)
-            .constraints([
-                Constraint::Min(10),
-                Constraint::Length(1),
-            ])
+            .constraints([Constraint::Min(10), Constraint::Length(1)])
             .split(f.area());
 
         // Split list and detail
@@ -260,6 +266,31 @@ impl App {
             self.scroll_offset = self.selected_index;
         } else if self.selected_index >= self.scroll_offset + self.list_viewport_height {
             self.scroll_offset = self.selected_index - self.list_viewport_height + 1;
+        }
+    }
+
+    fn reload_entries_if_changed(&mut self) {
+        if let Ok(new_entries) = load_entries() {
+            // Check if entries have changed (new entry at top, or entries removed)
+            if new_entries != self.entries {
+                // If there's a new entry at the top, auto-select it
+                let has_new_entry =
+                    new_entries.first().map(|e| e.0) != self.entries.first().map(|e| e.0);
+
+                self.entries = new_entries;
+
+                if has_new_entry {
+                    // Reset to top to show new entry
+                    self.selected_index = 0;
+                    self.scroll_offset = 0;
+                    self.show_password = false;
+                    self.status_message = Some("New entry added".to_string());
+                } else if self.selected_index >= self.entries.len() {
+                    // Selection out of bounds, reset
+                    self.selected_index = 0;
+                    self.show_password = false;
+                }
+            }
         }
     }
 }

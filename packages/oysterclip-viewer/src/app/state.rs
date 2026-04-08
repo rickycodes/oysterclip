@@ -13,7 +13,7 @@ use crate::data::history::get_clipboard_entries;
 use crate::data::link_preview::{fetch_link_preview, LinkPreviewState};
 use crate::system::watcher_control::{self, WatcherStatus};
 use crate::ui::DetailState;
-use common::AuthCache;
+use common::{AuthCache, UI_REFRESH_INTERVAL_MS};
 
 const PREFETCH_URL_LIMIT: usize = 16;
 const PREFETCH_IDLE_MS: u64 = 800;
@@ -101,7 +101,7 @@ pub fn use_app_state() -> AppState {
                     }
                 }
 
-                tokio::time::sleep(Duration::from_millis(500)).await;
+                tokio::time::sleep(Duration::from_millis(UI_REFRESH_INTERVAL_MS)).await;
             }
         }
     });

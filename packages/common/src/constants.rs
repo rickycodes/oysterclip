@@ -16,6 +16,9 @@ pub const THEME_DARK: &str = "dark";
 pub const AUTH_SUCCESS: &str = "Authentication successful";
 pub const AUTH_FAILED: &str = "Authentication failed or canceled";
 
+// UI polling interval (milliseconds)
+pub const UI_REFRESH_INTERVAL_MS: u64 = 500;
+
 // Path resolution error messages
 pub const ERR_RESOLVE_APP_DIR: &str = "failed to resolve application data directory";
 
