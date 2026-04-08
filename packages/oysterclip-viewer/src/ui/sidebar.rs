@@ -72,7 +72,7 @@ pub fn Sidebar(
                         button {
                             class: "selection-notepad-btn",
                             onclick: move |_| on_send_to_notepad.call(()),
-                            "📝 Notepad"
+                            "Notepad"
                         }
                     }
                     button {

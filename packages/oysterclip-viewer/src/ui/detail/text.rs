@@ -150,7 +150,7 @@ pub fn TextDetail(
                 button {
                     class: "detail-notepad-btn",
                     onclick: move |_| on_open_editor.call(id),
-                    "📝 Notepad"
+                    "Notepad"
                 }
                 if is_password_text {
                     button {
