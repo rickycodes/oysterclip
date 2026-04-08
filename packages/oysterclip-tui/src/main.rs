@@ -299,10 +299,13 @@ fn load_entries() -> Result<Vec<(i64, String)>, String> {
     let db_path = get_db_path()?;
     let conn = Connection::open(&db_path).map_err(|e| format!("Failed to open database: {}", e))?;
 
-    let query = "SELECT id, text_kind, text_ciphertext, text_nonce FROM entries WHERE entry_type = 'text' ORDER BY id DESC LIMIT 100";
+    let query = format!(
+        "SELECT id, text_kind, text_ciphertext, text_nonce FROM entries WHERE entry_type = 'text' {} LIMIT 100",
+        common::ORDER_ENTRIES
+    );
 
     let mut stmt = conn
-        .prepare(query)
+        .prepare(&query)
         .map_err(|e| format!("Failed to prepare statement: {}", e))?;
 
     let key = load_encryption_key()?;

@@ -58,6 +58,9 @@ pub const CREATE_INDICES: &[&str] = &[
     "CREATE INDEX IF NOT EXISTS idx_entries_content_hash ON entries(content_hash)",
 ];
 
+// Entries are ordered by ID descending (newest first) for both viewer and TUI
+pub const ORDER_ENTRIES: &str = "ORDER BY id DESC";
+
 pub const SELECT_EXISTING_TEXT_ENTRY: &str =
     "SELECT id FROM entries WHERE entry_type = 'text' AND content_hash = ?1 LIMIT 1";
 

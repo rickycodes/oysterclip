@@ -128,9 +128,9 @@ struct RowData {
 
 fn build_entries_query(has_image_blob: bool) -> String {
     if has_image_blob {
-        "SELECT id, created_at, entry_type, text_kind, text_ciphertext, text_nonce, image_path, image_png, image_hash FROM entries ORDER BY id ASC".to_string()
+        format!("SELECT id, created_at, entry_type, text_kind, text_ciphertext, text_nonce, image_path, image_png, image_hash FROM entries {}", common::ORDER_ENTRIES)
     } else {
-        "SELECT id, created_at, entry_type, text_kind, text_ciphertext, text_nonce, image_path, image_hash FROM entries ORDER BY id ASC".to_string()
+        format!("SELECT id, created_at, entry_type, text_kind, text_ciphertext, text_nonce, image_path, image_hash FROM entries {}", common::ORDER_ENTRIES)
     }
 }
 
