@@ -1,3 +1,5 @@
+use zxcvbn::Score;
+
 const PASSWORD_LEN: usize = 25;
 const PASSWORD_PREVIEW_MASK_LEN: usize = 8;
 
@@ -6,6 +8,7 @@ pub fn is_password(text: &str) -> bool {
         && !text.contains(' ')
         && !text.contains('\n')
         && !text.contains('\t')
+        && zxcvbn::zxcvbn(text, &[]).score() >= Score::Three
 }
 
 pub fn mask_password() -> String {
