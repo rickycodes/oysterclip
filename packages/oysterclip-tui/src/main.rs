@@ -27,6 +27,7 @@ struct App {
     auth_cache: Arc<Mutex<AuthCache>>,
     status_message: Option<String>,
     status_message_time: Option<Instant>,
+    pending_delete_id: Option<i64>,
 }
 
 impl App {
@@ -44,6 +45,7 @@ impl App {
             auth_cache: Arc::new(Mutex::new(AuthCache::new(5))),
             status_message: None,
             status_message_time: None,
+            pending_delete_id: None,
         })
     }
 
@@ -82,7 +84,7 @@ impl App {
         // List view
         let list_block = Block::default()
             .borders(Borders::ALL)
-            .title("History (↑↓ Navigate, Enter/y Copy, m Mask, q Quit)");
+            .border_style(Style::default().fg(Color::Rgb(88, 91, 112)));
         f.render_widget(list_block, list_detail[0]);
 
         let list_area = Rect {
@@ -118,12 +120,12 @@ impl App {
         } else {
             ""
         };
-        let status_widget = Paragraph::new(status_text)
-            .style(if self.status_message.is_some() {
-                Style::default().fg(Color::Yellow)
-            } else {
-                Style::default()
-            });
+        let status_widget = Paragraph::new(status_text).style(if self.status_message.is_some() {
+            // Status messages in a soft green (success color)
+            Style::default().fg(Color::Rgb(166, 227, 161))
+        } else {
+            Style::default()
+        });
         f.render_widget(status_widget, chunks[1]);
     }
 
@@ -148,9 +150,11 @@ impl App {
                 };
 
                 let style = if actual_idx == self.selected_index {
-                    Style::default().fg(Color::Black).bg(Color::Cyan)
+                    // Selected: bright cyan on darker background (Catppuccin Mocha: Crust)
+                    Style::default().fg(Color::Cyan).bg(Color::Rgb(49, 50, 68))
                 } else {
-                    Style::default()
+                    // Normal text: light text color
+                    Style::default().fg(Color::Rgb(205, 214, 244))
                 };
 
                 ListItem::new(format!("{:3} {}", actual_idx + 1, display_text)).style(style)
@@ -182,16 +186,29 @@ impl App {
 
             vec![
                 Line::from(""),
-                Line::from(format!("Content:{}", mask_hint)),
+                Line::from(Span::styled(
+                    format!("Content:{}", mask_hint),
+                    Style::default().fg(Color::Rgb(137, 180, 250)), // Blue for headers
+                )),
                 Line::from("─".repeat(40)),
-                Line::from(display_content),
+                Line::from(Span::styled(
+                    display_content,
+                    Style::default().fg(Color::Rgb(205, 214, 244)), // Light text
+                )),
             ]
         } else {
-            vec![Line::from("No entry selected")]
+            vec![Line::from(Span::styled(
+                "No entry selected",
+                Style::default().fg(Color::Rgb(136, 192, 208)), // Muted blue
+            ))]
         };
 
         let paragraph = Paragraph::new(content)
-            .block(Block::default().borders(Borders::ALL).title("Detail"))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(Color::Rgb(88, 91, 112))),
+            )
             .wrap(Wrap { trim: true });
 
         f.render_widget(paragraph, area);
@@ -210,7 +227,29 @@ impl App {
 
     fn handle_key(&mut self, key: KeyEvent) {
         match key.code {
-            KeyCode::Char('q') | KeyCode::Esc => self.running = false,
+            // If there's a pending delete, only allow 'y' to confirm or any other key to cancel
+            _ if self.pending_delete_id.is_some() => match key.code {
+                KeyCode::Char('y') => {
+                    if let Some(id) = self.pending_delete_id.take() {
+                        self.delete_entry(id);
+                    }
+                }
+                _ => {
+                    self.pending_delete_id = None;
+                    self.status_message = Some("Delete cancelled".to_string());
+                    self.status_message_time = Some(Instant::now());
+                }
+            },
+            KeyCode::Char('q') => self.running = false,
+            KeyCode::Esc => {
+                if self.pending_delete_id.is_some() {
+                    self.pending_delete_id = None;
+                    self.status_message = Some("Delete cancelled".to_string());
+                    self.status_message_time = Some(Instant::now());
+                } else {
+                    self.running = false;
+                }
+            }
             KeyCode::Char('m') => {
                 // Toggle password masking with authentication
                 if let Some((_, preview)) = self.entries.get(self.selected_index) {
@@ -260,6 +299,17 @@ impl App {
                             self.status_message = Some(msg);
                             self.status_message_time = Some(Instant::now());
                         }
+                    }
+                }
+            }
+            KeyCode::Delete | KeyCode::Backspace | KeyCode::Char('d') => {
+                if !self.entries.is_empty() {
+                    if let Some((id, _)) = self.entries.get(self.selected_index) {
+                        self.pending_delete_id = Some(*id);
+                        self.status_message = Some(
+                            "Press 'y' to confirm delete, any other key to cancel".to_string(),
+                        );
+                        self.status_message_time = Some(Instant::now());
                     }
                 }
             }
@@ -330,6 +380,28 @@ impl App {
             }
         }
     }
+
+    fn delete_entry(&mut self, id: i64) {
+        match delete_entry_from_db(id) {
+            Ok(_) => {
+                // Remove from entries list
+                self.entries.retain(|(entry_id, _)| *entry_id != id);
+
+                // Adjust selection if needed
+                if self.selected_index >= self.entries.len() && !self.entries.is_empty() {
+                    self.selected_index = self.entries.len() - 1;
+                }
+
+                self.show_password = false;
+                self.status_message = Some("Entry deleted".to_string());
+                self.status_message_time = Some(Instant::now());
+            }
+            Err(err) => {
+                self.status_message = Some(format!("Delete failed: {}", err));
+                self.status_message_time = Some(Instant::now());
+            }
+        }
+    }
 }
 
 fn load_entries() -> Result<Vec<(i64, String)>, String> {
@@ -383,6 +455,14 @@ fn load_encryption_key() -> Result<[u8; 32], String> {
 
 fn decrypt_wrapper(ciphertext: &[u8], nonce: &[u8], key: &[u8; 32]) -> Result<String, String> {
     decrypt_text(ciphertext, nonce, key).map_err(|e| e.to_string())
+}
+
+fn delete_entry_from_db(id: i64) -> Result<(), String> {
+    let db_path = get_db_path()?;
+    let conn = Connection::open(&db_path).map_err(|e| format!("Failed to open database: {}", e))?;
+    conn.execute("DELETE FROM entries WHERE id = ?1", [id])
+        .map_err(|e| format!("Failed to delete entry: {}", e))?;
+    Ok(())
 }
 
 fn get_db_path() -> Result<PathBuf, String> {
