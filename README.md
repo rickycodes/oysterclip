@@ -1,12 +1,10 @@
-# Clipboard Manager
+# OysterClip
 
-A lightweight, secure, dual-component clipboard history system for Unix/Linux and macOS.
-
-**Watcher** captures clipboard entries to a local encrypted database. **Viewer** provides a searchable UI for browsing history.
+A lightweight, secure clipboard history manager for Unix/Linux and macOS. **OysterClip** consists of a background watcher daemon that captures clipboard entries to an encrypted database, paired with a powerful desktop UI and terminal-based viewer for searching and managing your clipboard history.
 
 ## Components
 
-### 📝 Watcher (`packages/watcher`)
+### 📝 Watcher (`packages/oysterclip-watcher`)
 
 A daemon that monitors your system clipboard and persists entries to SQLite with encryption.
 
@@ -19,13 +17,13 @@ A daemon that monitors your system clipboard and persists entries to SQLite with
 - OS keychain integration for secure key storage
 
 ```bash
-cargo run -p watcher
-cargo run -p watcher -- control status
+cargo run -p oysterclip-watcher
+cargo run -p oysterclip-watcher -- control status
 ```
 
-See [`packages/watcher/README.md`](packages/watcher/README.md) for details.
+See [`packages/oysterclip-watcher/README.md`](packages/oysterclip-watcher/README.md) for details.
 
-### 🖥️ Viewer (`packages/viewer`)
+### 🖥️ Viewer (`packages/oysterclip-viewer`)
 
 A Dioxus Desktop app for browsing, searching, and managing clipboard history.
 
@@ -39,11 +37,27 @@ A Dioxus Desktop app for browsing, searching, and managing clipboard history.
 - Multi-select bulk operations
 
 ```bash
-cargo run -p viewer
-cargo run -p viewer -- --theme light
+cargo run -p oysterclip-viewer
+cargo run -p oysterclip-viewer -- --theme light
 ```
 
-See [`packages/viewer/README.md`](packages/viewer/README.md) for details.
+See [`packages/oysterclip-viewer/README.md`](packages/oysterclip-viewer/README.md) for details.
+
+### 💻 Terminal UI (`packages/oysterclip-tui`)
+
+A keyboard-driven terminal interface for clipboard management on headless servers and SSH sessions.
+
+**Features:**
+- Full feature parity with desktop viewer
+- Search, filter, and copy from terminal
+- Integrated with the same database as viewer/watcher
+- Color-coded entry types with custom themes
+
+```bash
+cargo run -p oysterclip-tui
+```
+
+See [`packages/oysterclip-tui/README.md`](packages/oysterclip-tui/README.md) for details.
 
 ## Quick Start
 
@@ -51,10 +65,10 @@ See [`packages/viewer/README.md`](packages/viewer/README.md) for details.
 
 ```bash
 # Start the watcher daemon
-cargo run -p watcher &
+cargo run -p oysterclip-watcher &
 
 # Launch the viewer UI
-cargo run -p viewer
+cargo run -p oysterclip-viewer
 ```
 
 ## Storage
