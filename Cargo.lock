@@ -906,6 +906,7 @@ dependencies = [
  "directories",
  "keyring",
  "rand 0.8.5",
+ "regex",
  "serde",
  "serde_json",
  "zxcvbn",
