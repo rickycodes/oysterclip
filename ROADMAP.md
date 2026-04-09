@@ -208,30 +208,27 @@ After the shared crate exists, add tests that exercise the full round-trip:
 ### ~~2.1 Password preview leaks in sidebar~~ *(not an issue)*
 Already correctly masked via `preview_text()` — no action needed.
 
-### 2.2 Password detection heuristic too weak
-Currently detects passwords only if text is **exactly 25 characters, no whitespace, no URLs**.
-This creates false positives (code snippets, truncated text) and false negatives (any password not 25 chars).
+### ~~2.2 Password detection heuristic too weak~~ ✅ DONE
+
+**Completed approach:**
+- Integrated `zxcvbn` v3 for entropy-based strength detection (Score::Three threshold)
+- Combined checks: **exactly 25 chars + no whitespace + zxcvbn strength ≥ 3 + no URLs**
+- Moved sophisticated URL detection to common (regex-based, handles trailing punctuation)
+- Applied across all packages (TUI, viewer, watcher via common)
 
 **Current implementation:**
 ```rust
 const PASSWORD_LEN: usize = 25;
-text.len() == PASSWORD_LEN && !text.contains(' ') && !text.contains("\n") && !has_urls(text)
+text.len() == PASSWORD_LEN
+    && !text.contains(' ') && !text.contains('\n') && !text.contains('\t')
+    && !has_urls(text)  // Now uses regex-based detection from common
+    && zxcvbn::zxcvbn(text, &[]).score() >= Score::Three
 ```
 
-**Approach:**
-- Evaluate entropy-based detection (shannon entropy > threshold)
-- Check common patterns (uppercase + lowercase + digits + symbols)
-- Length range (12–128 chars) instead of exact match
-- User-configurable threshold or explicit password marking
-- Consider leveraging password strength libraries
-
-**Status:** ⏳ Not started
-
-**Considerations:**
-- Balance between false positives and false negatives
-- Performance impact of entropy calculations
-- User frustration with misclassified entries
-- Allow manual override/marking as password
+**Improvements over old heuristic:**
+- Entropy validation eliminates most false positives (random text)
+- URL detection prevents legitimate URLs (e.g., short URLs with query params) from being classified as passwords
+- Tests included in common/src/classification.rs (14 URL detection tests, all passing)
 
 ### 2.3 Watcher socket auto-recovery
 If the viewer starts before the watcher, or the watcher restarts, the socket state goes
@@ -449,6 +446,17 @@ Let users pin entries so they persist through retention culling and appear at th
 all selected entries with a count-aware confirmation; `Escape` clears selection.
 Selected entries show a blue left-accent stripe; a toolbar in the sidebar shows
 the count with Delete and ✕ clear buttons.
+
+### ~~4.3.1 TUI UI polish and feature parity~~ ✅ COMPLETE
+- **Delete confirmation UX:** Pressing Delete/d/Backspace shows confirmation prompt; `y` to confirm, any other key to cancel
+- **Status message persistence:** Messages display for 2 seconds instead of disappearing immediately
+- **Removed pane titles:** Cleaner UI with just borders (removed "History" and "Detail" labels)
+- **Dotfiles color scheme:** Applied colors from `~/.bash_prompt` to match user terminal theme:
+  - CYAN (52, 224, 224) for borders and selection
+  - GREEN (135, 175, 95) for status messages
+  - WHITE (215, 215, 175) for text
+- **Extracted color constants:** `COLOR_CYAN`, `COLOR_GREEN`, `COLOR_WHITE` as `Color::Rgb` for cleaner usage
+- **Viewer feature parity:** Notepad button now shows text-only (no emoji), disabled for masked passwords in detail pane
 
 ### ~~4.13 Per-type color accents~~ ✅ COMPLETE
 Each content type gets a distinct colored left-border accent in both the sidebar
