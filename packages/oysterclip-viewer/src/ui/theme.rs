@@ -44,7 +44,7 @@ pub fn load_theme() -> Theme {
 
     #[cfg(not(target_arch = "wasm32"))]
     {
-        // CLI arg takes priority over config file, but doesn't persist
+        // Priority 1: CLI arg takes priority over config file, but doesn't persist
         if let Some(t) = &crate::config::cli::args().theme {
             return if t == THEME_LIGHT {
                 Theme::Light
@@ -53,11 +53,39 @@ pub fn load_theme() -> Theme {
             };
         }
 
-        if crate::config::AppConfig::load().theme.mode == THEME_LIGHT {
-            return Theme::Light;
+        // Priority 2: User config file setting
+        let config = crate::config::AppConfig::load();
+        if let Some(mode) = &config.theme.mode {
+            if mode == THEME_LIGHT {
+                return Theme::Light;
+            } else if mode == THEME_DARK {
+                return Theme::Dark;
+            }
+        }
+
+        // Priority 3: OS appearance setting
+        let detected = dark_light::detect();
+        match detected {
+            dark_light::Mode::Dark => return Theme::Dark,
+            dark_light::Mode::Light => return Theme::Light,
+            dark_light::Mode::Default => {
+                // Fallback: Try to detect GNOME settings directly
+                if let Ok(output) = std::process::Command::new("gsettings")
+                    .args(&["get", "org.gnome.desktop.interface", "color-scheme"])
+                    .output()
+                {
+                    let result = String::from_utf8_lossy(&output.stdout);
+                    if result.contains("prefer-light") {
+                        return Theme::Light;
+                    } else if result.contains("prefer-dark") {
+                        return Theme::Dark;
+                    }
+                }
+            }
         }
     }
 
+    // Priority 4: Default to Dark
     Theme::Dark
 }
 
@@ -79,12 +107,11 @@ pub fn save_theme(theme: Theme) {
     #[cfg(not(target_arch = "wasm32"))]
     {
         let mut config = crate::config::AppConfig::load();
-        config.theme.mode = if theme == Theme::Light {
-            THEME_LIGHT
+        config.theme.mode = Some(if theme == Theme::Light {
+            THEME_LIGHT.to_string()
         } else {
-            THEME_DARK
-        }
-        .to_string();
+            THEME_DARK.to_string()
+        });
         config.save();
     }
 }

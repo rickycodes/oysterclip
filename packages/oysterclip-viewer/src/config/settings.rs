@@ -26,14 +26,13 @@ pub struct HandlerConfig {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ThemeConfig {
-    pub mode: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
 }
 
 impl Default for ThemeConfig {
     fn default() -> Self {
-        Self {
-            mode: "dark".to_string(),
-        }
+        Self { mode: None }
     }
 }
 
