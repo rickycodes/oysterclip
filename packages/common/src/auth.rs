@@ -2,13 +2,11 @@ use crate::constants::{AUTH_FAILED, AUTH_SUCCESS};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
-#[allow(dead_code)]
 pub struct AuthResult {
     pub success: bool,
     pub message: String,
 }
 
-#[allow(dead_code)]
 pub struct AuthCache {
     authenticated: bool,
     auth_time: Option<Instant>,
@@ -24,7 +22,6 @@ impl AuthCache {
         }
     }
 
-    #[allow(dead_code)]
     pub fn is_authenticated(&self) -> bool {
         if let Some(auth_time) = self.auth_time {
             auth_time.elapsed() < self.duration
@@ -33,7 +30,6 @@ impl AuthCache {
         }
     }
 
-    #[allow(dead_code)]
     pub fn set_authenticated(&mut self, authenticated: bool) {
         self.authenticated = authenticated;
         self.auth_time = if authenticated {
@@ -44,15 +40,24 @@ impl AuthCache {
     }
 }
 
-#[allow(dead_code)]
 pub fn authenticate_admin_action() -> AuthResult {
-    if cfg!(target_os = "linux") {
+    #[cfg(target_os = "linux")]
+    {
         authenticate_linux()
-    } else if cfg!(target_os = "macos") {
+    }
+
+    #[cfg(target_os = "macos")]
+    {
         authenticate_macos()
-    } else if cfg!(target_os = "windows") {
+    }
+
+    #[cfg(target_os = "windows")]
+    {
         authenticate_windows()
-    } else {
+    }
+
+    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+    {
         AuthResult {
             success: false,
             message: "Unsupported operating system".to_string(),
@@ -60,7 +65,7 @@ pub fn authenticate_admin_action() -> AuthResult {
     }
 }
 
-#[allow(dead_code)]
+#[cfg(target_os = "linux")]
 fn authenticate_linux() -> AuthResult {
     let pkexec_result = Command::new("pkexec")
         .arg("/bin/true")
@@ -100,7 +105,7 @@ fn authenticate_linux() -> AuthResult {
     }
 }
 
-#[allow(dead_code)]
+#[cfg(target_os = "macos")]
 fn authenticate_macos() -> AuthResult {
     let script = r#"do shell script "/bin/true" with administrator privileges"#;
 
@@ -128,7 +133,7 @@ fn authenticate_macos() -> AuthResult {
     }
 }
 
-#[allow(dead_code)]
+#[cfg(target_os = "windows")]
 fn authenticate_windows() -> AuthResult {
     let script = r#"
         $psi = New-Object System.Diagnostics.ProcessStartInfo
