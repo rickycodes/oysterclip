@@ -116,8 +116,10 @@ pub fn save_theme(theme: Theme) {
     }
 }
 
-/// Detect the OS theme preference (ignores config/CLI args).
-/// Used for live theme polling to detect OS changes.
+/// Detect only the OS theme preference (pure detection, no config/CLI checks).
+/// Used internally by the polling loop to detect OS changes.
+/// Note: The polling loop in App ensures CLI args and config take precedence—
+/// this function only runs if both are unset (None).
 pub fn detect_os_theme() -> Theme {
     #[cfg(target_arch = "wasm32")]
     {
