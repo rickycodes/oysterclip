@@ -23,7 +23,7 @@ cargo run -p oysterclip-tui
 
 The TUI reads directly from the encrypted clipboard history database, just like the GUI viewer:
 
-- **Data Source**: Reads from `~/.local/share/OysterClip/clipboard.db` (configurable)
+- **Data Source**: Reads from the canonical app-data location (e.g., `~/.local/share/oysterclip/.oysterclip.db` on Linux)
 - **Display**: Text entries shown with newlines replaced by `↵` for clarity
 - **Independent**: Doesn't require the watcher daemon to be running
 

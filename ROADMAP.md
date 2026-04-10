@@ -39,11 +39,11 @@ adding high-value UX improvements.
    - Help modal and keyboard shortcuts
    - Error messages and notifications
 
-**Status:** 🔄 In progress
-- ✅ Help modal strings extracted to constants
-- ✅ Watcher control messages extracted to constants
-- 🔄 Viewer UI strings being identified for extraction (Copy, Delete, Search, etc.)
-- ⏳ i18n framework not yet chosen (fluent vs gettext vs custom)
+**Status:** 🔄 In progress (Phase 1, limited)
+- ✅ Help modal strings extracted to constants (config/help.rs)
+- ⏳ Watcher control UI messages in constants (viewer only; not i18n-ready yet)
+- ⏳ Viewer UI strings still hardcoded (Copy, Delete, Search in RSX macros)
+- ⏳ i18n framework not yet chosen
 - ⏳ Translation tooling and workflow not defined
 
 **Considerations:**
@@ -421,14 +421,13 @@ Image entries currently have no keyboard action other than viewing the thumbnail
 
 ## Tier 4 — New Capabilities
 
-### 4.0 TUI viewer (clipboard-tui)
+### ~~4.0 TUI viewer (clipboard-tui)~~ ✅ COMPLETE (MVP)
 Complement the desktop GUI with a terminal-based viewer for SSH sessions, headless servers,
 and terminal-first workflows. Lives as a separate crate in the workspace.
-- Uses ratatui for TUI rendering, crossterm for terminal interaction
-- Depends on `clipboard-common` for history reading, entry types, formatting
-- Feature parity with core viewing: search/filter, entry inspection, copying
-- Keybindings and UX tailored for keyboard-only terminal environment
-- Reads from the same clipboard-watcher database as the desktop viewer
+- ✅ Uses ratatui for TUI rendering, crossterm for terminal interaction
+- ✅ Reads from the same clipboard-watcher database as the desktop viewer
+- ✅ Basic navigation: arrow keys, browse history (up to 100 entries), view full content
+- ⏳ Future: search/filter (see 4.7 below), copying to clipboard, delete entries, entry type colors
 
 ### ~~4.1 Date/time range filtering~~ ✅ COMPLETE
 - `since:1h`, `since:Nh` (N hours), `since:Nd` (N days), `since:today`, `since:yesterday`

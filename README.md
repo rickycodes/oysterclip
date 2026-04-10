@@ -45,13 +45,14 @@ See [`packages/oysterclip-viewer/README.md`](packages/oysterclip-viewer/README.m
 
 ### 💻 Terminal UI (`packages/oysterclip-tui`)
 
-A keyboard-driven terminal interface for clipboard management on headless servers and SSH sessions.
+A simple terminal interface for clipboard history on headless servers and SSH sessions.
 
 **Features:**
-- Full feature parity with desktop viewer
-- Search, filter, and copy from terminal
+- Browse clipboard history (last 100 entries)
+- View full content of selected entries
+- Arrow key navigation
 - Integrated with the same database as viewer/watcher
-- Color-coded entry types with custom themes
+- Independent operation (doesn't require watcher daemon)
 
 ```bash
 cargo run -p oysterclip-tui
@@ -77,7 +78,7 @@ All files live in the canonical per-user app-data directory (`~/.config/clipboar
 
 | File | Purpose |
 |------|---------|
-| `.clipboard_history.db` | SQLite history (encrypted text, image blobs) |
+| `.oysterclip.db` | SQLite history (encrypted text, image blobs) |
 | `.clipboard-watcher.toml` | Watcher config (retention, image export) |
 | `.clipboard-watcher.sock` | Unix socket for control commands |
 | `clipboard_images/` | Optional PNG image export directory |

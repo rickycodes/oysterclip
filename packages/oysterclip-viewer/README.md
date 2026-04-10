@@ -59,9 +59,9 @@ The database is resolved in this order:
 **Examples:**
 ```bash
 cargo run
-cargo run -- --db /path/to/.clipboard_history.db
+cargo run -- --db /path/to/.oysterclip.db
 cargo run -- --theme light
-CLIPBOARD_HISTORY_DB=/custom/path/.clipboard_history.db cargo run
+CLIPBOARD_HISTORY_DB=/custom/path/.oysterclip.db cargo run
 ```
 
 Raw JSON can be passed to `--db` for read-only inspection:
@@ -107,24 +107,49 @@ The viewer follows a **reactive signal-based architecture** using Dioxus:
 
 ### Module Organization
 
-| Module | Purpose | Design Pattern |
-|--------|---------|-----------------|
-| `app.rs` | Main layout, keyboard routing, signal setup | Layout wrapper, event router |
-| `app_state.rs` | History data, search filters, selection state | Reactive signals (Dioxus) |
-| `components.rs` | UI rendering: DetailPane, Sidebar, entry cards | Dioxus function components |
-| `app_actions.rs` | Copy to clipboard, delete, clear, watcher control | Action handlers with side effects |
-| `history.rs` | SQLite reads, decryption, database operations | Repository pattern |
-| `auth.rs` | Local password reveal flow with session caching | Temporary auth state |
-| `format.rs` | Entry classification, URL/JSON detection | Utility functions |
-| `link_preview.rs` | Open Graph metadata fetching | External API integration |
-| `watcher_control.rs` | Unix socket IPC to watcher daemon | Client-side IPC |
-| `source.rs` | Database path resolution (CLI → env → default) | Configuration resolution |
-| `theme.rs` | Dark/light mode with persistent config storage | Preference management |
-| `config.rs` | AppConfig TOML struct | Configuration data model |
-| `cli.rs` | clap argument definitions | CLI parsing |
-| `paths.rs` | Platform-specific config/data dirs | Platform abstraction |
-| `entry.rs` | ClipboardEntry struct (shared with watcher) | Data model |
-| `main.rs` | Dioxus app initialization | Entry point |
+```
+src/
+├── main.rs                Main Dioxus app initialization
+├── app/
+│   ├── root.rs           (App component, main layout, keyboard routing)
+│   ├── state.rs          (AppState signal: history, search filters, selection)
+│   ├── actions.rs        (Copy, delete, clear, watcher control)
+│   ├── keyboard_shortcuts.rs (Keyboard event handling with parameter grouping)
+│   ├── selection.rs      (Multi-select state management)
+│   └── query.rs          (Search filter parsing and application)
+├── config/
+│   ├── cli.rs            (clap argument definitions)
+│   ├── source.rs         (Database path resolution: CLI → env → default)
+│   ├── paths.rs          (Platform-specific config/data directories)
+│   ├── settings.rs       (AppConfig TOML struct and persistence)
+│   └── help.rs           (Help modal content and keyboard reference)
+├── data/
+│   ├── entry.rs          (ClipboardEntry struct, shared with watcher)
+│   ├── history.rs        (SQLite reads, filtering, decryption)
+│   ├── link_preview.rs   (Open Graph metadata fetching)
+│   └── format/
+│       ├── classification.rs (Text/URL/JSON/Path/Password detection)
+│       ├── text_type.rs     (Text classification, multiline detection)
+│       ├── url.rs           (URL parsing and validation)
+│       ├── image.rs         (Image type detection, PNG handling)
+│       └── timestamp.rs     (Relative timestamp formatting)
+├── system/
+│   └── watcher_control.rs (Unix socket IPC: pause/resume/status)
+└── ui/
+    ├── root_view.rs      (RSX macro for main view layout)
+    ├── sidebar.rs        (Entry list cards with colored accents)
+    ├── detail/
+    │   ├── mod.rs        (DetailPane component with state)
+    │   ├── text.rs       (Text rendering with links and masking)
+    │   ├── image.rs      (Image display: blobs or file paths)
+    │   └── empty.rs      (Empty state view)
+    ├── search_bar.rs     (Filter input with live updates)
+    ├── help_modal.rs     (Help overlay with shortcuts)
+    ├── theme.rs          (Dark/light mode toggle with persistence)
+    ├── linkable_text.rs  (URL-aware text component)
+    ├── image_overlay.rs  (Fullscreen image viewer)
+    └── icon.rs           (Entry type icons)
+```
 
 ### Key Design Decisions
 
