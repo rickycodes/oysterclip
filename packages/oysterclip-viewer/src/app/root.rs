@@ -48,6 +48,26 @@ pub fn App() -> Element {
             });
         }
     });
+
+    // Listen for OS theme changes via efficient polling
+    use_effect(move || {
+        spawn(async move {
+            // Only listen if user hasn't explicitly set a theme
+            let config = crate::config::AppConfig::load();
+            if config.theme.mode.is_none() && crate::config::cli::args().theme.is_none() {
+                let mut last_theme = crate::ui::theme::detect_os_theme();
+                loop {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+                    let current_theme = crate::ui::theme::detect_os_theme();
+                    if current_theme != last_theme {
+                        last_theme = current_theme;
+                        theme.set(current_theme);
+                    }
+                }
+            }
+        });
+    });
     let auth_cache = state.auth_cache;
     let link_previews = state.link_previews;
     let mut watcher_status = state.watcher_status;

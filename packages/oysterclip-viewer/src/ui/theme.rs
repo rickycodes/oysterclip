@@ -115,3 +115,36 @@ pub fn save_theme(theme: Theme) {
         config.save();
     }
 }
+
+/// Detect the OS theme preference (ignores config/CLI args).
+/// Used for live theme polling to detect OS changes.
+pub fn detect_os_theme() -> Theme {
+    #[cfg(target_arch = "wasm32")]
+    {
+        Theme::Dark
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let detected = dark_light::detect();
+        match detected {
+            dark_light::Mode::Dark => Theme::Dark,
+            dark_light::Mode::Light => Theme::Light,
+            dark_light::Mode::Default => {
+                // Fallback: Try to detect GNOME settings directly
+                if let Ok(output) = std::process::Command::new("gsettings")
+                    .args(&["get", "org.gnome.desktop.interface", "color-scheme"])
+                    .output()
+                {
+                    let result = String::from_utf8_lossy(&output.stdout);
+                    if result.contains("prefer-light") {
+                        return Theme::Light;
+                    } else if result.contains("prefer-dark") {
+                        return Theme::Dark;
+                    }
+                }
+                Theme::Dark
+            }
+        }
+    }
+}
