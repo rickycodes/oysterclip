@@ -1,10 +1,15 @@
 # OysterClip
 
-![Architecture diagram](architecture.svg)
+![OysterClip](OysterClip.png)
 
 This is my clipboard manager. There are many like it, but this one is mine (and now yours).
 
 A lightweight, secure clipboard history manager for Unix/Linux and macOS. **OysterClip** consists of a background watcher daemon that captures clipboard entries to an encrypted database, paired with a powerful desktop UI and terminal-based viewer for searching and managing your clipboard history.
+
+<details>
+  <summary>Architecture diagram</summary>
+  <p><img src='architecture.svg' /></p>
+</details>
 
 ## Components
 
