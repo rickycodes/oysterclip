@@ -6,12 +6,6 @@ adding high-value UX improvements.
 
 ---
 
-## Architecture
-
-![Architecture diagram](architecture.svg)
-
----
-
 ## Tier 0 — Vision & Community
 
 *Acknowledged high-value opportunities unlikely to ship in core product. Strong candidates for community contributions, platform experiments, or future revisits.*

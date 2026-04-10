@@ -1,10 +1,14 @@
 # OysterClip
 
+![Architecture diagram](architecture.svg)
+
+This is my clipboard manager. There are many like it, but this one is mine (and now yours).
+
 A lightweight, secure clipboard history manager for Unix/Linux and macOS. **OysterClip** consists of a background watcher daemon that captures clipboard entries to an encrypted database, paired with a powerful desktop UI and terminal-based viewer for searching and managing your clipboard history.
 
 ## Components
 
-### 📝 Watcher (`packages/oysterclip-watcher`)
+### Watcher (`packages/oysterclip-watcher`)
 
 A daemon that monitors your system clipboard and persists entries to SQLite with encryption.
 
@@ -23,7 +27,7 @@ cargo run -p oysterclip-watcher -- control status
 
 See [`packages/oysterclip-watcher/README.md`](packages/oysterclip-watcher/README.md) for details.
 
-### 🖥️ Viewer (`packages/oysterclip-viewer`)
+### Viewer (`packages/oysterclip-viewer`)
 
 A Dioxus Desktop app for browsing, searching, and managing clipboard history.
 
@@ -43,7 +47,7 @@ cargo run -p oysterclip-viewer -- --theme light
 
 See [`packages/oysterclip-viewer/README.md`](packages/oysterclip-viewer/README.md) for details.
 
-### 💻 Terminal UI (`packages/oysterclip-tui`)
+### Terminal UI (`packages/oysterclip-tui`)
 
 A simple terminal interface for clipboard history on headless servers and SSH sessions.
 
