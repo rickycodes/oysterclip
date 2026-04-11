@@ -24,16 +24,10 @@ pub struct HandlerConfig {
     pub template: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct ThemeConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mode: Option<String>,
-}
-
-impl Default for ThemeConfig {
-    fn default() -> Self {
-        Self { mode: None }
-    }
 }
 
 impl AppConfig {

@@ -71,7 +71,7 @@ pub fn load_theme() -> Theme {
             dark_light::Mode::Default => {
                 // Fallback: Try to detect GNOME settings directly
                 if let Ok(output) = std::process::Command::new("gsettings")
-                    .args(&["get", "org.gnome.desktop.interface", "color-scheme"])
+                    .args(["get", "org.gnome.desktop.interface", "color-scheme"])
                     .output()
                 {
                     let result = String::from_utf8_lossy(&output.stdout);
@@ -135,7 +135,7 @@ pub fn detect_os_theme() -> Theme {
             dark_light::Mode::Default => {
                 // Fallback: Try to detect GNOME settings directly
                 if let Ok(output) = std::process::Command::new("gsettings")
-                    .args(&["get", "org.gnome.desktop.interface", "color-scheme"])
+                    .args(["get", "org.gnome.desktop.interface", "color-scheme"])
                     .output()
                 {
                     let result = String::from_utf8_lossy(&output.stdout);
