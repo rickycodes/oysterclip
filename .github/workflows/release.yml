@@ -11,12 +11,34 @@ on:
         required: true
 
 jobs:
+  verify:
+    name: Verify Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check
+        run: cargo check --all-features --workspace
+
   create-release:
     name: Create Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-      release_id: ${{ steps.create_release.outputs.id }}
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,18 +61,20 @@ jobs:
           cat /tmp/release_notes.txt
 
       - name: Create release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          body_path: /tmp/release_notes.txt
-          draft: false
-          prerelease: false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.tag.outputs.tag }}" \
+            --title "${{ steps.tag.outputs.tag }}" \
+            --notes-file /tmp/release_notes.txt \
+            --draft=false
 
   build-binaries:
     name: Build ${{ matrix.binary }}
-    needs: create-release
+    needs: [verify, create-release]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     strategy:
       matrix:
         binary: ['oysterclip-viewer', 'oysterclip-tui', 'oysterclip-watcher']
@@ -61,7 +85,15 @@ jobs:
         with:
           targets: x86_64-unknown-linux-gnu
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build release binary
         run: |
@@ -69,7 +101,6 @@ jobs:
 
       - name: Create artifact
         run: |
-          BINARY_NAME=$(echo ${{ matrix.binary }} | sed 's/oysterclip-//')
           mkdir -p release-artifacts
           cp target/x86_64-unknown-linux-gnu/release/${{ matrix.binary }} release-artifacts/
           cd release-artifacts
@@ -77,7 +108,8 @@ jobs:
           cd ..
 
       - name: Upload artifact to release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ needs.create-release.outputs.tag || github.ref }}
-          files: release-artifacts/${{ matrix.binary }}-x86_64-unknown-linux-gnu.tar.gz
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ needs.create-release.outputs.tag }}" \
+            "release-artifacts/${{ matrix.binary }}-x86_64-unknown-linux-gnu.tar.gz"
