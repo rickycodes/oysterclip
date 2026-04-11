@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v0.1.0)'
+        required: true
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      release_id: ${{ steps.create_release.outputs.id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine tag
+        id: tag
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            TAG=${GITHUB_REF#refs/tags/}
+          else
+            TAG=${{ github.event.inputs.tag }}
+          fi
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          git log $(git describe --tags --abbrev=0 2>/dev/null)..HEAD --oneline --pretty=format:"- %h: %s" > /tmp/release_notes.txt 2>/dev/null || echo "- Initial release" > /tmp/release_notes.txt
+          cat /tmp/release_notes.txt
+
+      - name: Create release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          body_path: /tmp/release_notes.txt
+          draft: false
+          prerelease: false
+
+  build-binaries:
+    name: Build ${{ matrix.binary }}
+    needs: create-release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        binary: ['oysterclip-viewer', 'oysterclip-tui', 'oysterclip-watcher']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build release binary
+        run: |
+          cargo build --release --package ${{ matrix.binary }} --target x86_64-unknown-linux-gnu
+
+      - name: Create artifact
+        run: |
+          BINARY_NAME=$(echo ${{ matrix.binary }} | sed 's/oysterclip-//')
+          mkdir -p release-artifacts
+          cp target/x86_64-unknown-linux-gnu/release/${{ matrix.binary }} release-artifacts/
+          cd release-artifacts
+          tar czf ${{ matrix.binary }}-x86_64-unknown-linux-gnu.tar.gz ${{ matrix.binary }}
+          cd ..
+
+      - name: Upload artifact to release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.create-release.outputs.tag || github.ref }}
+          files: release-artifacts/${{ matrix.binary }}-x86_64-unknown-linux-gnu.tar.gz

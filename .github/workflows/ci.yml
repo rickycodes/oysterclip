@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: ['main', 'develop']
+  pull_request:
+    branches: ['main', 'develop']
+
+jobs:
+  check-and-test:
+    name: Check, Clippy, and Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check
+        run: cargo check --all-features --workspace
+
+      - name: Clippy
+        run: cargo clippy --all-features --workspace -- -D warnings
+
+      - name: Test
+        run: cargo test --all-features --workspace
