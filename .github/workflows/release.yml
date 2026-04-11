@@ -17,6 +17,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libglib2.0-dev
+
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: actions/cache@v4
@@ -80,6 +85,11 @@ jobs:
         binary: ['oysterclip-viewer', 'oysterclip-tui', 'oysterclip-watcher']
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libglib2.0-dev
 
       - uses: dtolnay/rust-toolchain@stable
         with:
