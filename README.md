@@ -122,26 +122,16 @@ All files live in the canonical per-user app-data directory (`~/.config/clipboar
 ## Architecture
 
 ```
-┌─────────────────────────────────────┐
-│     System Clipboard                │
-└────────────┬────────────────────────┘
-             │
-     ┌───────▼──────────┐
-     │   Watcher (CLI)  │ ← Monitors every 500ms
-     │   Daemon/Service │
-     └───────┬──────────┘
-             │
-     ┌───────▼──────────────────────┐
-     │  SQLite History Database     │
-     │ • Encrypted text entries     │
-     │ • Image PNG blobs            │
-     │ • Deduplication by hash      │
-     └───────┬──────────────────────┘
-             │
-     ┌───────▼──────────┐
-     │ Viewer (UI)      │ ← Search, browse, copy
-     │ Dioxus Desktop   │
-     └──────────────────┘
+System Clipboard
+       ↓
+Watcher (Daemon) ← 500ms polling
+       ↓
+SQLite DB (encrypted)
+  • Encrypted text
+  • Image PNG blobs
+  • Deduplication
+       ↓
+Viewer (UI) ← Browse, search, copy
 ```
 
 ## Roadmap
