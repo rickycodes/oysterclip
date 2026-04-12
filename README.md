@@ -1,10 +1,54 @@
 # OysterClip
 
+[![CI Status](https://github.com/rickycodes/oysterclip/actions/workflows/ci.yml/badge.svg)](https://github.com/rickycodes/oysterclip/actions/workflows/ci.yml)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](LICENSE)
+[![Rust 1.70+](https://img.shields.io/badge/Rust-1.70+-orange.svg)](https://www.rust-lang.org/)
+[![Platform: Linux | macOS](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS-green.svg)](#requirements)
+
 ![OysterClip](OysterClip.png)
 
-This is my clipboard manager. There are many like it, but this one is mine (and now yours).
+> This is my clipboard manager. There are many like it, but this one is mine (and now yours).
 
-A lightweight, secure clipboard history manager for Unix/Linux and macOS. **OysterClip** consists of a background watcher daemon that captures clipboard entries to an encrypted database, paired with a powerful desktop UI and terminal-based viewer for searching and managing your clipboard history.
+**OysterClip** consists of a background watcher daemon that captures clipboard entries to an encrypted database, paired with a powerful desktop UI and terminal-based viewer for searching and managing your clipboard history.
+
+## Quick Start
+
+**Requirements:** Rust 1.70+, GTK 3.24+ (Linux), macOS 10.13+
+
+```bash
+# Clone and build
+git clone https://github.com/rickycodes/oysterclip.git
+cd oysterclip
+cargo build --release --workspace
+
+# Run the watcher daemon
+./target/release/oysterclip-watcher &
+
+# Launch the viewer
+./target/release/oysterclip-viewer
+```
+
+## Table of Contents
+
+- [Features](#features)
+- [Components](#components)
+  - [Watcher](#watcher-packagesoystercliplayerwatcher)
+  - [Viewer](#viewer-packagesoystercliplayviewer)
+  - [Terminal UI](#terminal-ui-packagesoystercliplaytui)
+- [Storage](#storage)
+- [Architecture](#architecture)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Features
+
+✅ **Secure** — XChaCha20Poly1305 encryption at rest with OS keychain integration  
+✅ **Lightweight** — Minimal resource usage with efficient polling  
+✅ **Searchable** — Structured query syntax (type:image, kind:url, since:1h)  
+✅ **Multi-Interface** — Desktop UI, terminal interface, and headless daemon  
+✅ **Cross-Platform** — Linux and macOS support  
+✅ **Theme Support** — Auto-detecting dark/light themes  
 
 ## Components
 
@@ -64,18 +108,6 @@ cargo run -p oysterclip-tui
 
 See [`packages/oysterclip-tui/README.md`](packages/oysterclip-tui/README.md) for details.
 
-## Quick Start
-
-**Requirements:** Rust 1.70+, GTK 3.24+ (Linux), macOS 10.13+ (macOS)
-
-```bash
-# Start the watcher daemon
-cargo run -p oysterclip-watcher &
-
-# Launch the viewer UI
-cargo run -p oysterclip-viewer
-```
-
 ## Storage
 
 All files live in the canonical per-user app-data directory (`~/.config/clipboard-manager` on Linux):
@@ -118,6 +150,13 @@ See [`ROADMAP.md`](ROADMAP.md) for planned features and architecture improvement
 
 ## Development
 
+### Setup
+
+**Prerequisites:**
+- Rust 1.70+ ([install](https://rustup.rs/))
+- GTK 3.24+ development files (Linux): `sudo apt-get install libgtk-3-dev libglib2.0-dev`
+- macOS: Xcode Command Line Tools
+
 **Build all packages:**
 ```bash
 cargo build --workspace
@@ -128,12 +167,51 @@ cargo build --workspace
 cargo test --workspace
 ```
 
+**Run with release optimizations:**
+```bash
+cargo build --release --workspace
+```
+
 **Hot reload (development):**
 ```bash
 cargo install dioxus-cli --version 0.7.3 --locked
 dx serve --platform desktop
 ```
 
+### Project Structure
+
+```
+oysterclip/
+├── packages/
+│   ├── common/               # Shared encryption, paths, IPC
+│   ├── oysterclip-watcher/   # Daemon that monitors clipboard
+│   ├── oysterclip-viewer/    # Desktop UI (Dioxus)
+│   └── oysterclip-tui/       # Terminal interface
+├── Cargo.toml               # Workspace configuration
+├── ROADMAP.md               # Feature roadmap
+└── README.md                # This file
+```
+
+## Contributing
+
+Contributions are welcome! Whether it's bug fixes, features, or documentation improvements.
+
+**Getting Started:**
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/my-feature`)
+3. Make your changes and add tests if applicable
+4. Ensure tests pass: `cargo test --workspace`
+5. Ensure no clippy warnings: `cargo clippy --workspace -- -D warnings`
+6. Commit with clear messages
+7. Push to your fork and open a pull request
+
+**Development Workflow:**
+- All PRs require passing CI (check, clippy, tests)
+- Commits should be atomic and well-documented
+- No external dependencies without justification
+
+See [`ROADMAP.md`](ROADMAP.md) for high-level roadmap and areas that need work.
+
 ## License
 
-See [`LICENSE`](LICENSE) for details.
+This project is licensed under the GNU General Public License v3.0 — see [`LICENSE`](LICENSE) for details.
