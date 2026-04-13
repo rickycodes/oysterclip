@@ -1,8 +1,8 @@
 use chrono::{Datelike, Local, TimeZone, Utc};
-use common::{ENTRY_TYPE_IMAGE, ENTRY_TYPE_TEXT, classification::is_password_with_config};
+use common::{classification::is_password_with_config, ENTRY_TYPE_IMAGE, ENTRY_TYPE_TEXT};
 
-use crate::data::entry::ClipboardEntry;
 use crate::config::settings::PasswordConfig;
+use crate::data::entry::ClipboardEntry;
 
 #[derive(Debug, Clone)]
 struct QueryFilter {
@@ -13,7 +13,11 @@ struct QueryFilter {
 /// Check if an entry matches the given query string.
 ///
 /// Supports filter syntax: `type:text kind:password since:1h search text`
-pub fn matches_query(entry: &ClipboardEntry, query: &str, password_config: &PasswordConfig) -> bool {
+pub fn matches_query(
+    entry: &ClipboardEntry,
+    query: &str,
+    password_config: &PasswordConfig,
+) -> bool {
     let trimmed = query.trim();
     if trimmed.is_empty() {
         return true;
@@ -71,7 +75,11 @@ fn parse_query_filters(query: &str) -> (Vec<QueryFilter>, String) {
     (filters, search_parts.join(" "))
 }
 
-fn apply_filters(entry: &ClipboardEntry, filters: &[QueryFilter], password_config: &PasswordConfig) -> bool {
+fn apply_filters(
+    entry: &ClipboardEntry,
+    filters: &[QueryFilter],
+    password_config: &PasswordConfig,
+) -> bool {
     filters.iter().all(|filter| match filter.key.as_str() {
         "type" => matches_type_filter(entry, &filter.value),
         "kind" => matches_kind_filter(entry, &filter.value, password_config),
@@ -89,10 +97,18 @@ fn matches_type_filter(entry: &ClipboardEntry, filter_value: &str) -> bool {
     }
 }
 
-fn matches_kind_filter(entry: &ClipboardEntry, filter_value: &str, password_config: &PasswordConfig) -> bool {
+fn matches_kind_filter(
+    entry: &ClipboardEntry,
+    filter_value: &str,
+    password_config: &PasswordConfig,
+) -> bool {
     match entry {
         ClipboardEntry::Text { kind, content, .. } => {
-            let entry_kind = if is_password_with_config(content, password_config.len, password_config.score_threshold) {
+            let entry_kind = if is_password_with_config(
+                content,
+                password_config.len,
+                password_config.score_threshold,
+            ) {
                 "password"
             } else if let Some(k) = kind {
                 k.as_str()

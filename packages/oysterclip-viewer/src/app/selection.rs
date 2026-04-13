@@ -1,9 +1,9 @@
 use crate::app::actions::entry_id;
 use crate::app::query::matches_query;
+use crate::config::settings::PasswordConfig;
 use crate::data::entry::ClipboardEntry;
 use crate::data::format::entry_label;
 use crate::ui::DetailState;
-use crate::config::settings::PasswordConfig;
 
 /// Represents the current selection state derived from filtered entries and selected ID.
 /// Encapsulates all computed data needed to render the detail view.

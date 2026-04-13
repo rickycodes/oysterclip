@@ -14,7 +14,7 @@ use crate::data::link_preview::LinkPreviewState;
 use crate::ui::icon::Icon;
 use crate::ui::linkable_text::LinkableText;
 use common::{authenticate_admin_action, AuthCache};
-use common::{TEXT_KIND_JSON, TEXT_KIND_PATH, classification::is_password_with_config};
+use common::{classification::is_password_with_config, TEXT_KIND_JSON, TEXT_KIND_PATH};
 
 #[component]
 pub fn TextDetail(
@@ -34,18 +34,25 @@ pub fn TextDetail(
     let text = content.clone();
     let config = use_config();
     let password_config = &config().password;
-    let type_label = entry_label(&ClipboardEntry::Text {
-        id,
-        timestamp,
-        content: content.clone(),
-        kind: kind.clone(),
-    }, password_config);
+    let type_label = entry_label(
+        &ClipboardEntry::Text {
+            id,
+            timestamp,
+            content: content.clone(),
+            kind: kind.clone(),
+        },
+        password_config,
+    );
     let exact_url = extract_single_url(&content).map(str::to_string);
     let preview_state = exact_url
         .as_ref()
         .and_then(|url| link_previews().get(url).cloned());
     let is_data_uri = is_image_data_uri(&content);
-    let is_password_text = is_password_with_config(&content, password_config.len, password_config.score_threshold);
+    let is_password_text = is_password_with_config(
+        &content,
+        password_config.len,
+        password_config.score_threshold,
+    );
     let is_json = kind.as_deref() == Some(TEXT_KIND_JSON);
     let is_path = kind.as_deref() == Some(TEXT_KIND_PATH);
     let is_html_image = is_html_img_tag(&content);

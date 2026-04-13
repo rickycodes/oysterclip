@@ -8,12 +8,12 @@ use crate::app::actions::{
 };
 use crate::app::state::use_app_state;
 use crate::config::settings::AppConfig;
-use common::classification::is_password_with_config;
 use crate::system::watcher_control;
 use crate::ui::help_modal::HelpModal;
 use crate::ui::settings_modal::SettingsModal;
 use crate::ui::theme::{load_theme, save_theme};
 use crate::ui::{DetailPane, ImageOverlay, Sidebar};
+use common::classification::is_password_with_config;
 use common::{MSG_WATCHER_PAUSED, MSG_WATCHER_RESUMED};
 
 const APP_STYLE: &str = include_str!("../../styles.css");
@@ -296,7 +296,11 @@ pub fn App() -> Element {
             .find(|e| e.id() == *id)
             .and_then(|e| match e {
                 crate::data::entry::ClipboardEntry::Text { content, .. } => {
-                    Some(is_password_with_config(content, config.password.len, config.password.score_threshold))
+                    Some(is_password_with_config(
+                        content,
+                        config.password.len,
+                        config.password.score_threshold,
+                    ))
                 }
                 _ => None,
             })

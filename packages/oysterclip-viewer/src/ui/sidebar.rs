@@ -9,7 +9,7 @@ use crate::data::format::{
     entry_icon_name, entry_label, extract_single_url, format_relative_timestamp, is_image_data_uri,
     preview_text,
 };
-use common::{TEXT_KIND_JSON, TEXT_KIND_PATH, classification::is_password_with_config};
+use common::{classification::is_password_with_config, TEXT_KIND_JSON, TEXT_KIND_PATH};
 
 /// Check if content is a valid JSON object or array (not just a string).
 fn is_valid_json_object_or_array(content: &str) -> bool {

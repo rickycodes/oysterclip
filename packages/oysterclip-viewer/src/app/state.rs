@@ -6,8 +6,8 @@ use std::time::Duration;
 use crate::app::actions::entry_id;
 use crate::app::query::matches_query;
 use crate::app::selection::SelectionSnapshot;
-use crate::config::source::ClipboardSource;
 use crate::config::settings::PasswordConfig;
+use crate::config::source::ClipboardSource;
 use crate::data::entry::{CachedEntries, ClipboardEntry, ClipboardPayload};
 use crate::data::format::extract_single_url;
 use crate::data::history::get_clipboard_entries;
@@ -127,7 +127,9 @@ pub fn use_app_state(password_config: PasswordConfig) -> AppState {
             loop {
                 let eligible_urls: Vec<String> = preview_entries()
                     .iter()
-                    .filter(|entry| matches_query(entry, &preview_query(), &preview_password_config))
+                    .filter(|entry| {
+                        matches_query(entry, &preview_query(), &preview_password_config)
+                    })
                     .filter_map(|entry| match entry {
                         ClipboardEntry::Text { content, .. } => {
                             extract_single_url(content).map(str::to_string)

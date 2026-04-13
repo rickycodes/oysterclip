@@ -34,8 +34,8 @@ pub struct ThemeConfig {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PasswordConfig {
-    #[serde(default = "PasswordConfig::default_len")]
-    pub len: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub len: Option<usize>,
     #[serde(default = "PasswordConfig::default_score_threshold")]
     pub score_threshold: u8,
 }
@@ -43,7 +43,7 @@ pub struct PasswordConfig {
 impl Default for PasswordConfig {
     fn default() -> Self {
         Self {
-            len: Self::default_len(),
+            len: Some(Self::default_len()),
             score_threshold: Self::default_score_threshold(),
         }
     }
@@ -72,7 +72,7 @@ impl AppConfig {
         // Apply CLI overrides
         let cli_args = crate::config::cli::args();
         if let Some(len) = cli_args.password_len {
-            config.password.len = len;
+            config.password.len = Some(len);
         }
         if let Some(score) = cli_args.password_score_threshold {
             config.password.score_threshold = score;

@@ -2,7 +2,7 @@ use regex::Regex;
 use std::sync::LazyLock;
 use zxcvbn::Score;
 
-const PASSWORD_LEN: usize = 25;
+pub const PASSWORD_LEN: usize = 25;
 const PASSWORD_PREVIEW_MASK_LEN: usize = 8;
 
 // Matches https:// or http:// URLs
@@ -58,7 +58,11 @@ pub fn has_urls(text: &str) -> bool {
     !extract_urls(text).is_empty()
 }
 
-pub fn is_password_with_config(text: &str, password_len: usize, score_threshold: u8) -> bool {
+pub fn is_password_with_config(
+    text: &str,
+    password_len: Option<usize>,
+    score_threshold: u8,
+) -> bool {
     let threshold = match score_threshold {
         0 => Score::Zero,
         1 => Score::One,
@@ -67,7 +71,13 @@ pub fn is_password_with_config(text: &str, password_len: usize, score_threshold:
         4.. => Score::Four,
     };
 
-    text.len() == password_len
+    let len_matches = if let Some(len) = password_len {
+        text.len() == len
+    } else {
+        true // If length check is disabled, always match
+    };
+
+    len_matches
         && !text.contains(' ')
         && !text.contains('\n')
         && !text.contains('\t')
@@ -76,7 +86,7 @@ pub fn is_password_with_config(text: &str, password_len: usize, score_threshold:
 }
 
 pub fn is_password(text: &str) -> bool {
-    is_password_with_config(text, PASSWORD_LEN, 3)
+    is_password_with_config(text, Some(PASSWORD_LEN), 3)
 }
 
 pub fn mask_password() -> String {
