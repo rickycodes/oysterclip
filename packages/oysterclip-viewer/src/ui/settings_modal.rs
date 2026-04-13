@@ -11,6 +11,8 @@ pub fn SettingsModal(mut is_open: Signal<bool>) -> Element {
     let mut password_len_enabled = use_signal(|| config.password.len.is_some());
     let mut password_len_value = use_signal(|| config.password.len.unwrap_or(PASSWORD_LEN));
     let mut password_score_value = use_signal(|| config.password.score_threshold);
+    let mut save_images_enabled = use_signal(|| config.watcher.save_images_to_disk.unwrap_or(false));
+    let mut image_export_dir = use_signal(|| config.watcher.image_export_dir.clone().unwrap_or_default());
 
     let handle_save = move |_| {
         // Update config
@@ -21,6 +23,12 @@ pub fn SettingsModal(mut is_open: Signal<bool>) -> Element {
             None
         };
         updated_config.password.score_threshold = password_score_value();
+        updated_config.watcher.save_images_to_disk = Some(save_images_enabled());
+        updated_config.watcher.image_export_dir = if image_export_dir().is_empty() {
+            None
+        } else {
+            Some(image_export_dir())
+        };
 
         // Persist to file and update signal
         updated_config.save();
@@ -95,6 +103,35 @@ pub fn SettingsModal(mut is_open: Signal<bool>) -> Element {
                                 for (index, label) in score_labels.iter().enumerate() {
                                     span { "{index}: {label}" }
                                 }
+                            }
+                        }
+                        hr { class: "settings-divider" }
+                        div { class: "settings-section",
+                            div { class: "settings-label-with-badge",
+                                label { "Save Images to Disk" }
+                            }
+                            div { class: "settings-toggle",
+                                label {
+                                    input {
+                                        r#type: "checkbox",
+                                        checked: save_images_enabled(),
+                                        onchange: move |evt| save_images_enabled.set(evt.checked()),
+                                    }
+                                    span { "Enabled" }
+                                }
+                            }
+                        }
+                        div { class: "settings-section",
+                            div { class: "settings-label-with-badge",
+                                label { "Image Export Directory" }
+                            }
+                            input {
+                                r#type: "text",
+                                value: "{image_export_dir()}",
+                                oninput: move |evt| image_export_dir.set(evt.value()),
+                                class: "settings-text-input",
+                                disabled: !save_images_enabled(),
+                                placeholder: "~/OysterClip/images (relative to config dir)",
                             }
                         }
                     }

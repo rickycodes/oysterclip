@@ -1431,11 +1431,17 @@ button:disabled {
 
 /* Settings Modal Specific Styles */
 .settings-section {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .settings-section:last-child {
   margin-bottom: 0;
+}
+
+.settings-divider {
+  margin: 40px 0;
+  border: none;
+  border-top: 1px solid var(--border);
 }
 
 .settings-label-with-badge {
@@ -1557,4 +1563,27 @@ button:disabled {
 .settings-slider:disabled::-moz-range-thumb {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.settings-text-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: var(--mono-font);
+  transition: all 150ms ease;
+}
+
+.settings-text-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+}
+
+.settings-text-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

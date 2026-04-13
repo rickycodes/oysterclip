@@ -8,6 +8,8 @@ pub struct AppConfig {
     pub bulk_actions: BulkActionsConfig,
     #[serde(default)]
     pub password: PasswordConfig,
+    #[serde(default)]
+    pub watcher: WatcherSettingsConfig,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
@@ -57,6 +59,14 @@ impl PasswordConfig {
     const fn default_score_threshold() -> u8 {
         3 // Score::Three from zxcvbn
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct WatcherSettingsConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub save_images_to_disk: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image_export_dir: Option<String>,
 }
 
 impl AppConfig {
