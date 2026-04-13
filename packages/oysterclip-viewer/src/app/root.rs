@@ -8,7 +8,7 @@ use crate::app::actions::{
 };
 use crate::app::state::use_app_state;
 use crate::config::settings::AppConfig;
-use crate::data::format::is_password;
+use common::classification::is_password_with_config;
 use crate::system::watcher_control;
 use crate::ui::help_modal::HelpModal;
 use crate::ui::theme::{load_theme, save_theme};
@@ -17,13 +17,21 @@ use common::{MSG_WATCHER_PAUSED, MSG_WATCHER_RESUMED};
 
 const APP_STYLE: &str = include_str!("../../styles.css");
 
+/// Access app config from anywhere in the component tree
+pub fn use_config() -> Signal<AppConfig> {
+    use_context::<Signal<AppConfig>>()
+}
+
 #[component]
 pub fn App() -> Element {
-    let state = use_app_state();
-
-    // Load config once at app startup
+    // Load config once at app startup and provide globally
     let config = AppConfig::load();
+    let config_for_signal = config.clone();
+    let config_signal = use_signal(move || config_for_signal.clone());
+    use_context_provider(move || config_signal);
     let notepad_handler = config.get_handler("notepad");
+
+    let state = use_app_state(config.password.clone());
 
     let source = state.source.clone();
     let cache = state.cache.clone();
@@ -286,7 +294,7 @@ pub fn App() -> Element {
             .find(|e| e.id() == *id)
             .and_then(|e| match e {
                 crate::data::entry::ClipboardEntry::Text { content, .. } => {
-                    Some(is_password(content))
+                    Some(is_password_with_config(content, config.password.len, config.password.score_threshold))
                 }
                 _ => None,
             })

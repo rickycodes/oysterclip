@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct AppConfig {
     #[serde(default)]
     pub theme: ThemeConfig,
@@ -10,7 +10,7 @@ pub struct AppConfig {
     pub password: PasswordConfig,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct BulkActionsConfig {
     #[serde(default)]
     pub handlers: std::collections::HashMap<String, HandlerConfig>,
@@ -26,7 +26,7 @@ pub struct HandlerConfig {
     pub template: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ThemeConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mode: Option<String>,
@@ -67,7 +67,18 @@ impl AppConfig {
         let Ok(text) = std::fs::read_to_string(&path) else {
             return Self::default();
         };
-        toml::from_str(&text).unwrap_or_default()
+        let mut config: AppConfig = toml::from_str(&text).unwrap_or_default();
+
+        // Apply CLI overrides
+        let cli_args = crate::config::cli::args();
+        if let Some(len) = cli_args.password_len {
+            config.password.len = len;
+        }
+        if let Some(score) = cli_args.password_score_threshold {
+            config.password.score_threshold = score;
+        }
+
+        config
     }
 
     pub fn save(&self) {

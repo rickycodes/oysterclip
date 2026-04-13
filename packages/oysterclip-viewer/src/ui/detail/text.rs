@@ -4,16 +4,17 @@ use std::sync::{Arc, Mutex};
 
 use super::text_type::TextDetailType;
 use crate::app::actions::open_url;
+use crate::app::root::use_config;
 use crate::data::entry::ClipboardEntry;
 use crate::data::format::{
     entry_icon_name, entry_label, extract_single_url, format_timestamp, has_urls, is_html_img_tag,
-    is_image_data_uri, is_password, mask_password,
+    is_image_data_uri, mask_password,
 };
 use crate::data::link_preview::LinkPreviewState;
 use crate::ui::icon::Icon;
 use crate::ui::linkable_text::LinkableText;
 use common::{authenticate_admin_action, AuthCache};
-use common::{TEXT_KIND_JSON, TEXT_KIND_PATH};
+use common::{TEXT_KIND_JSON, TEXT_KIND_PATH, classification::is_password_with_config};
 
 #[component]
 pub fn TextDetail(
@@ -31,18 +32,20 @@ pub fn TextDetail(
     on_open_editor: EventHandler<i64>,
 ) -> Element {
     let text = content.clone();
+    let config = use_config();
+    let password_config = &config().password;
     let type_label = entry_label(&ClipboardEntry::Text {
         id,
         timestamp,
         content: content.clone(),
         kind: kind.clone(),
-    });
+    }, password_config);
     let exact_url = extract_single_url(&content).map(str::to_string);
     let preview_state = exact_url
         .as_ref()
         .and_then(|url| link_previews().get(url).cloned());
     let is_data_uri = is_image_data_uri(&content);
-    let is_password_text = is_password(&content);
+    let is_password_text = is_password_with_config(&content, password_config.len, password_config.score_threshold);
     let is_json = kind.as_deref() == Some(TEXT_KIND_JSON);
     let is_path = kind.as_deref() == Some(TEXT_KIND_PATH);
     let is_html_image = is_html_img_tag(&content);
@@ -52,9 +55,10 @@ pub fn TextDetail(
         kind.as_deref(),
         exact_url.is_some(),
         is_html_image,
+        password_config,
     );
     let detail_label = detail_type.label();
-    let display_data = detail_type.extract_display_data(&content);
+    let display_data = detail_type.extract_display_data(&content, password_config);
 
     rsx! {
         div { class: "detail",
@@ -62,7 +66,7 @@ pub fn TextDetail(
                 div { class: "detail-type-with-icon",
                     svg { class: "detail-icon",
                         view_box: "0 0 24 24",
-                        Icon { name: entry_icon_name(&ClipboardEntry::Text { id, timestamp, content: content.clone(), kind: kind.clone() }) }
+                        Icon { name: entry_icon_name(&ClipboardEntry::Text { id, timestamp, content: content.clone(), kind: kind.clone() }, password_config) }
                     }
                     span { class: "detail-type", "{detail_label}" }
                 }

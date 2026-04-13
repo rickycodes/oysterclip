@@ -2,13 +2,14 @@ use dioxus::prelude::*;
 
 use super::icon::Icon;
 use super::search_bar::SearchBar;
+use crate::app::root::use_config;
 use crate::config::APP_NAME;
 use crate::data::entry::ClipboardEntry;
 use crate::data::format::{
     entry_icon_name, entry_label, extract_single_url, format_relative_timestamp, is_image_data_uri,
-    is_password, preview_text,
+    preview_text,
 };
-use common::{TEXT_KIND_JSON, TEXT_KIND_PATH};
+use common::{TEXT_KIND_JSON, TEXT_KIND_PATH, classification::is_password_with_config};
 
 /// Check if content is a valid JSON object or array (not just a string).
 fn is_valid_json_object_or_array(content: &str) -> bool {
@@ -37,6 +38,9 @@ pub fn Sidebar(
     show_notepad_button: bool,
     #[props(default)] notepad_button_disabled: bool,
 ) -> Element {
+    let config = use_config();
+    let password_config = config().password;
+
     rsx! {
         aside { class: "sidebar",
             div { class: "sidebar-header",
@@ -107,7 +111,7 @@ pub fn Sidebar(
                         let type_class = match entry {
                             ClipboardEntry::Image { .. } => "entry-card-image",
                             ClipboardEntry::Text { content, kind, .. } => {
-                                if is_password(content) {
+                                if is_password_with_config(content, password_config.len, password_config.score_threshold) {
                                     "entry-card-pass"
                                 } else if is_image_data_uri(content) {
                                     "entry-card-image"
@@ -135,16 +139,16 @@ pub fn Sidebar(
                                 if kind.as_deref() == Some(TEXT_KIND_JSON) && is_valid_json_object_or_array(content) {
                                     // Minify JSON to a single line for sidebar preview
                                     let minified = content.split_whitespace().collect::<Vec<_>>().join(" ");
-                                    preview_text(&minified, 56)
+                                    preview_text(&minified, 56, &password_config)
                                 } else {
-                                    preview_text(content, 56)
+                                    preview_text(content, 56, &password_config)
                                 }
                             }
                             ClipboardEntry::Image { path, hash, .. } => {
                                 let preview_source = path
                                     .clone()
                                     .unwrap_or_else(|| hash.to_string());
-                                preview_text(&preview_source, 56)
+                                preview_text(&preview_source, 56, &password_config)
                             }
                         };
                         let timestamp = match entry {
@@ -156,9 +160,9 @@ pub fn Sidebar(
                                 div { class: "entry-title",
                                     svg { class: "entry-icon",
                                         view_box: "0 0 24 24",
-                                        Icon { name: entry_icon_name(entry) }
+                                        Icon { name: entry_icon_name(entry, &password_config) }
                                     }
-                                    span { "{entry_label(entry)}" }
+                                    span { "{entry_label(entry, &password_config)}" }
                                 }
                                 div { class: "entry-preview", "{preview}" }
                                 div { class: "entry-ts", "{format_relative_timestamp(timestamp)}" }

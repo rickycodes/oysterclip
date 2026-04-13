@@ -13,6 +13,14 @@ pub struct Args {
     /// Path to the clipboard history database (overrides $CLIPBOARD_HISTORY_DB and the default location)
     #[arg(long, value_name = "PATH")]
     pub db: Option<String>,
+
+    /// Minimum password length to detect
+    #[arg(long, value_name = "LENGTH")]
+    pub password_len: Option<usize>,
+
+    /// Minimum password strength to detect (0-4, where 4 is strongest)
+    #[arg(long, value_name = "SCORE")]
+    pub password_score_threshold: Option<u8>,
 }
 
 /// Parse and cache CLI args. Call once at startup before launching the app.

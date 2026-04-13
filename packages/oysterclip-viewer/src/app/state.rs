@@ -7,6 +7,7 @@ use crate::app::actions::entry_id;
 use crate::app::query::matches_query;
 use crate::app::selection::SelectionSnapshot;
 use crate::config::source::ClipboardSource;
+use crate::config::settings::PasswordConfig;
 use crate::data::entry::{CachedEntries, ClipboardEntry, ClipboardPayload};
 use crate::data::format::extract_single_url;
 use crate::data::history::get_clipboard_entries;
@@ -43,7 +44,7 @@ pub struct AppState {
     pub current_watcher_status: WatcherStatus,
 }
 
-pub fn use_app_state() -> AppState {
+pub fn use_app_state(password_config: PasswordConfig) -> AppState {
     let source = use_hook(|| Arc::new(ClipboardSource::from_env()));
     let cache = use_hook(|| Arc::new(Mutex::new(None::<CachedEntries>)));
     let mut entries = use_signal(Vec::<ClipboardEntry>::new);
@@ -119,43 +120,47 @@ pub fn use_app_state() -> AppState {
 
     let preview_entries = entries;
     let preview_query = query;
-    use_future(move || async move {
-        loop {
-            let eligible_urls: Vec<String> = preview_entries()
-                .iter()
-                .filter(|entry| matches_query(entry, &preview_query()))
-                .filter_map(|entry| match entry {
-                    ClipboardEntry::Text { content, .. } => {
-                        extract_single_url(content).map(str::to_string)
-                    }
-                    ClipboardEntry::Image { .. } => None,
-                })
-                .take(PREFETCH_URL_LIMIT)
-                .collect();
+    let preview_password_config_for_loop = password_config.clone();
+    use_future(move || {
+        let preview_password_config = preview_password_config_for_loop.clone();
+        async move {
+            loop {
+                let eligible_urls: Vec<String> = preview_entries()
+                    .iter()
+                    .filter(|entry| matches_query(entry, &preview_query(), &preview_password_config))
+                    .filter_map(|entry| match entry {
+                        ClipboardEntry::Text { content, .. } => {
+                            extract_single_url(content).map(str::to_string)
+                        }
+                        ClipboardEntry::Image { .. } => None,
+                    })
+                    .take(PREFETCH_URL_LIMIT)
+                    .collect();
 
-            let next_url = {
-                let cache = link_previews();
-                eligible_urls
-                    .into_iter()
-                    .find(|url| !cache.contains_key(url))
-            };
+                let next_url = {
+                    let cache = link_previews();
+                    eligible_urls
+                        .into_iter()
+                        .find(|url| !cache.contains_key(url))
+                };
 
-            if let Some(url) = next_url {
-                let mut cache = link_previews();
-                cache.insert(url.clone(), LinkPreviewState::Loading);
-                link_previews.set(cache);
+                if let Some(url) = next_url {
+                    let mut cache = link_previews();
+                    cache.insert(url.clone(), LinkPreviewState::Loading);
+                    link_previews.set(cache);
 
-                let next_state = fetch_link_preview(&url)
-                    .await
-                    .map(LinkPreviewState::Ready)
-                    .unwrap_or(LinkPreviewState::Failed);
-                let mut cache = link_previews();
-                cache.insert(url, next_state);
-                link_previews.set(cache);
+                    let next_state = fetch_link_preview(&url)
+                        .await
+                        .map(LinkPreviewState::Ready)
+                        .unwrap_or(LinkPreviewState::Failed);
+                    let mut cache = link_previews();
+                    cache.insert(url, next_state);
+                    link_previews.set(cache);
 
-                tokio::time::sleep(Duration::from_millis(PREFETCH_STEP_MS)).await;
-            } else {
-                tokio::time::sleep(Duration::from_millis(PREFETCH_IDLE_MS)).await;
+                    tokio::time::sleep(Duration::from_millis(PREFETCH_STEP_MS)).await;
+                } else {
+                    tokio::time::sleep(Duration::from_millis(PREFETCH_IDLE_MS)).await;
+                }
             }
         }
     });
@@ -168,6 +173,7 @@ pub fn use_app_state() -> AppState {
         &current_query,
         current_selected_id,
         error().as_deref(),
+        password_config.clone(),
     );
 
     AppState {

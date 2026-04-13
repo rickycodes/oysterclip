@@ -1,7 +1,8 @@
 use crate::data::format::{
     extract_html_img_src, image_data_uri_summary, is_html_img_tag, is_image_data_uri, preview_text,
 };
-use common::{TEXT_KIND_JSON, TEXT_KIND_PATH};
+use crate::config::settings::PasswordConfig;
+use common::{TEXT_KIND_JSON, TEXT_KIND_PATH, classification::is_password_with_config};
 
 /// Check if content is a valid JSON object or array (not just a string).
 fn is_valid_json_object_or_array(content: &str) -> bool {
@@ -45,9 +46,9 @@ impl TextDetailType {
 
     /// Classify text content based on its properties.
     /// Priority order matters: check more specific types first.
-    pub fn classify(content: &str, kind: Option<&str>, has_url: bool, is_html_image: bool) -> Self {
+    pub fn classify(content: &str, kind: Option<&str>, has_url: bool, is_html_image: bool, password_config: &PasswordConfig) -> Self {
         match () {
-            _ if crate::data::format::is_password(content) => Self::Password,
+            _ if is_password_with_config(content, password_config.len, password_config.score_threshold) => Self::Password,
             _ if is_html_image => Self::HtmlImage,
             _ if has_url => Self::Link,
             _ if kind == Some(TEXT_KIND_JSON) && is_valid_json_object_or_array(content) => {
@@ -59,14 +60,14 @@ impl TextDetailType {
     }
 
     /// Extract and prepare all display data for this text type.
-    pub fn extract_display_data(self, content: &str) -> TextDisplayData {
+    pub fn extract_display_data(self, content: &str, password_config: &PasswordConfig) -> TextDisplayData {
         let is_data_uri = is_image_data_uri(content);
         let is_html_image = is_html_img_tag(content);
         let is_json = self == Self::Json;
 
         TextDisplayData {
             display_text: if is_data_uri {
-                preview_text(content, 96)
+                preview_text(content, 96, password_config)
             } else {
                 content.to_string()
             },

@@ -1,7 +1,8 @@
 use chrono::{Datelike, Local, TimeZone, Utc};
-use common::{ENTRY_TYPE_IMAGE, ENTRY_TYPE_TEXT};
+use common::{ENTRY_TYPE_IMAGE, ENTRY_TYPE_TEXT, classification::is_password_with_config};
 
 use crate::data::entry::ClipboardEntry;
+use crate::config::settings::PasswordConfig;
 
 #[derive(Debug, Clone)]
 struct QueryFilter {
@@ -12,7 +13,7 @@ struct QueryFilter {
 /// Check if an entry matches the given query string.
 ///
 /// Supports filter syntax: `type:text kind:password since:1h search text`
-pub fn matches_query(entry: &ClipboardEntry, query: &str) -> bool {
+pub fn matches_query(entry: &ClipboardEntry, query: &str, password_config: &PasswordConfig) -> bool {
     let trimmed = query.trim();
     if trimmed.is_empty() {
         return true;
@@ -22,7 +23,7 @@ pub fn matches_query(entry: &ClipboardEntry, query: &str) -> bool {
     let (filters, search_text) = parse_query_filters(trimmed);
 
     // Check type and kind filters first
-    if !filters.is_empty() && !apply_filters(entry, &filters) {
+    if !filters.is_empty() && !apply_filters(entry, &filters, password_config) {
         return false;
     }
 
@@ -70,10 +71,10 @@ fn parse_query_filters(query: &str) -> (Vec<QueryFilter>, String) {
     (filters, search_parts.join(" "))
 }
 
-fn apply_filters(entry: &ClipboardEntry, filters: &[QueryFilter]) -> bool {
+fn apply_filters(entry: &ClipboardEntry, filters: &[QueryFilter], password_config: &PasswordConfig) -> bool {
     filters.iter().all(|filter| match filter.key.as_str() {
         "type" => matches_type_filter(entry, &filter.value),
-        "kind" => matches_kind_filter(entry, &filter.value),
+        "kind" => matches_kind_filter(entry, &filter.value, password_config),
         "since" => matches_since_filter(entry, &filter.value),
         _ => true,
     })
@@ -88,10 +89,10 @@ fn matches_type_filter(entry: &ClipboardEntry, filter_value: &str) -> bool {
     }
 }
 
-fn matches_kind_filter(entry: &ClipboardEntry, filter_value: &str) -> bool {
+fn matches_kind_filter(entry: &ClipboardEntry, filter_value: &str, password_config: &PasswordConfig) -> bool {
     match entry {
         ClipboardEntry::Text { kind, content, .. } => {
-            let entry_kind = if is_password(content) {
+            let entry_kind = if is_password_with_config(content, password_config.len, password_config.score_threshold) {
                 "password"
             } else if let Some(k) = kind {
                 k.as_str()
@@ -175,10 +176,6 @@ fn extract_duration_parts(value: &str) -> Option<(i64, char)> {
     } else {
         None
     }
-}
-
-fn is_password(content: &str) -> bool {
-    crate::data::format::is_password(content)
 }
 
 #[cfg(test)]

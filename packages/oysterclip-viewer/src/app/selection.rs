@@ -3,6 +3,7 @@ use crate::app::query::matches_query;
 use crate::data::entry::ClipboardEntry;
 use crate::data::format::entry_label;
 use crate::ui::DetailState;
+use crate::config::settings::PasswordConfig;
 
 /// Represents the current selection state derived from filtered entries and selected ID.
 /// Encapsulates all computed data needed to render the detail view.
@@ -23,10 +24,11 @@ impl SelectionSnapshot {
         current_query: &str,
         current_selected_id: Option<i64>,
         error: Option<&str>,
+        password_config: PasswordConfig,
     ) -> Self {
         let filtered_entries: Vec<ClipboardEntry> = current_entries
             .iter()
-            .filter(|entry| matches_query(entry, current_query))
+            .filter(|entry| matches_query(entry, current_query, &password_config))
             .cloned()
             .collect();
 
@@ -50,7 +52,7 @@ impl SelectionSnapshot {
 
         let selected_label = current_selected_id
             .and_then(|id| filtered_entries.iter().find(|e| entry_id(e) == id))
-            .map(|e| entry_label(e))
+            .map(|e| entry_label(e, &password_config))
             .unwrap_or("Text");
 
         let detail_state = if let Some(message) = error {
