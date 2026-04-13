@@ -37,6 +37,7 @@ pub fn Sidebar(
     on_send_to_notepad: EventHandler<()>,
     show_notepad_button: bool,
     #[props(default)] notepad_button_disabled: bool,
+    on_open_settings: EventHandler<()>,
 ) -> Element {
     let config = use_config();
     let password_config = config().password;
@@ -47,6 +48,12 @@ pub fn Sidebar(
                 h1 { "{APP_NAME}" }
                 div { class: "sidebar-header-actions",
                     span { class: "sidebar-count", "{total_entries} entries" }
+                    button {
+                        class: "sidebar-icon-btn",
+                        title: "Settings",
+                        onclick: move |_| on_open_settings.call(()),
+                        "⚙"
+                    }
                     button {
                         class: "sidebar-clear-btn",
                         onclick: move |_| on_clear.call(()),

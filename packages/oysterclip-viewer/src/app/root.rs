@@ -11,6 +11,7 @@ use crate::config::settings::AppConfig;
 use common::classification::is_password_with_config;
 use crate::system::watcher_control;
 use crate::ui::help_modal::HelpModal;
+use crate::ui::settings_modal::SettingsModal;
 use crate::ui::theme::{load_theme, save_theme};
 use crate::ui::{DetailPane, ImageOverlay, Sidebar};
 use common::{MSG_WATCHER_PAUSED, MSG_WATCHER_RESUMED};
@@ -45,6 +46,7 @@ pub fn App() -> Element {
     let mut show_password = state.show_password;
     let mut image_overlay_open = use_signal(|| false);
     let mut help_open = use_signal(|| false);
+    let mut settings_open = use_signal(|| false);
     let mut theme = use_signal(load_theme);
     let focus_search = use_signal(|| 0u32);
     let mut main_ref: Signal<Option<Rc<MountedData>>> = use_signal(|| None);
@@ -303,7 +305,7 @@ pub fn App() -> Element {
 
     rsx! {
         style { "{APP_STYLE}" }
-        if image_overlay_open() || help_open() {
+        if image_overlay_open() || help_open() || settings_open() {
             style { "body {{ overflow: hidden; }}" }
         }
         main {
@@ -332,6 +334,7 @@ pub fn App() -> Element {
                 on_send_to_notepad: handle_send_to_notepad,
                 show_notepad_button: notepad_handler.is_some(),
                 notepad_button_disabled: selected_contains_password,
+                on_open_settings: move |_| settings_open.set(true),
             }
             DetailPane {
                 state: detail_state,
@@ -366,6 +369,9 @@ pub fn App() -> Element {
             },
             watcher_status: current_watcher_status,
             on_toggle_watcher: handle_toggle_watcher,
+        }
+        SettingsModal {
+            is_open: settings_open,
         }
     }
 }
