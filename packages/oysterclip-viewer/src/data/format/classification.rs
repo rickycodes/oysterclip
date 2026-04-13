@@ -1,6 +1,6 @@
 use super::text_type::TextType;
 use crate::data::entry::ClipboardEntry;
-use common::classification::{is_password, mask_password_preview};
+use common::classification::{is_password, mask_password};
 
 pub fn entry_label(entry: &ClipboardEntry) -> &'static str {
     match entry {
@@ -22,7 +22,7 @@ pub fn entry_icon_name(entry: &ClipboardEntry) -> &'static str {
 
 pub fn preview_text(content: &str, limit: usize) -> String {
     if is_password(content) {
-        mask_password_preview()
+        mask_password()
     } else {
         let line = content.lines().next().unwrap_or("");
         let mut preview: String = line.chars().take(limit).collect();

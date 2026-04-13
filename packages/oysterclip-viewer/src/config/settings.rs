@@ -6,6 +6,8 @@ pub struct AppConfig {
     pub theme: ThemeConfig,
     #[serde(default)]
     pub bulk_actions: BulkActionsConfig,
+    #[serde(default)]
+    pub password: PasswordConfig,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -28,6 +30,33 @@ pub struct HandlerConfig {
 pub struct ThemeConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mode: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PasswordConfig {
+    #[serde(default = "PasswordConfig::default_len")]
+    pub len: usize,
+    #[serde(default = "PasswordConfig::default_score_threshold")]
+    pub score_threshold: u8,
+}
+
+impl Default for PasswordConfig {
+    fn default() -> Self {
+        Self {
+            len: Self::default_len(),
+            score_threshold: Self::default_score_threshold(),
+        }
+    }
+}
+
+impl PasswordConfig {
+    const fn default_len() -> usize {
+        25
+    }
+
+    const fn default_score_threshold() -> u8 {
+        3 // Score::Three from zxcvbn
+    }
 }
 
 impl AppConfig {

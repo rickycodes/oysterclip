@@ -7,7 +7,7 @@ use crate::app::actions::open_url;
 use crate::data::entry::ClipboardEntry;
 use crate::data::format::{
     entry_icon_name, entry_label, extract_single_url, format_timestamp, has_urls, is_html_img_tag,
-    is_image_data_uri, is_password, mask_password_preview,
+    is_image_data_uri, is_password, mask_password,
 };
 use crate::data::link_preview::LinkPreviewState;
 use crate::ui::icon::Icon;
@@ -106,7 +106,7 @@ pub fn TextDetail(
                     if show_password() {
                         pre { class: "detail-text detail-password", "{content}" }
                     } else {
-                        pre { class: "detail-text detail-password detail-password-masked", "{mask_password_preview()}" }
+                        pre { class: "detail-text detail-password detail-password-masked", "{mask_password()}" }
                     }
                 }
             } else if is_data_uri {

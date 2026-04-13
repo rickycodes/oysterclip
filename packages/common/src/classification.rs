@@ -58,20 +58,28 @@ pub fn has_urls(text: &str) -> bool {
     !extract_urls(text).is_empty()
 }
 
-pub fn is_password(text: &str) -> bool {
-    text.len() == PASSWORD_LEN
+pub fn is_password_with_config(text: &str, password_len: usize, score_threshold: u8) -> bool {
+    let threshold = match score_threshold {
+        0 => Score::Zero,
+        1 => Score::One,
+        2 => Score::Two,
+        3 => Score::Three,
+        4.. => Score::Four,
+    };
+
+    text.len() == password_len
         && !text.contains(' ')
         && !text.contains('\n')
         && !text.contains('\t')
         && !has_urls(text)
-        && zxcvbn::zxcvbn(text, &[]).score() >= Score::Three
+        && zxcvbn::zxcvbn(text, &[]).score() >= threshold
+}
+
+pub fn is_password(text: &str) -> bool {
+    is_password_with_config(text, PASSWORD_LEN, 3)
 }
 
 pub fn mask_password() -> String {
-    "•".repeat(PASSWORD_LEN)
-}
-
-pub fn mask_password_preview() -> String {
     "•".repeat(PASSWORD_PREVIEW_MASK_LEN)
 }
 
