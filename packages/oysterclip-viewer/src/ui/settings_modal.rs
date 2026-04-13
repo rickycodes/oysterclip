@@ -92,11 +92,9 @@ pub fn SettingsModal(mut is_open: Signal<bool>) -> Element {
                                 class: "settings-slider",
                             }
                             div { class: "score-legend",
-                                span { "0: Any" }
-                                span { "1: Weak" }
-                                span { "2: Fair" }
-                                span { "3: Good" }
-                                span { "4: Strong" }
+                                for (index, label) in score_labels.iter().enumerate() {
+                                    span { "{index}: {label}" }
+                                }
                             }
                         }
                     }
