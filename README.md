@@ -32,9 +32,9 @@ cargo build --release --workspace
 
 - [Features](#features)
 - [Components](#components)
-  - [Watcher](#watcher-packagesoystercliplayerwatcher)
-  - [Viewer](#viewer-packagesoystercliplayviewer)
-  - [Terminal UI](#terminal-ui-packagesoystercliplaytui)
+  - [Watcher](#watcher-packagesoysterclip-watcher)
+  - [Viewer](#viewer-packagesoysterclip-viewer)
+  - [Terminal UI](#terminal-ui-packagesoysterclip-tui)
 - [Storage](#storage)
 - [Architecture](#architecture)
 - [Development](#development)
