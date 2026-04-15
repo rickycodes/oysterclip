@@ -110,13 +110,13 @@ See [`packages/oysterclip-tui/README.md`](packages/oysterclip-tui/README.md) for
 
 ## Storage
 
-All files live in the canonical per-user app-data directory (`~/.config/clipboard-manager` on Linux):
+All files live in the canonical per-user app-data directory (`~/.config/oysterclip` on Linux):
 
 | File | Purpose |
 |------|---------|
 | `.oysterclip.db` | SQLite history (encrypted text, image blobs) |
-| `.clipboard-watcher.toml` | Watcher config (retention, image export) |
-| `.clipboard-watcher.sock` | Unix socket for control commands |
+| `.oysterclip.toml` | Watcher config (retention, image export) |
+| `.oysterclip.sock` | Unix socket for control commands |
 | `clipboard_images/` | Optional PNG image export directory |
 
 ## Architecture
