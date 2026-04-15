@@ -11,8 +11,10 @@ pub fn SettingsModal(mut is_open: Signal<bool>) -> Element {
     let mut password_len_enabled = use_signal(|| config.password.len.is_some());
     let mut password_len_value = use_signal(|| config.password.len.unwrap_or(PASSWORD_LEN));
     let mut password_score_value = use_signal(|| config.password.score_threshold);
-    let mut save_images_enabled = use_signal(|| config.watcher.save_images_to_disk.unwrap_or(false));
-    let mut image_export_dir = use_signal(|| config.watcher.image_export_dir.clone().unwrap_or_default());
+    let mut save_images_enabled =
+        use_signal(|| config.watcher.save_images_to_disk.unwrap_or(false));
+    let mut image_export_dir =
+        use_signal(|| config.watcher.image_export_dir.clone().unwrap_or_default());
 
     let handle_save = move |_| {
         // Update config

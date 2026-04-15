@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use common::classification::PASSWORD_LEN;
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct AppConfig {
     #[serde(default)]
@@ -53,7 +54,7 @@ impl Default for PasswordConfig {
 
 impl PasswordConfig {
     const fn default_len() -> usize {
-        25
+        PASSWORD_LEN
     }
 
     const fn default_score_threshold() -> u8 {
