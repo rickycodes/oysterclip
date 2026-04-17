@@ -15,6 +15,7 @@ use common::constants::{
     APP_NAME, APP_ORGANIZATION, APP_QUALIFIER, HISTORY_FILE, UI_REFRESH_INTERVAL_MS,
 };
 use common::crypto::{decrypt_text, get_or_create_key};
+use common::PASSWORD_LEN;
 use common::{authenticate_admin_action, AuthCache};
 
 const COLOR_CYAN: Color = Color::Rgb(52, 224, 224);
@@ -51,6 +52,10 @@ impl App {
             status_message_time: None,
             pending_delete_id: None,
         })
+    }
+
+    fn is_password_text(&self, text: &str) -> bool {
+        is_password(text, Some(PASSWORD_LEN), 3)
     }
 
     fn run(&mut self) -> io::Result<()> {
@@ -142,7 +147,7 @@ impl App {
             .enumerate()
             .map(|(idx, (_, preview))| {
                 let actual_idx = idx + self.scroll_offset;
-                let display_text = if is_password(preview) {
+                let display_text = if self.is_password_text(preview) {
                     "•".repeat(8)
                 } else {
                     if preview.len() > 45 {
@@ -168,7 +173,7 @@ impl App {
 
     fn render_detail(&self, f: &mut Frame, area: Rect) {
         let content = if let Some((_, preview)) = self.entries.get(self.selected_index) {
-            let is_password_content = is_password(preview);
+            let is_password_content = self.is_password_text(preview);
             let display_content = if is_password_content && !self.show_password {
                 "•".repeat(20)
             } else {
@@ -254,7 +259,7 @@ impl App {
             KeyCode::Char('m') => {
                 // Toggle password masking with authentication
                 if let Some((_, preview)) = self.entries.get(self.selected_index) {
-                    if is_password(preview) {
+                    if self.is_password_text(preview) {
                         if self.show_password {
                             // Simple toggle: just hide it
                             self.show_password = false;

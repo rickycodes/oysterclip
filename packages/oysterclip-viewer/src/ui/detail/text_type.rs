@@ -2,7 +2,7 @@ use crate::config::settings::PasswordConfig;
 use crate::data::format::{
     extract_html_img_src, image_data_uri_summary, is_html_img_tag, is_image_data_uri, preview_text,
 };
-use common::{classification::is_password_with_config, TEXT_KIND_JSON, TEXT_KIND_PATH};
+use common::{classification::is_password, TEXT_KIND_JSON, TEXT_KIND_PATH};
 
 /// Check if content is a valid JSON object or array (not just a string).
 fn is_valid_json_object_or_array(content: &str) -> bool {
@@ -54,7 +54,7 @@ impl TextDetailType {
         password_config: &PasswordConfig,
     ) -> Self {
         match () {
-            _ if is_password_with_config(
+            _ if is_password(
                 content,
                 password_config.len,
                 password_config.score_threshold,

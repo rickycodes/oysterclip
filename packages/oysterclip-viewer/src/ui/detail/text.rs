@@ -14,7 +14,7 @@ use crate::data::link_preview::LinkPreviewState;
 use crate::ui::icon::Icon;
 use crate::ui::linkable_text::LinkableText;
 use common::{authenticate_admin_action, AuthCache};
-use common::{classification::is_password_with_config, TEXT_KIND_JSON, TEXT_KIND_PATH};
+use common::{classification::is_password, TEXT_KIND_JSON, TEXT_KIND_PATH};
 
 #[component]
 pub fn TextDetail(
@@ -48,7 +48,7 @@ pub fn TextDetail(
         .as_ref()
         .and_then(|url| link_previews().get(url).cloned());
     let is_data_uri = is_image_data_uri(&content);
-    let is_password_text = is_password_with_config(
+    let is_password_text = is_password(
         &content,
         password_config.len,
         password_config.score_threshold,

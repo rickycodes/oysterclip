@@ -1,5 +1,5 @@
 use chrono::{Datelike, Local, TimeZone, Utc};
-use common::{classification::is_password_with_config, ENTRY_TYPE_IMAGE, ENTRY_TYPE_TEXT};
+use common::{classification::is_password, ENTRY_TYPE_IMAGE, ENTRY_TYPE_TEXT};
 
 use crate::config::settings::PasswordConfig;
 use crate::data::entry::ClipboardEntry;
@@ -104,7 +104,7 @@ fn matches_kind_filter(
 ) -> bool {
     match entry {
         ClipboardEntry::Text { kind, content, .. } => {
-            let entry_kind = if is_password_with_config(
+            let entry_kind = if is_password(
                 content,
                 password_config.len,
                 password_config.score_threshold,

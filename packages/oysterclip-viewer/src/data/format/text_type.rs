@@ -9,7 +9,7 @@ pub enum TextType {
 }
 
 use crate::config::settings::PasswordConfig;
-use common::{classification::is_password_with_config, TEXT_KIND_JSON, TEXT_KIND_PATH};
+use common::{classification::is_password, TEXT_KIND_JSON, TEXT_KIND_PATH};
 
 impl TextType {
     /// Get display label for this text type (used in sidebar/list).
@@ -38,7 +38,7 @@ impl TextType {
     /// Priority order matters: check more specific types first.
     pub fn classify(content: &str, kind: Option<&str>, password_config: &PasswordConfig) -> Self {
         match () {
-            _ if is_password_with_config(
+            _ if is_password(
                 content,
                 password_config.len,
                 password_config.score_threshold,

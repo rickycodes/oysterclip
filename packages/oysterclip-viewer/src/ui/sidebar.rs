@@ -9,7 +9,7 @@ use crate::data::format::{
     entry_icon_name, entry_label, extract_single_url, format_relative_timestamp, is_image_data_uri,
     preview_text,
 };
-use common::{classification::is_password_with_config, TEXT_KIND_JSON, TEXT_KIND_PATH};
+use common::{classification::is_password, TEXT_KIND_JSON, TEXT_KIND_PATH};
 
 /// Check if content is a valid JSON object or array (not just a string).
 fn is_valid_json_object_or_array(content: &str) -> bool {
@@ -118,7 +118,7 @@ pub fn Sidebar(
                         let type_class = match entry {
                             ClipboardEntry::Image { .. } => "entry-card-image",
                             ClipboardEntry::Text { content, kind, .. } => {
-                                if is_password_with_config(content, password_config.len, password_config.score_threshold) {
+                                if is_password(content, password_config.len, password_config.score_threshold) {
                                     "entry-card-pass"
                                 } else if is_image_data_uri(content) {
                                     "entry-card-image"
