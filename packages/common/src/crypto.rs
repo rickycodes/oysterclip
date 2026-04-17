@@ -15,7 +15,7 @@ pub struct EncryptedData {
 
 /// Get or create the encryption key from the OS keyring.
 pub fn get_or_create_key() -> io::Result<[u8; 32]> {
-    let entry = Entry::new(APP_NAME, KEYRING_ACCOUNT)
+    let entry = Entry::new(APP_NAME, KEYRING_ACCOUNT.as_str())
         .map_err(|e| io::Error::other(format!("Failed to access OS keychain entry: {e}")))?;
 
     match entry.get_password() {

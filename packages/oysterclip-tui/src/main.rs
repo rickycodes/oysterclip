@@ -470,7 +470,7 @@ fn get_db_path() -> Result<PathBuf, String> {
     let dirs = directories::ProjectDirs::from(APP_QUALIFIER, APP_ORGANIZATION, APP_NAME)
         .ok_or_else(|| "Could not determine project directories".to_string())?;
 
-    Ok(dirs.data_local_dir().join(HISTORY_FILE))
+    Ok(dirs.data_local_dir().join(HISTORY_FILE.as_str()))
 }
 
 fn setup_terminal() -> io::Result<Terminal<CrosstermBackend<io::Stdout>>> {

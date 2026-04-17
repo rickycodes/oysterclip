@@ -1,12 +1,15 @@
-pub const HISTORY_FILE: &str = ".oysterclip.db";
-pub const CONFIG_FILE: &str = ".oysterclip.toml";
-pub const SOCKET_FILE: &str = ".oysterclip.sock";
-pub const IMAGE_DIR: &str = "clipboard_images";
-pub const TEMP_BULK_FILE: &str = "clipboard_bulk_temp.txt";
+use once_cell::sync::Lazy;
+
 pub const APP_NAME: &str = "oysterclip";
 pub const APP_QUALIFIER: &str = "com";
 pub const APP_ORGANIZATION: &str = "rickycodes";
-pub const KEYRING_ACCOUNT: &str = "oysterclip-encryption-key";
+
+pub static HISTORY_FILE: Lazy<String> = Lazy::new(|| format!(".{}.db", APP_NAME));
+pub static CONFIG_FILE: Lazy<String> = Lazy::new(|| format!(".{}.toml", APP_NAME));
+pub static SOCKET_FILE: Lazy<String> = Lazy::new(|| format!(".{}.sock", APP_NAME));
+pub const IMAGE_DIR: &str = "clipboard_images";
+pub const TEMP_BULK_FILE: &str = "clipboard_bulk_temp.txt";
+pub static KEYRING_ACCOUNT: Lazy<String> = Lazy::new(|| format!("{}-encryption-key", APP_NAME));
 
 // Theme mode constants
 pub const THEME_LIGHT: &str = "light";

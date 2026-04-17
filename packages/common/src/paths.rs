@@ -21,8 +21,8 @@ pub fn resolve_app_paths() -> io::Result<AppPaths> {
 
     let base_dir = project_dirs.data_local_dir().to_path_buf();
     Ok(AppPaths {
-        db_path: base_dir.join(HISTORY_FILE),
-        config_path: base_dir.join(CONFIG_FILE),
+        db_path: base_dir.join(HISTORY_FILE.as_str()),
+        config_path: base_dir.join(CONFIG_FILE.as_str()),
         image_dir: base_dir.join(IMAGE_DIR),
         base_dir,
     })

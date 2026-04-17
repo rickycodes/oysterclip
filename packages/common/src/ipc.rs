@@ -66,5 +66,5 @@ pub struct ControlResponse {
 
 pub fn socket_path() -> std::io::Result<PathBuf> {
     let app_paths = paths::resolve_app_paths()?;
-    Ok(app_paths.base_dir.join(SOCKET_FILE))
+    Ok(app_paths.base_dir.join(SOCKET_FILE.as_str()))
 }

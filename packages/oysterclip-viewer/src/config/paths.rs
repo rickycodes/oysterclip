@@ -8,5 +8,5 @@ pub fn default_history_path() -> io::Result<PathBuf> {
 }
 
 pub fn config_path() -> io::Result<PathBuf> {
-    Ok(common_paths::config_dir()?.join(CONFIG_FILE))
+    Ok(common_paths::config_dir()?.join(CONFIG_FILE.as_str()))
 }

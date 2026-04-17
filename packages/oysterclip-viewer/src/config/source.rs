@@ -117,6 +117,6 @@ mod tests {
     #[test]
     fn canonical_default_history_path_has_expected_filename() {
         let path = default_history_path().unwrap();
-        assert_eq!(path.file_name().unwrap(), HISTORY_FILE);
+        assert_eq!(path.file_name().unwrap(), HISTORY_FILE.as_str());
     }
 }

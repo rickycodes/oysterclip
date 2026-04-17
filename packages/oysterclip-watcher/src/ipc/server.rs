@@ -170,5 +170,5 @@ pub(crate) fn control_socket_path(db_path: &Path) -> io::Result<PathBuf> {
         )
     })?;
 
-    Ok(parent.join(SOCKET_FILE))
+    Ok(parent.join(SOCKET_FILE.as_str()))
 }
