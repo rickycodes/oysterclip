@@ -63,13 +63,10 @@ pub fn is_password_with_config(
     password_len: Option<usize>,
     score_threshold: u8,
 ) -> bool {
-    let threshold = match score_threshold {
-        0 => Score::Zero,
-        1 => Score::One,
-        2 => Score::Two,
-        3 => Score::Three,
-        4.. => Score::Four,
-    };
+    let threshold = [Score::Zero, Score::One, Score::Two, Score::Three, Score::Four]
+        .get(score_threshold.min(4) as usize)
+        .copied()
+        .unwrap_or(Score::Four);
 
     let len_matches = if let Some(len) = password_len {
         text.len() == len
