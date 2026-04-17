@@ -205,4 +205,56 @@ mod tests {
         assert!(has_urls("Visit www.example.com"));
         assert!(!has_urls("No links here"));
     }
+
+    #[test]
+    fn test_is_password_with_exact_length() {
+        let password = "MyStr0ng!P@ssw0rdP@ss1234";
+        assert_eq!(password.len(), PASSWORD_LEN);
+        assert!(is_password(&password, Some(PASSWORD_LEN), 0));
+    }
+
+    #[test]
+    fn test_is_password_wrong_length() {
+        let password = "MyStr0ng!P@ssw0rdP@ss12345";
+        assert_eq!(password.len(), PASSWORD_LEN + 1);
+        assert!(!is_password(&password, Some(PASSWORD_LEN), 0));
+    }
+
+    #[test]
+    fn test_is_password_no_length_check() {
+        let short_password = "MyStr0ng!P@ss";
+        assert!(is_password(short_password, None, 0));
+    }
+
+    #[test]
+    fn test_is_password_with_spaces() {
+        let password = "MyStr0ng!P@ssw0rdP@ss1234 ";
+        assert!(!is_password(&password, Some(PASSWORD_LEN + 1), 0));
+    }
+
+    #[test]
+    fn test_is_password_with_newline() {
+        let password = "MyStr0ng!P@ssw0rdP@ss1234\n";
+        assert!(!is_password(&password, Some(PASSWORD_LEN + 1), 0));
+    }
+
+    #[test]
+    fn test_is_password_with_url() {
+        let password = "MyStr0ng!P@ssw0rdP@sshttps://example.com";
+        assert!(!is_password(&password, None, 0));
+    }
+
+    #[test]
+    fn test_is_password_weak_score() {
+        let weak = "aaaaaa";
+        assert!(!is_password(weak, None, 3));
+    }
+
+    #[test]
+    fn test_is_password_score_threshold_clamping() {
+        let password = "MyStr0ng!P@ssw0rdP@ss1234";
+        // Threshold 5+ should clamp to 4 (Score::Four)
+        assert!(is_password(&password, Some(PASSWORD_LEN), 5));
+        assert!(is_password(&password, Some(PASSWORD_LEN), 255));
+    }
 }
