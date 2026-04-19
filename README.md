@@ -1,6 +1,7 @@
 # OysterClip
 
 [![CI Status](https://github.com/rickycodes/oysterclip/actions/workflows/ci.yml/badge.svg)](https://github.com/rickycodes/oysterclip/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/rickycodes/oysterclip/branch/main/graph/badge.svg)](https://codecov.io/gh/rickycodes/oysterclip)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](LICENSE)
 [![Rust 1.70+](https://img.shields.io/badge/Rust-1.70+-orange.svg)](https://www.rust-lang.org/)
 [![Platform: Linux | macOS](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS-green.svg)](#requirements)
