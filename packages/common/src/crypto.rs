@@ -94,3 +94,179 @@ pub fn text_content_hash(content: &str) -> String {
     content.hash(&mut hasher);
     format!("{:x}", hasher.finish())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_key() -> [u8; 32] {
+        [
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+            25, 26, 27, 28, 29, 30, 31, 32,
+        ]
+    }
+
+    #[test]
+    fn test_encrypt_decrypt_roundtrip() {
+        let plaintext = "Hello, World!";
+        let key = test_key();
+
+        let encrypted = encrypt_text(plaintext, &key).unwrap();
+        let decrypted = decrypt_text(&encrypted.ciphertext, &encrypted.nonce, &key).unwrap();
+
+        assert_eq!(plaintext, decrypted);
+    }
+
+    #[test]
+    fn test_encrypt_decrypt_empty_string() {
+        let plaintext = "";
+        let key = test_key();
+
+        let encrypted = encrypt_text(plaintext, &key).unwrap();
+        let decrypted = decrypt_text(&encrypted.ciphertext, &encrypted.nonce, &key).unwrap();
+
+        assert_eq!(plaintext, decrypted);
+    }
+
+    #[test]
+    fn test_encrypt_decrypt_unicode() {
+        let plaintext = "Hello 世界 🌍 ñoño";
+        let key = test_key();
+
+        let encrypted = encrypt_text(plaintext, &key).unwrap();
+        let decrypted = decrypt_text(&encrypted.ciphertext, &encrypted.nonce, &key).unwrap();
+
+        assert_eq!(plaintext, decrypted);
+    }
+
+    #[test]
+    fn test_encrypt_decrypt_large_text() {
+        let plaintext = "x".repeat(100_000);
+        let key = test_key();
+
+        let encrypted = encrypt_text(&plaintext, &key).unwrap();
+        let decrypted = decrypt_text(&encrypted.ciphertext, &encrypted.nonce, &key).unwrap();
+
+        assert_eq!(plaintext, decrypted);
+    }
+
+    #[test]
+    fn test_decrypt_with_wrong_key_fails() {
+        let plaintext = "Secret message";
+        let key1 = test_key();
+        let mut key2 = test_key();
+        key2[0] ^= 0xFF; // Flip bits in first byte
+
+        let encrypted = encrypt_text(plaintext, &key1).unwrap();
+        let result = decrypt_text(&encrypted.ciphertext, &encrypted.nonce, &key2);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_decrypt_with_tampered_ciphertext_fails() {
+        let plaintext = "Original message";
+        let key = test_key();
+
+        let mut encrypted = encrypt_text(plaintext, &key).unwrap();
+        // Tamper with ciphertext
+        encrypted.ciphertext[0] ^= 0xFF;
+
+        let result = decrypt_text(&encrypted.ciphertext, &encrypted.nonce, &key);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_decrypt_with_invalid_nonce_length() {
+        let key = test_key();
+        let ciphertext = vec![1, 2, 3];
+        let invalid_nonce = vec![1, 2, 3]; // Too short, should be 24
+
+        let result = decrypt_text(&ciphertext, &invalid_nonce, &key);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid text nonce length"));
+    }
+
+    #[test]
+    fn test_text_content_hash_deterministic() {
+        let content = "Same content";
+        let hash1 = text_content_hash(content);
+        let hash2 = text_content_hash(content);
+
+        assert_eq!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_text_content_hash_different_content() {
+        let content1 = "Content A";
+        let content2 = "Content B";
+
+        let hash1 = text_content_hash(content1);
+        let hash2 = text_content_hash(content2);
+
+        assert_ne!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_text_content_hash_empty_string() {
+        let hash = text_content_hash("");
+        assert!(!hash.is_empty());
+    }
+
+    #[test]
+    fn test_encrypted_data_has_nonce() {
+        let plaintext = "Test";
+        let key = test_key();
+
+        let encrypted = encrypt_text(plaintext, &key).unwrap();
+
+        assert_eq!(encrypted.nonce.len(), 24);
+        assert!(!encrypted.ciphertext.is_empty());
+    }
+
+    #[test]
+    fn test_different_encryptions_have_different_nonces() {
+        let plaintext = "Same plaintext";
+        let key = test_key();
+
+        let encrypted1 = encrypt_text(plaintext, &key).unwrap();
+        let encrypted2 = encrypt_text(plaintext, &key).unwrap();
+
+        // Different random nonces (extremely unlikely to be equal)
+        assert_ne!(encrypted1.nonce, encrypted2.nonce);
+        // But both decrypt to same plaintext
+        let decrypted1 = decrypt_text(&encrypted1.ciphertext, &encrypted1.nonce, &key).unwrap();
+        let decrypted2 = decrypt_text(&encrypted2.ciphertext, &encrypted2.nonce, &key).unwrap();
+        assert_eq!(decrypted1, decrypted2);
+    }
+
+    #[test]
+    fn test_decode_key_valid() {
+        let original_key = test_key();
+        let encoded = general_purpose::STANDARD.encode(original_key);
+        let decoded = decode_key(&encoded).unwrap();
+
+        assert_eq!(original_key, decoded);
+    }
+
+    #[test]
+    fn test_decode_key_invalid_base64() {
+        let result = decode_key("not valid base64 !!!!");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_decode_key_wrong_length() {
+        let encoded = general_purpose::STANDARD.encode([1, 2, 3]);
+        let result = decode_key(&encoded);
+
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid key length"));
+    }
+}
