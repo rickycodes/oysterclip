@@ -110,4 +110,65 @@ mod tests {
             Path::new("/tmp/config-dir/exports")
         );
     }
+
+    #[test]
+    fn watcher_config_clamps_max_history_entries() {
+        let config: RawWatcherConfig =
+            toml::from_str("max_history_entries = 9999").unwrap();
+        let config =
+            WatcherConfig::from_raw(config, Path::new("/tmp/config-dir"), Path::new(IMAGE_DIR));
+
+        assert_eq!(config.max_history_entries, MAX_HISTORY_ENTRIES);
+    }
+
+    #[test]
+    fn watcher_config_ignores_zero_max_history_entries() {
+        let config: RawWatcherConfig = toml::from_str("max_history_entries = 0").unwrap();
+        let config =
+            WatcherConfig::from_raw(config, Path::new("/tmp/config-dir"), Path::new(IMAGE_DIR));
+
+        assert_eq!(config.max_history_entries, MAX_HISTORY_ENTRIES);
+    }
+
+    #[test]
+    fn watcher_config_handles_whitespace_in_image_export_dir() {
+        let config: RawWatcherConfig =
+            toml::from_str("image_export_dir = \"  exports  \"").unwrap();
+        let config =
+            WatcherConfig::from_raw(config, Path::new("/tmp/config-dir"), Path::new(IMAGE_DIR));
+
+        assert_eq!(
+            config.image_export_dir,
+            Path::new("/tmp/config-dir/exports")
+        );
+    }
+
+    #[test]
+    fn watcher_config_uses_absolute_image_export_dir() {
+        let config: RawWatcherConfig =
+            toml::from_str("save_images_to_disk = true\nimage_export_dir = \"/absolute/path\"")
+                .unwrap();
+        let config =
+            WatcherConfig::from_raw(config, Path::new("/tmp/config-dir"), Path::new(IMAGE_DIR));
+
+        assert_eq!(config.image_export_dir, Path::new("/absolute/path"));
+    }
+
+    #[test]
+    fn watcher_config_empty_image_export_dir_uses_default() {
+        let config: RawWatcherConfig = toml::from_str("image_export_dir = \"\"").unwrap();
+        let config =
+            WatcherConfig::from_raw(config, Path::new("/tmp/config-dir"), Path::new(IMAGE_DIR));
+
+        assert_eq!(config.image_export_dir, Path::new(IMAGE_DIR));
+    }
+
+    #[test]
+    fn watcher_config_false_save_images_to_disk() {
+        let config: RawWatcherConfig = toml::from_str("save_images_to_disk = false").unwrap();
+        let config =
+            WatcherConfig::from_raw(config, Path::new("/tmp/config-dir"), Path::new(IMAGE_DIR));
+
+        assert!(!config.save_images_to_disk);
+    }
 }

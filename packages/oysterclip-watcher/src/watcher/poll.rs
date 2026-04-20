@@ -170,3 +170,127 @@ fn export_image_if_enabled(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Mutex;
+
+    #[test]
+    fn test_is_paused_when_false() {
+        let state = Arc::new(Mutex::new(crate::ipc::ControlState {
+            paused: false,
+            started_at: 0,
+            last_capture_at: None,
+            last_error: None,
+            db_path: String::new(),
+            image_dir: String::new(),
+        }));
+        assert!(!is_paused(&state));
+    }
+
+    #[test]
+    fn test_is_paused_when_true() {
+        let state = Arc::new(Mutex::new(crate::ipc::ControlState {
+            paused: true,
+            started_at: 0,
+            last_capture_at: None,
+            last_error: None,
+            db_path: String::new(),
+            image_dir: String::new(),
+        }));
+        assert!(is_paused(&state));
+    }
+
+    #[test]
+    fn test_mark_capture_success_clears_error() {
+        let state = Arc::new(Mutex::new(crate::ipc::ControlState {
+            paused: false,
+            started_at: 0,
+            last_capture_at: None,
+            last_error: Some("Previous error".to_string()),
+            db_path: String::new(),
+            image_dir: String::new(),
+        }));
+
+        mark_capture_success(&state);
+
+        let guard = state.lock().unwrap();
+        assert!(guard.last_error.is_none());
+        assert!(guard.last_capture_at.is_some());
+    }
+
+    #[test]
+    fn test_set_last_error_updates_state() {
+        let state = Arc::new(Mutex::new(crate::ipc::ControlState {
+            paused: false,
+            started_at: 0,
+            last_capture_at: None,
+            last_error: None,
+            db_path: String::new(),
+            image_dir: String::new(),
+        }));
+
+        set_last_error(&state, "Test error message".to_string());
+
+        let guard = state.lock().unwrap();
+        assert_eq!(guard.last_error, Some("Test error message".to_string()));
+    }
+
+    #[test]
+    fn test_export_image_if_enabled_disabled() {
+        let state = Arc::new(Mutex::new(crate::ipc::ControlState {
+            paused: false,
+            started_at: 0,
+            last_capture_at: None,
+            last_error: None,
+            db_path: String::new(),
+            image_dir: String::new(),
+        }));
+
+        let result = export_image_if_enabled(&[1, 2, 3], 12345, false, std::path::Path::new("/tmp"), &state);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_export_image_if_enabled_invalid_path() {
+        let state = Arc::new(Mutex::new(crate::ipc::ControlState {
+            paused: false,
+            started_at: 0,
+            last_capture_at: None,
+            last_error: None,
+            db_path: String::new(),
+            image_dir: String::new(),
+        }));
+
+        let result = export_image_if_enabled(
+            &[1, 2, 3],
+            12345,
+            true,
+            std::path::Path::new("/nonexistent/invalid/path"),
+            &state,
+        );
+        assert!(result.is_none());
+        let guard = state.lock().unwrap();
+        assert!(guard.last_error.is_some());
+    }
+
+    #[test]
+    fn test_update_control_state_success() {
+        let state = Arc::new(Mutex::new(crate::ipc::ControlState {
+            paused: false,
+            started_at: 0,
+            last_capture_at: None,
+            last_error: None,
+            db_path: String::new(),
+            image_dir: String::new(),
+        }));
+
+        update_control_state(&state, |guard| {
+            guard.paused = true;
+        });
+
+        let guard = state.lock().unwrap();
+        assert!(guard.paused);
+    }
+}

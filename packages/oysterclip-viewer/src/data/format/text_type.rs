@@ -53,3 +53,58 @@ impl TextType {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_label_password() {
+        assert_eq!(TextType::Password.label(), "Pass");
+    }
+
+    #[test]
+    fn test_label_link() {
+        assert_eq!(TextType::Link.label(), "Link");
+    }
+
+    #[test]
+    fn test_label_json() {
+        assert_eq!(TextType::Json.label(), "JSON");
+    }
+
+    #[test]
+    fn test_label_path() {
+        assert_eq!(TextType::Path.label(), "Path");
+    }
+
+    #[test]
+    fn test_label_text() {
+        assert_eq!(TextType::Text.label(), "Text");
+    }
+
+    #[test]
+    fn test_icon_password() {
+        assert_eq!(TextType::Password.icon(), "lock");
+    }
+
+    #[test]
+    fn test_icon_link() {
+        assert_eq!(TextType::Link.icon(), "link");
+    }
+
+    #[test]
+    fn test_icon_json() {
+        assert_eq!(TextType::Json.icon(), "braces");
+    }
+
+    #[test]
+    fn test_icon_path() {
+        assert_eq!(TextType::Path.icon(), "folder");
+    }
+
+    #[test]
+    fn test_icon_text() {
+        assert_eq!(TextType::Text.icon(), "file-text");
+    }
+}

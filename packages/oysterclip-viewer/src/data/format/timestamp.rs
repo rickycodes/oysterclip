@@ -43,3 +43,61 @@ pub fn format_timestamp(timestamp: u64) -> String {
         timestamp.to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_relative_timestamp_just_now() {
+        let now = Utc::now().timestamp() as u64;
+        let result = format_relative_timestamp(now);
+        assert_eq!(result, "just now");
+    }
+
+    #[test]
+    fn test_format_relative_timestamp_minutes_ago() {
+        let now = Utc::now().timestamp() as u64;
+        let five_min_ago = now - 300;
+        let result = format_relative_timestamp(five_min_ago);
+        assert!(result.contains("m ago"));
+    }
+
+    #[test]
+    fn test_format_relative_timestamp_hours_ago() {
+        let now = Utc::now().timestamp() as u64;
+        let two_hours_ago = now - 7200;
+        let result = format_relative_timestamp(two_hours_ago);
+        assert!(result.contains("h ago"));
+    }
+
+    #[test]
+    fn test_format_relative_timestamp_days_ago() {
+        let now = Utc::now().timestamp() as u64;
+        let three_days_ago = now - (3 * 86400);
+        let result = format_relative_timestamp(three_days_ago);
+        assert!(result.contains("d ago"));
+    }
+
+    #[test]
+    fn test_format_relative_timestamp_weeks_ago() {
+        let now = Utc::now().timestamp() as u64;
+        let two_weeks_ago = now - (14 * 86400);
+        let result = format_relative_timestamp(two_weeks_ago);
+        assert!(result.contains("w ago"));
+    }
+
+    #[test]
+    fn test_format_timestamp_valid() {
+        let now = Utc::now().timestamp() as u64;
+        let result = format_timestamp(now);
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn test_format_timestamp_invalid_zero_returns_fallback() {
+        let result = format_timestamp(0);
+        // Zero is a valid but very old timestamp (1970-01-01), should have formatted date
+        assert!(!result.is_empty());
+    }
+}

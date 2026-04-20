@@ -27,3 +27,18 @@ pub(crate) use common::{
     INSERT_IMAGE_ENTRY as INSERT_IMAGE_ENTRY_SQL, INSERT_TEXT_ENTRY as INSERT_TEXT_ENTRY_SQL,
     SELECT_EXISTING_TEXT_ENTRY as SELECT_EXISTING_TEXT_ENTRY_SQL,
 };
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_interval_ms_positive() {
+        assert!(INTERVAL_MS > 0);
+    }
+
+    #[test]
+    fn test_max_history_entries_positive() {
+        assert!(MAX_HISTORY_ENTRIES > 0);
+    }
+}

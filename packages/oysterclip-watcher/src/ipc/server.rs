@@ -172,3 +172,104 @@ pub(crate) fn control_socket_path(db_path: &Path) -> io::Result<PathBuf> {
 
     Ok(parent.join(SOCKET_FILE.as_str()))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_control_state_initialization() {
+        let db_path = Path::new("/tmp/test.db");
+        let image_dir = Path::new("/tmp/images");
+        let started_at = 123456;
+
+        let state = new_control_state(db_path, image_dir, started_at);
+        let guard = state.lock().unwrap();
+
+        assert!(!guard.paused);
+        assert_eq!(guard.started_at, 123456);
+        assert!(guard.last_capture_at.is_none());
+        assert!(guard.last_error.is_none());
+    }
+
+    #[test]
+    fn test_control_socket_path_absolute() {
+        let db_path = Path::new("/home/user/.oysterclip.db");
+        let result = control_socket_path(db_path);
+
+        assert!(result.is_ok());
+        let socket_path = result.unwrap();
+        assert!(socket_path.to_string_lossy().contains("home/user"));
+        assert!(socket_path.to_string_lossy().contains(".oysterclip.sock"));
+    }
+
+    #[test]
+    fn test_control_socket_path_relative() {
+        let db_path = Path::new(".oysterclip.db");
+        let result = control_socket_path(db_path);
+
+        assert!(result.is_ok());
+        let socket_path = result.unwrap();
+        assert!(socket_path.to_string_lossy().contains(".oysterclip.sock"));
+    }
+
+    #[test]
+    fn test_control_socket_path_nested() {
+        let db_path = Path::new("/some/deeply/nested/path/.oysterclip.db");
+        let result = control_socket_path(db_path);
+
+        assert!(result.is_ok());
+        let socket_path = result.unwrap();
+        assert!(socket_path.to_string_lossy().contains("deeply"));
+        assert!(socket_path.to_string_lossy().ends_with(".oysterclip.sock"));
+    }
+
+    #[test]
+    fn test_build_response_success() {
+        let state = ControlState {
+            paused: false,
+            started_at: 100,
+            last_capture_at: Some(200),
+            last_error: None,
+            db_path: "/tmp/db".to_string(),
+            image_dir: "/tmp/images".to_string(),
+        };
+
+        let response = build_response(&state, true, "test message");
+
+        assert!(response.ok);
+        assert_eq!(response.message, "test message");
+        assert!(!response.paused);
+        assert_eq!(response.started_at, 100);
+        assert!(response.last_error.is_none());
+    }
+
+    #[test]
+    fn test_build_response_failure() {
+        let state = ControlState {
+            paused: true,
+            started_at: 100,
+            last_capture_at: None,
+            last_error: Some("error message".to_string()),
+            db_path: "/tmp/db".to_string(),
+            image_dir: "/tmp/images".to_string(),
+        };
+
+        let response = build_response(&state, false, "failure");
+
+        assert!(!response.ok);
+        assert_eq!(response.message, "failure");
+        assert!(response.paused);
+        assert_eq!(response.last_error, Some("error message".to_string()));
+    }
+
+    #[test]
+    fn test_control_socket_guard_path() {
+        let guard = ControlSocketGuard {
+            socket_path: PathBuf::from("/tmp/test.sock"),
+        };
+        
+        // Guard stores path correctly
+        assert_eq!(guard.socket_path, PathBuf::from("/tmp/test.sock"));
+    }
+}
