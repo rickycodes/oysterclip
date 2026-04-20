@@ -89,4 +89,78 @@ mod tests {
             TextSegment::Url("www.rust-lang.org".to_string())
         );
     }
+
+    #[test]
+    fn test_extract_single_url_no_urls() {
+        let text = "Just plain text";
+        let url = extract_single_url(text);
+        assert_eq!(url, None);
+    }
+
+    #[test]
+    fn test_extract_single_url_multiple_urls() {
+        let text = "https://first.com and https://second.com";
+        let url = extract_single_url(text);
+        assert_eq!(url, None);
+    }
+
+    #[test]
+    fn test_split_text_no_urls() {
+        let text = "Just plain text with no URLs";
+        let segments = split_text_with_urls(text);
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0], TextSegment::Plain(text.to_string()));
+    }
+
+    #[test]
+    fn test_split_text_url_at_start() {
+        let text = "https://example.com is great";
+        let segments = split_text_with_urls(text);
+        assert_eq!(segments.len(), 2);
+        assert_eq!(
+            segments[0],
+            TextSegment::Url("https://example.com".to_string())
+        );
+        assert_eq!(segments[1], TextSegment::Plain(" is great".to_string()));
+    }
+
+    #[test]
+    fn test_split_text_url_at_end() {
+        let text = "Check out https://example.com";
+        let segments = split_text_with_urls(text);
+        assert_eq!(segments.len(), 2);
+        assert_eq!(segments[0], TextSegment::Plain("Check out ".to_string()));
+        assert_eq!(
+            segments[1],
+            TextSegment::Url("https://example.com".to_string())
+        );
+    }
+
+    #[test]
+    fn test_split_text_consecutive_urls() {
+        let text = "https://first.com https://second.com";
+        let segments = split_text_with_urls(text);
+        assert!(segments.len() >= 2);
+    }
+
+    #[test]
+    fn test_extract_single_url_with_trailing_whitespace() {
+        let text = "  https://example.com  ";
+        let url = extract_single_url(text);
+        assert_eq!(url, Some("https://example.com"));
+    }
+
+    #[test]
+    fn test_split_text_preserves_spacing() {
+        let text = "Visit  https://example.com  today";
+        let segments = split_text_with_urls(text);
+        let joined = segments
+            .iter()
+            .map(|s| match s {
+                TextSegment::Plain(p) => p.clone(),
+                TextSegment::Url(u) => u.clone(),
+            })
+            .collect::<String>();
+        assert!(joined.contains("https://example.com"));
+    }
 }
