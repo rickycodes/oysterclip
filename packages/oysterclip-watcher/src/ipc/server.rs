@@ -268,7 +268,7 @@ mod tests {
         let guard = ControlSocketGuard {
             socket_path: PathBuf::from("/tmp/test.sock"),
         };
-        
+
         // Guard stores path correctly
         assert_eq!(guard.socket_path, PathBuf::from("/tmp/test.sock"));
     }

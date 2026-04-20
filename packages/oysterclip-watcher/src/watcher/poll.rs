@@ -248,7 +248,13 @@ mod tests {
             image_dir: String::new(),
         }));
 
-        let result = export_image_if_enabled(&[1, 2, 3], 12345, false, std::path::Path::new("/tmp"), &state);
+        let result = export_image_if_enabled(
+            &[1, 2, 3],
+            12345,
+            false,
+            std::path::Path::new("/tmp"),
+            &state,
+        );
         assert!(result.is_none());
     }
 

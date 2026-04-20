@@ -113,8 +113,7 @@ mod tests {
 
     #[test]
     fn watcher_config_clamps_max_history_entries() {
-        let config: RawWatcherConfig =
-            toml::from_str("max_history_entries = 9999").unwrap();
+        let config: RawWatcherConfig = toml::from_str("max_history_entries = 9999").unwrap();
         let config =
             WatcherConfig::from_raw(config, Path::new("/tmp/config-dir"), Path::new(IMAGE_DIR));
 

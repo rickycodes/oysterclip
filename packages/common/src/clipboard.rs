@@ -21,20 +21,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_copy_to_clipboard_success_message() {
-        // Note: This test may fail in headless environments without X11/Wayland
-        // It tests the success message format at minimum
-        match copy_to_clipboard("test".to_string()) {
+    fn test_copy_to_clipboard_handles_unicode() {
+        let unicode_text = "Hello 世界 🦀 Ñoño".to_string();
+        let result = copy_to_clipboard(unicode_text);
+        // Just verify error/success is handled gracefully
+        match result {
             Ok(msg) => assert_eq!(msg, "Copied to clipboard"),
-            Err(_) => {
-                // Accept failure in headless environment - we're just testing the API
-            }
+            Err(err) => assert!(err.contains("Copy failed")),
         }
     }
 
     #[test]
-    fn test_copy_to_clipboard_returns_result() {
-        let result = copy_to_clipboard("test".to_string());
-        assert!(result.is_ok() || result.is_err());
+    fn test_copy_to_clipboard_handles_multiline() {
+        let multiline = "Line 1\nLine 2\nLine 3".to_string();
+        let result = copy_to_clipboard(multiline);
+        match result {
+            Ok(msg) => assert_eq!(msg, "Copied to clipboard"),
+            Err(err) => assert!(err.contains("Copy failed")),
+        }
     }
 }

@@ -143,18 +143,12 @@ mod tests {
 
     #[test]
     fn test_classify_multiline_with_newline() {
-        assert_eq!(
-            TextKind::classify("line1\nline2"),
-            TextKind::Multiline
-        );
+        assert_eq!(TextKind::classify("line1\nline2"), TextKind::Multiline);
     }
 
     #[test]
     fn test_classify_multiline_with_carriage_return() {
-        assert_eq!(
-            TextKind::classify("line1\rline2"),
-            TextKind::Multiline
-        );
+        assert_eq!(TextKind::classify("line1\rline2"), TextKind::Multiline);
     }
 
     #[test]
@@ -171,13 +165,19 @@ mod tests {
 
     #[test]
     fn test_classify_path_windows_backslash() {
-        assert_eq!(TextKind::classify("C:\\Users\\Admin\\file.txt"), TextKind::Path);
+        assert_eq!(
+            TextKind::classify("C:\\Users\\Admin\\file.txt"),
+            TextKind::Path
+        );
         assert_eq!(TextKind::classify("D:\\data\\"), TextKind::Path);
     }
 
     #[test]
     fn test_classify_path_windows_forward_slash() {
-        assert_eq!(TextKind::classify("C:/Users/Admin/file.txt"), TextKind::Path);
+        assert_eq!(
+            TextKind::classify("C:/Users/Admin/file.txt"),
+            TextKind::Path
+        );
         assert_eq!(TextKind::classify("E:/projects/rust"), TextKind::Path);
     }
 
@@ -214,10 +214,7 @@ mod tests {
     #[test]
     fn test_classify_priority_json_over_plain() {
         // JSON object takes priority
-        assert_eq!(
-            TextKind::classify(r#"{"data": 123}"#),
-            TextKind::Json
-        );
+        assert_eq!(TextKind::classify(r#"{"data": 123}"#), TextKind::Json);
     }
 
     #[test]
@@ -245,6 +242,10 @@ mod tests {
         let mut sorted = strs.clone();
         sorted.sort();
         sorted.dedup();
-        assert_eq!(sorted.len(), 7, "All TextKind variants should have unique strings");
+        assert_eq!(
+            sorted.len(),
+            7,
+            "All TextKind variants should have unique strings"
+        );
     }
 }

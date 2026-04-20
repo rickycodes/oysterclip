@@ -96,9 +96,7 @@ mod tests {
 
     #[test]
     fn test_is_image_data_uri_with_whitespace() {
-        assert!(is_image_data_uri(
-            "  data:image/png;base64,iVBORw0KGgo  "
-        ));
+        assert!(is_image_data_uri("  data:image/png;base64,iVBORw0KGgo  "));
         assert!(is_image_data_uri("\ndata:image/jpeg;base64,/9j/4AAQ\n"));
     }
 

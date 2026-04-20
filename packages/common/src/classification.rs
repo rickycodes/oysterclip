@@ -257,4 +257,78 @@ mod tests {
         assert!(is_password(&password, Some(PASSWORD_LEN), 5));
         assert!(is_password(&password, Some(PASSWORD_LEN), 255));
     }
+
+    #[test]
+    fn test_mask_password_length() {
+        let masked = mask_password();
+        assert_eq!(masked, "••••••••");
+    }
+
+    #[test]
+    fn test_extract_urls_empty_string() {
+        let urls = extract_urls("");
+        assert_eq!(urls.len(), 0);
+    }
+
+    #[test]
+    fn test_url_with_trailing_bracket() {
+        let text = "See https://example.com]";
+        let urls = extract_urls(text);
+        assert_eq!(urls.len(), 1);
+        assert_eq!(&text[urls[0].0..urls[0].1], "https://example.com");
+    }
+
+    #[test]
+    fn test_url_with_trailing_semicolon() {
+        let text = "Link: https://example.com;";
+        let urls = extract_urls(text);
+        assert_eq!(urls.len(), 1);
+        assert_eq!(&text[urls[0].0..urls[0].1], "https://example.com");
+    }
+
+    #[test]
+    fn test_url_with_trailing_quote() {
+        let text = "Check https://example.com'";
+        let urls = extract_urls(text);
+        assert_eq!(urls.len(), 1);
+        assert_eq!(&text[urls[0].0..urls[0].1], "https://example.com");
+    }
+
+    #[test]
+    fn test_overlapping_urls_not_duplicated() {
+        // www.example.com overlaps with https://www.example.com
+        let text = "https://www.example.com";
+        let urls = extract_urls(text);
+        assert_eq!(urls.len(), 1);
+    }
+
+    #[test]
+    fn test_is_password_with_tab() {
+        let password = "MyStr0ng!P@ssw0rdP@ss1234\t";
+        assert!(!is_password(&password, Some(PASSWORD_LEN + 1), 0));
+    }
+
+    #[test]
+    fn test_is_password_empty_string() {
+        // Empty string without length check passes structural checks (no spaces/newlines/urls)
+        // but zxcvbn may score it poorly
+        let result = is_password("", None, 0);
+        // Just verify it returns a boolean without panicking
+        let _ = result;
+    }
+
+    #[test]
+    fn test_is_password_empty_string_with_length_check() {
+        assert!(!is_password("", Some(PASSWORD_LEN), 0));
+    }
+
+    #[test]
+    fn test_extract_urls_sorted_by_position() {
+        let text = "First www.a.com then https://b.com last www.c.com";
+        let urls = extract_urls(text);
+        assert_eq!(urls.len(), 3);
+        // Verify sorted by start position
+        assert!(urls[0].0 < urls[1].0);
+        assert!(urls[1].0 < urls[2].0);
+    }
 }

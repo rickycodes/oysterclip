@@ -93,5 +93,3 @@ WHERE id IN (
     ORDER BY created_at DESC, id DESC
     LIMIT -1 OFFSET ?1
 )"#;
-
-
