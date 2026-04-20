@@ -48,3 +48,42 @@ CREATE TABLE IF NOT EXISTS entries (
     content_hash TEXT
 )
 "#;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_storage_config_with_custom_path() {
+        let custom_path = PathBuf::from("/tmp/test.db");
+        let config = StorageConfig::with_db_path(custom_path.clone()).unwrap();
+        assert_eq!(config.db_path, custom_path);
+    }
+
+    #[test]
+    fn test_storage_config_has_paths() {
+        let config = StorageConfig::with_db_path(PathBuf::from("/tmp/test.db")).unwrap();
+        assert!(!config.paths.base_dir.as_os_str().is_empty());
+    }
+
+    #[test]
+    fn test_create_entries_table_contains_schema() {
+        assert!(CREATE_ENTRIES_TABLE.contains("CREATE TABLE"));
+        assert!(CREATE_ENTRIES_TABLE.contains("entries"));
+        assert!(CREATE_ENTRIES_TABLE.contains("id INTEGER PRIMARY KEY"));
+        assert!(CREATE_ENTRIES_TABLE.contains("created_at INTEGER"));
+        assert!(CREATE_ENTRIES_TABLE.contains("entry_type TEXT"));
+        assert!(CREATE_ENTRIES_TABLE.contains("CHECK (entry_type IN ('text', 'image'))"));
+    }
+
+    #[test]
+    fn test_create_entries_table_has_all_columns() {
+        assert!(CREATE_ENTRIES_TABLE.contains("text_kind"));
+        assert!(CREATE_ENTRIES_TABLE.contains("text_ciphertext"));
+        assert!(CREATE_ENTRIES_TABLE.contains("text_nonce"));
+        assert!(CREATE_ENTRIES_TABLE.contains("image_path"));
+        assert!(CREATE_ENTRIES_TABLE.contains("image_png"));
+        assert!(CREATE_ENTRIES_TABLE.contains("image_hash"));
+        assert!(CREATE_ENTRIES_TABLE.contains("content_hash"));
+    }
+}

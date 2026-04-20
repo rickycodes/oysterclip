@@ -106,3 +106,206 @@ impl From<StorageEntry> for CommonEntry {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_entry_type_text_as_str() {
+        assert_eq!(EntryType::Text.as_str(), "text");
+    }
+
+    #[test]
+    fn test_entry_type_image_as_str() {
+        assert_eq!(EntryType::Image.as_str(), "image");
+    }
+
+    #[test]
+    fn test_entry_type_parse_text() {
+        assert_eq!(EntryType::parse("text"), Some(EntryType::Text));
+    }
+
+    #[test]
+    fn test_entry_type_parse_image() {
+        assert_eq!(EntryType::parse("image"), Some(EntryType::Image));
+    }
+
+    #[test]
+    fn test_entry_type_parse_invalid() {
+        assert_eq!(EntryType::parse("invalid"), None);
+        assert_eq!(EntryType::parse(""), None);
+        assert_eq!(EntryType::parse("TEXT"), None);
+    }
+
+    #[test]
+    fn test_common_entry_text_id() {
+        let entry = CommonEntry::Text {
+            id: 42,
+            timestamp: 1000,
+            content: "test".to_string(),
+            kind: None,
+        };
+        assert_eq!(entry.id(), 42);
+    }
+
+    #[test]
+    fn test_common_entry_image_id() {
+        let entry = CommonEntry::Image {
+            id: 99,
+            timestamp: 2000,
+            path: None,
+            hash: 123,
+        };
+        assert_eq!(entry.id(), 99);
+    }
+
+    #[test]
+    fn test_common_entry_text_timestamp() {
+        let entry = CommonEntry::Text {
+            id: 1,
+            timestamp: 1234567890,
+            content: "test".to_string(),
+            kind: Some("url".to_string()),
+        };
+        assert_eq!(entry.timestamp(), 1234567890);
+    }
+
+    #[test]
+    fn test_common_entry_image_timestamp() {
+        let entry = CommonEntry::Image {
+            id: 1,
+            timestamp: 9876543210,
+            path: Some("/path/to/image.png".to_string()),
+            hash: 555,
+        };
+        assert_eq!(entry.timestamp(), 9876543210);
+    }
+
+    #[test]
+    fn test_common_entry_text_entry_type() {
+        let entry = CommonEntry::Text {
+            id: 1,
+            timestamp: 1000,
+            content: "test".to_string(),
+            kind: None,
+        };
+        assert_eq!(entry.entry_type(), EntryType::Text);
+    }
+
+    #[test]
+    fn test_common_entry_image_entry_type() {
+        let entry = CommonEntry::Image {
+            id: 1,
+            timestamp: 1000,
+            path: None,
+            hash: 123,
+        };
+        assert_eq!(entry.entry_type(), EntryType::Image);
+    }
+
+    #[test]
+    fn test_storage_entry_to_common_entry_text() {
+        let storage = StorageEntry {
+            id: 5,
+            created_at: 1000,
+            entry_type: EntryType::Text,
+            text_kind: Some("url".to_string()),
+            text_ciphertext: Some(vec![1, 2, 3]),
+            text_nonce: Some(vec![4, 5, 6]),
+            image_path: None,
+            image_png: None,
+            image_hash: None,
+            content_hash: Some("hash123".to_string()),
+        };
+
+        let common = CommonEntry::from(storage);
+        match common {
+            CommonEntry::Text {
+                id,
+                timestamp,
+                kind,
+                ..
+            } => {
+                assert_eq!(id, 5);
+                assert_eq!(timestamp, 1000);
+                assert_eq!(kind, Some("url".to_string()));
+            }
+            _ => panic!("Expected CommonEntry::Text"),
+        }
+    }
+
+    #[test]
+    fn test_storage_entry_to_common_entry_image_with_hash() {
+        let storage = StorageEntry {
+            id: 10,
+            created_at: 2000,
+            entry_type: EntryType::Image,
+            text_kind: None,
+            text_ciphertext: None,
+            text_nonce: None,
+            image_path: Some("/path/img.png".to_string()),
+            image_png: None,
+            image_hash: Some(999),
+            content_hash: None,
+        };
+
+        let common = CommonEntry::from(storage);
+        match common {
+            CommonEntry::Image {
+                id,
+                timestamp,
+                path,
+                hash,
+            } => {
+                assert_eq!(id, 10);
+                assert_eq!(timestamp, 2000);
+                assert_eq!(path, Some("/path/img.png".to_string()));
+                assert_eq!(hash, 999);
+            }
+            _ => panic!("Expected CommonEntry::Image"),
+        }
+    }
+
+    #[test]
+    fn test_storage_entry_to_common_entry_image_no_hash() {
+        let storage = StorageEntry {
+            id: 11,
+            created_at: 2000,
+            entry_type: EntryType::Image,
+            text_kind: None,
+            text_ciphertext: None,
+            text_nonce: None,
+            image_path: None,
+            image_png: None,
+            image_hash: None,
+            content_hash: None,
+        };
+
+        let common = CommonEntry::from(storage);
+        match common {
+            CommonEntry::Image { hash, .. } => {
+                assert_eq!(hash, 0); // Default when None
+            }
+            _ => panic!("Expected CommonEntry::Image"),
+        }
+    }
+
+    #[test]
+    fn test_entry_type_serde_text() {
+        let entry_type = EntryType::Text;
+        let json = serde_json::to_string(&entry_type).unwrap();
+        assert_eq!(json, "\"text\"");
+        let deserialized: EntryType = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized, EntryType::Text);
+    }
+
+    #[test]
+    fn test_entry_type_serde_image() {
+        let entry_type = EntryType::Image;
+        let json = serde_json::to_string(&entry_type).unwrap();
+        assert_eq!(json, "\"image\"");
+        let deserialized: EntryType = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized, EntryType::Image);
+    }
+}

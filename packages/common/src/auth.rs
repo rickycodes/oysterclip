@@ -216,4 +216,36 @@ mod tests {
         };
         assert!(!result.success);
     }
+
+    #[test]
+    fn test_auth_cache_new_with_different_durations() {
+        let cache_short = AuthCache::new(1);
+        let cache_long = AuthCache::new(60);
+        assert!(!cache_short.is_authenticated());
+        assert!(!cache_long.is_authenticated());
+    }
+
+    #[test]
+    fn test_auth_cache_authenticated_field_updates() {
+        let mut cache = AuthCache::new(5);
+        assert_eq!(cache.authenticated, false);
+        cache.set_authenticated(true);
+        assert_eq!(cache.authenticated, true);
+        cache.set_authenticated(false);
+        assert_eq!(cache.authenticated, false);
+    }
+
+    #[test]
+    fn test_auth_result_messages() {
+        let success = AuthResult {
+            success: true,
+            message: "Authenticated".to_string(),
+        };
+        let failure = AuthResult {
+            success: false,
+            message: "Access denied".to_string(),
+        };
+        assert_eq!(success.message, "Authenticated");
+        assert_eq!(failure.message, "Access denied");
+    }
 }
