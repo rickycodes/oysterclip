@@ -142,12 +142,8 @@ mod tests {
     }
 
     #[test]
-    fn test_classify_multiline_with_newline() {
+    fn test_classify_multiline() {
         assert_eq!(TextKind::classify("line1\nline2"), TextKind::Multiline);
-    }
-
-    #[test]
-    fn test_classify_multiline_with_carriage_return() {
         assert_eq!(TextKind::classify("line1\rline2"), TextKind::Multiline);
     }
 
@@ -190,14 +186,7 @@ mod tests {
     fn test_classify_plain_text() {
         assert_eq!(TextKind::classify("Hello, World!"), TextKind::Plain);
         assert_eq!(TextKind::classify("Some regular text"), TextKind::Plain);
-        assert_eq!(
-            TextKind::classify("This is not a URL or path or JSON"),
-            TextKind::Plain
-        );
-    }
-
-    #[test]
-    fn test_classify_plain_single_path_component() {
+        assert_eq!(TextKind::classify("This is not a URL or path or JSON"), TextKind::Plain);
         assert_eq!(TextKind::classify("filename.txt"), TextKind::Plain);
         assert_eq!(TextKind::classify("document"), TextKind::Plain);
     }
