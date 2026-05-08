@@ -5,6 +5,7 @@ mod state;
 pub use poll::poll_clipboard;
 pub use signal::setup_signal_handler;
 
+use crate::config::settings::WatcherConfig;
 use crate::history::HistoryStore;
 use crate::ipc::SharedControlState;
 
@@ -16,15 +17,8 @@ use crate::ipc::SharedControlState;
 pub fn start_watching(
     history_store: HistoryStore,
     control_state: SharedControlState,
-    save_images_to_disk: bool,
-    image_export_dir: &std::path::Path,
+    config: &WatcherConfig,
 ) -> std::io::Result<()> {
     let shutdown = setup_signal_handler()?;
-    poll_clipboard(
-        history_store,
-        control_state,
-        save_images_to_disk,
-        image_export_dir,
-        &shutdown,
-    )
+    poll_clipboard(history_store, control_state, config, &shutdown)
 }

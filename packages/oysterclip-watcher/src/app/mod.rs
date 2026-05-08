@@ -40,13 +40,7 @@ pub fn run(cli: Cli) -> Result<()> {
     let _control_guard = start_control_server(control_state.clone(), &app_paths.db_path)
         .map_err(|err| AppError::ControlSocketFailed(err.to_string()))?;
 
-    start_watching(
-        history_store,
-        control_state,
-        config.save_images_to_disk,
-        &config.image_export_dir,
-    )
-    .map_err(AppError::IoError)?;
+    start_watching(history_store, control_state, &config).map_err(AppError::IoError)?;
 
     Ok(())
 }
@@ -90,13 +84,7 @@ fn handle_command(command: Commands, app_paths: &crate::config::paths::AppPaths)
             let _control_guard = start_control_server(control_state.clone(), &app_paths.db_path)
                 .map_err(|err| AppError::ControlSocketFailed(err.to_string()))?;
 
-            start_watching(
-                history_store,
-                control_state,
-                config.save_images_to_disk,
-                &config.image_export_dir,
-            )
-            .map_err(AppError::IoError)?;
+            start_watching(history_store, control_state, &config).map_err(AppError::IoError)?;
 
             Ok(())
         }

@@ -6,6 +6,7 @@ A lightweight Rust daemon that monitors your system clipboard and persists uniqu
 - Clipboard polling on fixed 500ms interval
 - Text encryption at rest (XChaCha20Poly1305)
 - Image storage as PNG blobs in SQLite
+- Configurable storage exclusions for selected classifications
 - Automatic text deduplication by content hash
 - Configurable max-entry retention (default 500)
 - Unix socket control API (pause/resume/status)
@@ -19,6 +20,11 @@ A lightweight Rust daemon that monitors your system clipboard and persists uniqu
 - Text entries are deduplicated by content before being appended and encrypted before being stored.
 - Image entries are hashed and stored as PNG blobs in SQLite.
 - Optional image export to disk is controlled by `.clipboard-watcher.toml` in the app-data directory.
+- Storage policy can exclude certain classifications from the database, for example:
+  ```toml
+  [storage]
+  exclude = ["image", "password"]
+  ```
 
 ## Storage Layout
 
@@ -27,7 +33,7 @@ All files stored in canonical per-user app-data directory for `clipboard-manager
 | File | Purpose |
 |------|---------|
 | `.clipboard_history.db` | SQLite history database (text encrypted, images as PNG blobs) |
-| `.clipboard-watcher.toml` | Config file (retention settings, image export options) |
+| `.clipboard-watcher.toml` | Config file (retention, image export, storage exclusions) |
 | `.clipboard-watcher.sock` | Unix socket for control commands (pause/resume/status) |
 | `clipboard_images/` | Optional PNG image export directory |
 

@@ -8,11 +8,13 @@ use crate::config::constants::{
     INTERVAL_MS, TEXT_CAPTURED, TEXT_EMPTY_SKIPPED, TEXT_IMAGE_DATA_URI_SKIPPED, TEXT_KIND_EMPTY,
     TEXT_KIND_IMAGE_DATA_URI,
 };
+use crate::config::settings::WatcherConfig;
 use crate::data::entry::PasteEntry;
 use crate::data::image_store::{encode_png, save_png, simple_image_hash};
 use crate::data::text::detect_text_kind;
 use crate::history::{current_timestamp, HistoryStore};
 use crate::ipc::SharedControlState;
+use common::{classification::is_password, PASSWORD_LEN};
 
 use super::signal::should_shutdown;
 use super::state::ChangeDetectionState;
@@ -21,8 +23,7 @@ use super::state::ChangeDetectionState;
 pub fn poll_clipboard(
     history_store: HistoryStore,
     control_state: SharedControlState,
-    save_images_to_disk: bool,
-    image_export_dir: &std::path::Path,
+    config: &WatcherConfig,
     shutdown: &Arc<std::sync::atomic::AtomicBool>,
 ) -> std::io::Result<()> {
     let mut clipboard = Clipboard::new().expect(CLIPBOARD_NOT_AVAILABLE);
@@ -47,6 +48,13 @@ pub fn poll_clipboard(
                 } else if kind == TEXT_KIND_IMAGE_DATA_URI {
                     println!(
                         "{TEXT_IMAGE_DATA_URI_SKIPPED} {} chars for review",
+                        text.chars().count()
+                    );
+                } else if config.storage_exclusions.excludes_password()
+                    && is_password(&text, Some(PASSWORD_LEN), 3)
+                {
+                    println!(
+                        "(text:password) skipped by storage policy ({} chars)",
                         text.chars().count()
                     );
                 } else {
@@ -77,34 +85,41 @@ pub fn poll_clipboard(
             let hash = simple_image_hash(&bytes);
 
             if state.has_image_changed(hash) {
-                match encode_png(&bytes, img.width, img.height) {
-                    Ok(png_bytes) => {
-                        let exported_path = export_image_if_enabled(
-                            &png_bytes,
-                            hash,
-                            save_images_to_disk,
-                            image_export_dir,
-                            &control_state,
-                        );
+                if config.storage_exclusions.excludes_image() {
+                    println!("(image) skipped by storage policy");
+                } else {
+                    match encode_png(&bytes, img.width, img.height) {
+                        Ok(png_bytes) => {
+                            let exported_path = export_image_if_enabled(
+                                &png_bytes,
+                                hash,
+                                config.save_images_to_disk,
+                                &config.image_export_dir,
+                                &control_state,
+                            );
 
-                        match history_store.append_entry(&PasteEntry::Image {
-                            timestamp: current_timestamp(),
-                            png_bytes,
-                            path: exported_path,
-                            hash,
-                        }) {
-                            Ok(_) => mark_capture_success(&control_state),
-                            Err(err) => {
-                                eprintln!("{APPEND_IMAGE_HISTORY_FAILED}: {err}");
-                                set_last_error(
-                                    &control_state,
-                                    format!("{APPEND_IMAGE_HISTORY_FAILED}: {err}"),
-                                );
+                            match history_store.append_entry(&PasteEntry::Image {
+                                timestamp: current_timestamp(),
+                                png_bytes,
+                                path: exported_path,
+                                hash,
+                            }) {
+                                Ok(_) => mark_capture_success(&control_state),
+                                Err(err) => {
+                                    eprintln!("{APPEND_IMAGE_HISTORY_FAILED}: {err}");
+                                    set_last_error(
+                                        &control_state,
+                                        format!("{APPEND_IMAGE_HISTORY_FAILED}: {err}"),
+                                    );
+                                }
                             }
                         }
-                    }
-                    Err(err) => {
-                        set_last_error(&control_state, format!("Failed to encode image: {err}"));
+                        Err(err) => {
+                            set_last_error(
+                                &control_state,
+                                format!("Failed to encode image: {err}"),
+                            );
+                        }
                     }
                 }
             }

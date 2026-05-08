@@ -195,6 +195,34 @@ After the shared crate exists, add tests that exercise the full round-trip:
 
 **Status:** 🔄 Not started
 
+### 1.4 Configurable storage exclusions
+
+**Goal:** Let users opt out of storing specific clipboard classifications in the database.
+
+**Initial scope:**
+- Skip persisting `image` entries entirely
+- Skip persisting password-like text entries entirely
+- Keep capture logic and viewer classification behavior unchanged for allowed entries
+
+**Proposed config shape:**
+```toml
+[storage]
+exclude = ["image", "password"]
+```
+
+**Behavior:**
+1. Watcher classifies clipboard content as it does today.
+2. Before `append_entry`, it checks whether the entry type or text classification is excluded.
+3. Excluded entries are dropped before DB insert and are not exported to the image directory.
+4. The UI can still keep its current password masking and image rendering logic for entries that are stored.
+
+**Notes:**
+- This is a privacy-oriented storage policy, not a search/filter feature.
+- The exclusion list should be extensible so later values can cover other classifications without another config shape change.
+- If desired, this can be implemented as a watcher-only setting first, then surfaced in the viewer settings UI later.
+
+**Status:** ✅ COMPLETE - implemented as watcher storage exclusions in `config/settings.rs` and pre-insert checks in `watcher/poll.rs`
+
 ---
 
 ## Tier 2 — Bug Fixes & Correctness

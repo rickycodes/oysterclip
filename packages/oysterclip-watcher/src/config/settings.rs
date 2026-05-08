@@ -4,17 +4,34 @@ use std::path::{Path, PathBuf};
 
 use super::constants::MAX_HISTORY_ENTRIES;
 
+#[derive(Debug, Clone, Default)]
+pub(crate) struct StorageExclusions {
+    values: Vec<String>,
+}
+
 pub(crate) struct WatcherConfig {
     pub(crate) max_history_entries: usize,
     pub(crate) save_images_to_disk: bool,
     pub(crate) image_export_dir: PathBuf,
+    pub(crate) storage_exclusions: StorageExclusions,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 struct RawWatcherConfig {
+    #[serde(default)]
     max_history_entries: Option<usize>,
+    #[serde(default)]
     save_images_to_disk: Option<bool>,
+    #[serde(default)]
     image_export_dir: Option<String>,
+    #[serde(default)]
+    storage: RawStorageConfig,
+}
+
+#[derive(Deserialize, Default)]
+struct RawStorageConfig {
+    #[serde(default)]
+    exclude: Vec<String>,
 }
 
 pub(crate) fn load_config(config_path: &Path, default_image_dir: &Path) -> WatcherConfig {
@@ -53,6 +70,7 @@ impl WatcherConfig {
                     }
                 })
                 .unwrap_or_else(|| default_image_dir.to_path_buf()),
+            storage_exclusions: StorageExclusions::from_raw(raw.storage.exclude),
         }
     }
 
@@ -61,13 +79,41 @@ impl WatcherConfig {
             max_history_entries: MAX_HISTORY_ENTRIES,
             save_images_to_disk: false,
             image_export_dir: default_image_dir.to_path_buf(),
+            storage_exclusions: StorageExclusions::default(),
         }
+    }
+}
+
+impl StorageExclusions {
+    fn from_raw(values: Vec<String>) -> Self {
+        let mut normalized = Vec::new();
+
+        for value in values {
+            let value = value.trim().to_lowercase();
+            if !value.is_empty() && !normalized.iter().any(|existing| existing == &value) {
+                normalized.push(value);
+            }
+        }
+
+        Self { values: normalized }
+    }
+
+    pub(crate) fn excludes_image(&self) -> bool {
+        self.contains("image")
+    }
+
+    pub(crate) fn excludes_password(&self) -> bool {
+        self.contains("password")
+    }
+
+    fn contains(&self, value: &str) -> bool {
+        self.values.iter().any(|excluded| excluded == value)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{RawWatcherConfig, WatcherConfig};
+    use super::{RawStorageConfig, RawWatcherConfig, WatcherConfig};
     use crate::config::constants::MAX_HISTORY_ENTRIES;
     use common::IMAGE_DIR;
     use std::path::Path;
@@ -87,6 +133,7 @@ mod tests {
                 max_history_entries: None,
                 save_images_to_disk: None,
                 image_export_dir: None,
+                storage: RawStorageConfig::default(),
             },
             Path::new("/tmp/config-dir"),
             Path::new(IMAGE_DIR),
@@ -95,6 +142,8 @@ mod tests {
         assert_eq!(config.max_history_entries, MAX_HISTORY_ENTRIES);
         assert!(!config.save_images_to_disk);
         assert_eq!(config.image_export_dir, Path::new(IMAGE_DIR));
+        assert!(!config.storage_exclusions.excludes_image());
+        assert!(!config.storage_exclusions.excludes_password());
     }
 
     #[test]
@@ -169,5 +218,39 @@ mod tests {
             WatcherConfig::from_raw(config, Path::new("/tmp/config-dir"), Path::new(IMAGE_DIR));
 
         assert!(!config.save_images_to_disk);
+    }
+
+    #[test]
+    fn watcher_config_reads_storage_exclusions() {
+        let config: RawWatcherConfig =
+            toml::from_str("[storage]\nexclude = [\"image\", \"password\"]").unwrap();
+        let config =
+            WatcherConfig::from_raw(config, Path::new("/tmp/config-dir"), Path::new(IMAGE_DIR));
+
+        assert!(config.storage_exclusions.excludes_image());
+        assert!(config.storage_exclusions.excludes_password());
+    }
+
+    #[test]
+    fn watcher_config_normalizes_storage_exclusions() {
+        let config = WatcherConfig::from_raw(
+            RawWatcherConfig {
+                max_history_entries: None,
+                save_images_to_disk: None,
+                image_export_dir: None,
+                storage: RawStorageConfig {
+                    exclude: vec![
+                        " Image ".to_string(),
+                        "PASSWORD".to_string(),
+                        "".to_string(),
+                    ],
+                },
+            },
+            Path::new("/tmp/config-dir"),
+            Path::new(IMAGE_DIR),
+        );
+
+        assert!(config.storage_exclusions.excludes_image());
+        assert!(config.storage_exclusions.excludes_password());
     }
 }

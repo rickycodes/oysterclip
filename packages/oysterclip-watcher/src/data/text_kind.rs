@@ -186,7 +186,10 @@ mod tests {
     fn test_classify_plain_text() {
         assert_eq!(TextKind::classify("Hello, World!"), TextKind::Plain);
         assert_eq!(TextKind::classify("Some regular text"), TextKind::Plain);
-        assert_eq!(TextKind::classify("This is not a URL or path or JSON"), TextKind::Plain);
+        assert_eq!(
+            TextKind::classify("This is not a URL or path or JSON"),
+            TextKind::Plain
+        );
         assert_eq!(TextKind::classify("filename.txt"), TextKind::Plain);
         assert_eq!(TextKind::classify("document"), TextKind::Plain);
     }

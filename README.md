@@ -47,6 +47,7 @@ cargo build --release --workspace
 ✅ **Secure** — XChaCha20Poly1305 encryption at rest with OS keychain integration  
 ✅ **Lightweight** — Minimal resource usage with efficient polling  
 ✅ **Searchable** — Structured query syntax (type:image, kind:url, since:1h)  
+✅ **Privacy Controls** — Configurable storage exclusions for image/password classifications  
 ✅ **Multi-Interface** — Desktop UI, terminal interface, and headless daemon  
 ✅ **Cross-Platform** — Linux and macOS support  
 ✅ **Theme Support** — Auto-detecting dark/light themes  
@@ -61,6 +62,7 @@ A daemon that monitors your system clipboard and persists entries to SQLite with
 - Clipboard polling on 500ms interval
 - XChaCha20Poly1305 encryption at rest
 - Image storage as PNG blobs
+- Configurable storage exclusions for selected classifications
 - Automatic text deduplication
 - Unix socket control API (pause/resume/status)
 - OS keychain integration for secure key storage
@@ -116,7 +118,7 @@ All files live in the canonical per-user app-data directory (`~/.config/oystercl
 | File | Purpose |
 |------|---------|
 | `.oysterclip.db` | SQLite history (encrypted text, image blobs) |
-| `.oysterclip.toml` | Watcher config (retention, image export) |
+| `.oysterclip.toml` | Watcher config (retention, image export, storage exclusions) |
 | `.oysterclip.sock` | Unix socket for control commands |
 | `clipboard_images/` | Optional PNG image export directory |
 
@@ -137,7 +139,7 @@ Viewer (UI) ← Browse, search, copy
 
 ## Roadmap
 
-See [`ROADMAP.md`](ROADMAP.md) for planned features and architecture improvements.
+See [`ROADMAP.md`](ROADMAP.md) for remaining future work and architecture improvements.
 
 ## Development
 
