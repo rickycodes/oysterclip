@@ -604,6 +604,11 @@ button:disabled {
   background: var(--surface-hover);
 }
 
+.link-preview-card-loading,
+.link-preview-card-failed {
+  opacity: 0.94;
+}
+
 .link-preview-copy {
   min-width: 0;
   display: grid;
@@ -655,6 +660,16 @@ button:disabled {
   border: 1px solid var(--border);
   object-fit: cover;
   background: var(--bg-soft);
+}
+
+.detail-url-block {
+  display: grid;
+  gap: 12px;
+}
+
+.detail-link-previews {
+  display: grid;
+  gap: 12px;
 }
 
 .detail-text.detail-password {

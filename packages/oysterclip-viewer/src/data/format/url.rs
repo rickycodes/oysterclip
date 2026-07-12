@@ -1,11 +1,24 @@
 // Re-export from common for backward compatibility, but now also include extract_urls
 pub use common::classification::{extract_urls, has_urls};
 
+use std::collections::HashSet;
+
 // Use the same logic as common for consistency
 #[derive(Clone, Debug, PartialEq)]
 pub enum TextSegment {
     Plain(String),
     Url(String),
+}
+
+pub fn normalize_url(url: &str) -> Option<String> {
+    let trimmed = url.trim();
+    if trimmed.starts_with("http://") || trimmed.starts_with("https://") {
+        Some(trimmed.to_string())
+    } else if trimmed.starts_with("www.") {
+        Some(format!("https://{trimmed}"))
+    } else {
+        None
+    }
 }
 
 pub fn extract_single_url(text: &str) -> Option<&str> {
@@ -40,6 +53,21 @@ pub fn split_text_with_urls(text: &str) -> Vec<TextSegment> {
     }
 
     segments
+}
+
+pub fn extract_preview_urls(text: &str) -> Vec<String> {
+    let mut urls = Vec::new();
+    let mut seen = HashSet::new();
+
+    for (start, end) in extract_urls(text) {
+        if let Some(url) = normalize_url(&text[start..end]) {
+            if seen.insert(url.clone()) {
+                urls.push(url);
+            }
+        }
+    }
+
+    urls
 }
 
 #[cfg(test)]
@@ -162,5 +190,34 @@ mod tests {
             })
             .collect::<String>();
         assert!(joined.contains("https://example.com"));
+    }
+
+    #[test]
+    fn test_normalize_url_with_scheme() {
+        assert_eq!(
+            normalize_url("https://example.com"),
+            Some("https://example.com".to_string())
+        );
+    }
+
+    #[test]
+    fn test_normalize_url_with_www() {
+        assert_eq!(
+            normalize_url("www.example.com"),
+            Some("https://www.example.com".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_preview_urls_deduplicates_and_normalizes() {
+        let text = "Visit www.example.com and https://example.com and www.example.com";
+        let urls = extract_preview_urls(text);
+        assert_eq!(
+            urls,
+            vec![
+                "https://www.example.com".to_string(),
+                "https://example.com".to_string()
+            ]
+        );
     }
 }

@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 use crate::app::actions::open_url;
-use crate::data::format::{split_text_with_urls, TextSegment};
+use crate::data::format::{normalize_url, split_text_with_urls, TextSegment};
 
 #[component]
 pub fn LinkableText(text: String) -> Element {
@@ -18,7 +18,11 @@ pub fn LinkableText(text: String) -> Element {
                             a {
                                 key: "{idx}",
                                 class: "text-link",
-                                onclick: move |e: dioxus::prelude::MouseEvent| { e.prevent_default(); open_url(&url_clone); },
+                                onclick: move |e: dioxus::prelude::MouseEvent| {
+                                    e.prevent_default();
+                                    let target = normalize_url(&url_clone).unwrap_or(url_clone.clone());
+                                    open_url(&target);
+                                },
                                 href: "#",
                                 "{url}"
                             }

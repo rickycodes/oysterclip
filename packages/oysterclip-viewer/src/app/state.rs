@@ -9,7 +9,7 @@ use crate::app::selection::SelectionSnapshot;
 use crate::config::settings::PasswordConfig;
 use crate::config::source::ClipboardSource;
 use crate::data::entry::{CachedEntries, ClipboardEntry, ClipboardPayload};
-use crate::data::format::extract_single_url;
+use crate::data::format::extract_preview_urls;
 use crate::data::history::get_clipboard_entries;
 use crate::data::link_preview::{fetch_link_preview, LinkPreviewState};
 use crate::system::watcher_control::{self, WatcherStatus};
@@ -125,16 +125,22 @@ pub fn use_app_state(password_config: PasswordConfig) -> AppState {
         let preview_password_config = preview_password_config_for_loop.clone();
         async move {
             loop {
+                let mut seen_urls = HashSet::new();
                 let eligible_urls: Vec<String> = preview_entries()
                     .iter()
                     .filter(|entry| {
                         matches_query(entry, &preview_query(), &preview_password_config)
                     })
-                    .filter_map(|entry| match entry {
-                        ClipboardEntry::Text { content, .. } => {
-                            extract_single_url(content).map(str::to_string)
+                    .flat_map(|entry| match entry {
+                        ClipboardEntry::Text { content, .. } => extract_preview_urls(content),
+                        ClipboardEntry::Image { .. } => Vec::new(),
+                    })
+                    .filter(|url| {
+                        if seen_urls.contains(url) {
+                            false
+                        } else {
+                            seen_urls.insert(url.clone())
                         }
-                        ClipboardEntry::Image { .. } => None,
                     })
                     .take(PREFETCH_URL_LIMIT)
                     .collect();

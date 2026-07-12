@@ -7,14 +7,107 @@ use crate::app::actions::open_url;
 use crate::app::root::use_config;
 use crate::data::entry::ClipboardEntry;
 use crate::data::format::{
-    entry_icon_name, entry_label, extract_single_url, format_timestamp, has_urls, is_html_img_tag,
-    is_image_data_uri, mask_password,
+    entry_icon_name, entry_label, extract_preview_urls, extract_single_url, format_timestamp,
+    has_urls, is_html_img_tag, is_image_data_uri, mask_password, normalize_url,
 };
 use crate::data::link_preview::LinkPreviewState;
 use crate::ui::icon::Icon;
 use crate::ui::linkable_text::LinkableText;
 use common::{authenticate_admin_action, AuthCache};
 use common::{classification::is_password, TEXT_KIND_JSON, TEXT_KIND_PATH};
+
+#[derive(Clone, PartialEq)]
+struct LinkPreviewCardData {
+    preview_url: String,
+    class_name: &'static str,
+    click_target: Option<String>,
+    badge_text: String,
+    title: String,
+    description: Option<String>,
+    image_url: Option<String>,
+}
+
+impl LinkPreviewCardData {
+    fn from_preview_state(preview_url: String, state: Option<LinkPreviewState>) -> Self {
+        match state {
+            Some(LinkPreviewState::Ready(preview)) => Self {
+                preview_url: preview.url.clone(),
+                class_name: "link-preview-card",
+                click_target: Some(preview.url.clone()),
+                badge_text: preview
+                    .site_name
+                    .clone()
+                    .unwrap_or_else(|| preview.display_url.clone()),
+                title: preview.title,
+                description: preview.description,
+                image_url: preview.image_url,
+            },
+            Some(LinkPreviewState::Loading) => Self {
+                preview_url: preview_url.clone(),
+                class_name: "link-preview-card link-preview-card-loading",
+                click_target: None,
+                badge_text: "Previewing".to_string(),
+                title: "Fetching preview...".to_string(),
+                description: None,
+                image_url: None,
+            },
+            Some(LinkPreviewState::Failed) => Self {
+                preview_url: preview_url.clone(),
+                class_name: "link-preview-card link-preview-card-failed",
+                click_target: None,
+                badge_text: "Preview failed".to_string(),
+                title: "Could not load a preview for this link.".to_string(),
+                description: None,
+                image_url: None,
+            },
+            None => Self {
+                preview_url,
+                class_name: "link-preview-card link-preview-card-loading",
+                click_target: None,
+                badge_text: "Preview pending".to_string(),
+                title: "Waiting for preview data...".to_string(),
+                description: None,
+                image_url: None,
+            },
+        }
+    }
+}
+
+#[component]
+fn LinkPreviewCard(data: LinkPreviewCardData) -> Element {
+    let open_target = data.click_target.clone();
+    let preview_url = data.preview_url.clone();
+    let class = data.class_name;
+
+    rsx! {
+        button {
+            class: "{class}",
+            disabled: open_target.is_none(),
+            onclick: move |_| {
+                if let Some(target) = open_target.clone() {
+                    open_url(&target);
+                }
+            },
+            div { class: "link-preview-copy",
+                div { class: "link-preview-site",
+                    span { class: "link-preview-site-name", "{data.badge_text}" }
+                    span { class: "link-preview-display-url", "{preview_url}" }
+                }
+                div { class: "link-preview-title", "{data.title}" }
+                if let Some(description) = data.description.as_ref() {
+                    div { class: "link-preview-description", "{description}" }
+                }
+            }
+            if let Some(image_url) = data.image_url.as_ref() {
+                img {
+                    class: "link-preview-image",
+                    src: "{image_url}",
+                    alt: "Link preview image"
+                }
+            }
+        }
+    }
+}
 
 #[component]
 pub fn TextDetail(
@@ -43,10 +136,8 @@ pub fn TextDetail(
         },
         password_config,
     );
-    let exact_url = extract_single_url(&content).map(str::to_string);
-    let preview_state = exact_url
-        .as_ref()
-        .and_then(|url| link_previews().get(url).cloned());
+    let exact_url = extract_single_url(&content).and_then(normalize_url);
+    let preview_urls = extract_preview_urls(&content);
     let is_data_uri = is_image_data_uri(&content);
     let is_password_text = is_password(
         &content,
@@ -66,6 +157,22 @@ pub fn TextDetail(
     );
     let detail_label = detail_type.label();
     let display_data = detail_type.extract_display_data(&content, password_config);
+    let mut preview_cards: Vec<LinkPreviewCardData> = exact_url
+        .as_ref()
+        .map(|url| LinkPreviewCardData::from_preview_state(url.clone(), link_previews().get(url).cloned()))
+        .into_iter()
+        .collect();
+    preview_cards.extend(
+        preview_urls
+        .iter()
+        .filter(|preview_url| exact_url.as_deref() != Some(preview_url.as_str()))
+            .map(|preview_url| {
+                LinkPreviewCardData::from_preview_state(
+                    preview_url.clone(),
+                    link_previews().get(preview_url).cloned(),
+                )
+            }),
+    );
 
     rsx! {
         div { class: "detail",
@@ -78,36 +185,6 @@ pub fn TextDetail(
                     span { class: "detail-type", "{detail_label}" }
                 }
                 span { class: "detail-ts", "Timestamp: {format_timestamp(timestamp)}" }
-            }
-            if let Some(LinkPreviewState::Ready(preview)) = preview_state {
-                {
-                    let open_target = preview.url.clone();
-                    rsx! {
-                        button {
-                            class: "link-preview-card",
-                            onclick: move |_| open_url(&open_target),
-                            div { class: "link-preview-copy",
-                                div { class: "link-preview-site",
-                                    if let Some(site_name) = preview.site_name.as_ref() {
-                                        span { class: "link-preview-site-name", "{site_name}" }
-                                    }
-                                    span { class: "link-preview-display-url", "{preview.display_url}" }
-                                }
-                                div { class: "link-preview-title", "{preview.title}" }
-                                if let Some(description) = preview.description.as_ref() {
-                                    div { class: "link-preview-description", "{description}" }
-                                }
-                            }
-                            if let Some(image_url) = preview.image_url.as_ref() {
-                                img {
-                                    class: "link-preview-image",
-                                    src: "{image_url}",
-                                    alt: "Link preview image"
-                                }
-                            }
-                        }
-                    }
-                }
             }
             if let Some(summary) = &display_data.summary {
                 div { class: "detail-note", "{summary}. Copy still uses the full value." }
@@ -145,9 +222,18 @@ pub fn TextDetail(
                     img { class: "detail-image", src: "{image_src}", alt: "Extracted HTML image" }
                 }
                 div { class: "detail-image-hint", "HTML image extracted from clipboard." }
-            } else if has_urls(&content) {
-                div { class: "detail-text detail-url",
-                    LinkableText { text: content.clone() }
+            } else if has_urls(&content) || !preview_cards.is_empty() {
+                div { class: "detail-url-block",
+                    div { class: "detail-text detail-url",
+                        LinkableText { text: content.clone() }
+                    }
+                    if !preview_cards.is_empty() {
+                        div { class: "detail-link-previews",
+                            for preview_card in preview_cards.iter() {
+                                LinkPreviewCard { data: preview_card.clone() }
+                            }
+                        }
+                    }
                 }
             } else {
                 pre { class: "detail-text", "{content}" }
