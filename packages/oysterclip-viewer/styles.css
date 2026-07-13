@@ -37,8 +37,8 @@
   --help-overlay-bg: rgba(3, 4, 8, 0.84);
   --help-dialog-bg: #11131a;
   --help-key-bg: rgba(255, 255, 255, 0.05);
-  --radius-sm: 6px;
-  --radius-md: 8px;
+  --radius-sm: 0;
+  --radius-md: 0;
   --mono-font: "IBM Plex Mono", "JetBrains Mono", monospace;
   --mono-label: #a8afc0;
   font-family: "Satoshi", "General Sans", "Avenir Next", sans-serif;
@@ -91,13 +91,17 @@
   --help-overlay-bg: rgba(203, 213, 225, 0.78);
   --help-dialog-bg: #d5dce5;
   --help-key-bg: #e3e8ee;
-  --radius-sm: 6px;
-  --radius-md: 8px;
+  --radius-sm: 0;
+  --radius-md: 0;
   --mono-label: #4b5563;
 }
 
 * {
   box-sizing: border-box;
+}
+
+* {
+  border-radius: 0 !important;
 }
 
 body {
@@ -1527,7 +1531,7 @@ button:disabled {
   appearance: none;
   width: 16px;
   height: 16px;
-  border-radius: 50%;
+  border-radius: 50% !important;
   background: var(--accent);
   cursor: pointer;
   border: 1px solid var(--accent);
@@ -1542,7 +1546,7 @@ button:disabled {
 .settings-slider::-moz-range-thumb {
   width: 16px;
   height: 16px;
-  border-radius: 50%;
+  border-radius: 50% !important;
   background: var(--accent);
   cursor: pointer;
   border: 1px solid var(--accent);
