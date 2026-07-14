@@ -52,7 +52,8 @@
 
 :root.light-mode,
 .app.light-mode,
-.help-overlay.light-mode {
+.help-overlay.light-mode,
+.modal-overlay.light-mode {
   color-scheme: light;
   --bg: #e3e8ee;
   --bg-soft: #d9e0e8;
@@ -985,10 +986,44 @@ button:disabled {
   color: var(--ink-soft);
 }
 
-.help-row .help-tip {
+.help-tip {
   font-size: 12px;
   color: var(--ink-muted);
   font-style: italic;
+}
+
+:root.light-mode .help-tip,
+.app.light-mode .help-tip,
+.help-overlay.light-mode .help-tip,
+.modal-overlay.light-mode .help-tip {
+  color: var(--accent-soft);
+}
+
+:root.light-mode .watcher-pill.running,
+.app.light-mode .watcher-pill.running,
+.help-overlay.light-mode .watcher-pill.running,
+.modal-overlay.light-mode .watcher-pill.running {
+  border-color: rgba(16, 185, 129, 0.22);
+  background: rgba(16, 185, 129, 0.08);
+  color: #1f2937;
+}
+
+:root.light-mode .watcher-pill.paused,
+.app.light-mode .watcher-pill.paused,
+.help-overlay.light-mode .watcher-pill.paused,
+.modal-overlay.light-mode .watcher-pill.paused {
+  border-color: rgba(245, 158, 11, 0.22);
+  background: rgba(245, 158, 11, 0.08);
+  color: #374151;
+}
+
+:root.light-mode .watcher-pill.offline,
+.app.light-mode .watcher-pill.offline,
+.help-overlay.light-mode .watcher-pill.offline,
+.modal-overlay.light-mode .watcher-pill.offline {
+  border-color: var(--status-border);
+  background: var(--status-bg);
+  color: #374151;
 }
 
 .theme-toggle-btn {
@@ -1594,6 +1629,18 @@ button:disabled {
   font-size: 13px;
   font-family: var(--mono-font);
   transition: all 150ms ease;
+}
+
+.settings-text-input::placeholder {
+  color: var(--ink-muted);
+  opacity: 1;
+}
+
+:root.light-mode .settings-text-input::placeholder,
+.app.light-mode .settings-text-input::placeholder,
+.help-overlay.light-mode .settings-text-input::placeholder,
+.modal-overlay.light-mode .settings-text-input::placeholder {
+  color: #6b7280;
 }
 
 .settings-text-input:focus {

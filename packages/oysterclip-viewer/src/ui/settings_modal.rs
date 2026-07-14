@@ -1,12 +1,29 @@
 use dioxus::prelude::*;
+use std::rc::Rc;
 
 use crate::app::root::use_config;
+use crate::ui::theme::Theme;
 use common::classification::PASSWORD_LEN;
 
 #[component]
-pub fn SettingsModal(mut is_open: Signal<bool>) -> Element {
+pub fn SettingsModal(
+    mut is_open: Signal<bool>,
+    current_theme: Theme,
+    on_theme_toggle: EventHandler<()>,
+) -> Element {
     let mut config_signal = use_config();
     let config = config_signal();
+    let mut overlay_ref: Signal<Option<Rc<dioxus::prelude::MountedData>>> = use_signal(|| None);
+
+    use_effect(move || {
+        if is_open() {
+            if let Some(el) = overlay_ref() {
+                spawn(async move {
+                    let _ = el.set_focus(true).await;
+                });
+            }
+        }
+    });
 
     let mut password_len_enabled = use_signal(|| config.password.len.is_some());
     let mut password_len_value = use_signal(|| config.password.len.unwrap_or(PASSWORD_LEN));
@@ -48,7 +65,16 @@ pub fn SettingsModal(mut is_open: Signal<bool>) -> Element {
 
     if is_open() {
         rsx! {
-            div { class: format!("modal-overlay {}", if is_open() { "is-open" } else { "" }),
+            div {
+                class: format!("modal-overlay is-open {}", current_theme.class_name()),
+                tabindex: 0,
+                onmounted: move |e| overlay_ref.set(Some(e.data())),
+                onkeydown: move |event: KeyboardEvent| {
+                    if event.code() == Code::Escape {
+                        event.prevent_default();
+                        is_open.set(false);
+                    }
+                },
                 div { class: "modal",
                     div { class: "modal-header",
                         h2 { "Settings" }
@@ -59,6 +85,20 @@ pub fn SettingsModal(mut is_open: Signal<bool>) -> Element {
                         }
                     }
                     div { class: "modal-body",
+                        div { class: "settings-section",
+                            div { class: "settings-label-with-badge",
+                                label { "Appearance" }
+                                span { class: "settings-badge", "{current_theme.label()}" }
+                            }
+                            div { class: "settings-toggle",
+                                button {
+                                    class: "theme-toggle-btn",
+                                    onclick: move |_| on_theme_toggle.call(()),
+                                    "Switch to {current_theme.toggle().label()} Mode"
+                                }
+                            }
+                            div { class: "help-tip", "This overrides the system theme setting." }
+                        }
                         div { class: "settings-section",
                             div { class: "settings-label-with-badge",
                                 label { "Minimum Password Length" }

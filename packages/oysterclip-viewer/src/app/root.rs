@@ -28,7 +28,7 @@ pub fn App() -> Element {
     // Load config once at app startup and provide globally
     let config = AppConfig::load();
     let config_for_signal = config.clone();
-    let config_signal = use_signal(move || config_for_signal.clone());
+    let mut config_signal = use_signal(move || config_for_signal.clone());
     use_context_provider(move || config_signal);
     let notepad_handler = config.get_handler("notepad");
 
@@ -368,12 +368,34 @@ pub fn App() -> Element {
                 let new_theme = theme().toggle();
                 theme.set(new_theme);
                 save_theme(new_theme);
+
+                let mut updated_config = config_signal().clone();
+                updated_config.theme.mode = Some(if new_theme == crate::ui::theme::Theme::Light {
+                    common::THEME_LIGHT.to_string()
+                } else {
+                    common::THEME_DARK.to_string()
+                });
+                config_signal.set(updated_config);
             },
             watcher_status: current_watcher_status,
             on_toggle_watcher: handle_toggle_watcher,
         }
         SettingsModal {
             is_open: settings_open,
+            current_theme: theme(),
+            on_theme_toggle: move |_| {
+                let new_theme = theme().toggle();
+                theme.set(new_theme);
+                save_theme(new_theme);
+
+                let mut updated_config = config_signal().clone();
+                updated_config.theme.mode = Some(if new_theme == crate::ui::theme::Theme::Light {
+                    common::THEME_LIGHT.to_string()
+                } else {
+                    common::THEME_DARK.to_string()
+                });
+                config_signal.set(updated_config);
+            },
         }
     }
 }

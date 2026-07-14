@@ -159,13 +159,15 @@ pub fn TextDetail(
     let display_data = detail_type.extract_display_data(&content, password_config);
     let mut preview_cards: Vec<LinkPreviewCardData> = exact_url
         .as_ref()
-        .map(|url| LinkPreviewCardData::from_preview_state(url.clone(), link_previews().get(url).cloned()))
+        .map(|url| {
+            LinkPreviewCardData::from_preview_state(url.clone(), link_previews().get(url).cloned())
+        })
         .into_iter()
         .collect();
     preview_cards.extend(
         preview_urls
-        .iter()
-        .filter(|preview_url| exact_url.as_deref() != Some(preview_url.as_str()))
+            .iter()
+            .filter(|preview_url| exact_url.as_deref() != Some(preview_url.as_str()))
             .map(|preview_url| {
                 LinkPreviewCardData::from_preview_state(
                     preview_url.clone(),
