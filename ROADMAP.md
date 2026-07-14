@@ -439,6 +439,13 @@ Image entries currently have no keyboard action other than viewing the thumbnail
   (`xdg-open` on Linux, `open` on macOS)
 - Show feedback consistent with the copy flash
 
+### ~~3.14 Multiple link preview unfurls~~ ✅ COMPLETE
+Entries that contain more than one URL now render multiple Open Graph preview cards in the
+detail pane instead of only unfurling the first link.
+- URLs are extracted, normalized, and deduplicated before preview fetches
+- Exact single-URL matches still render as the primary preview
+- Preview cards are fetched and cached independently per URL
+
 ---
 
 ## Tier 4 — New Capabilities
